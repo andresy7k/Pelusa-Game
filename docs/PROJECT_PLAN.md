@@ -148,12 +148,16 @@ Ver `README.md` para instalar JDK 17. CI (`ci.yml` con Temurin 17) lo verificar�
 ## Phase 4 — REST API
 **Objetivo:** exponer dominio vía REST validado, backend como juez.
 **Dependencias:** Phase 3. **Archivos:** controllers, DTOs, services transaccionales, `MockMvc` tests.
+**Estado 2026-10-07:** implementado en `feature/rest-api`, **CI verde 43/43** (35 dominio+f fundación + 8 API).
+Bugs cazados por CI: orden FK en create, `current_player_id` sin rotar, `GAME_NOT_FINISHED` 422 vs contrato 409,
+bulk updates que saltaban el contexto de persistencia.
 **Criterio de terminado:** endpoints crean/inician/consultan/operan partida con 200/201/400/404/409/422 correctos, validación DTO, 409 en doble-draw concurrente, MockMvc cubre controller+service+persistencia, PR verde.
-- [ ] `POST /api/games`, `POST /api/games/{id}/start`, `GET /api/games/{id}`
-- [ ] `POST /api/games/{id}/draw`, `/stand`, `/stash`, `/steal`
-- [ ] `GET /api/games/history`, `GET /api/games/{id}/result`
-- [ ] Manejo errores consistente + rate-limit creación
-- [ ] REST tests (status, body, validación, transiciones ilegales)
+- [x] `POST /api/games`, `POST /api/games/{id}/start`, `GET /api/games/{id}`
+- [x] `POST /api/games/{id}/draw`, `/stand`, `/stash`, `/steal`
+- [x] `GET /api/games/history`, `GET /api/games/{id}/result`
+- [x] Manejo errores consistente + idempotencia por clave (rate-limit: Phase 11)
+- [x] REST tests (status, body, validación, transiciones ilegales)
+- [ ] PR a main mergeado (requiere tu autorización)
 
 ## Phase 5 — Frontend foundation
 **Objetivo:** shell navegable que habla con API real, sin lógica de reglas.
