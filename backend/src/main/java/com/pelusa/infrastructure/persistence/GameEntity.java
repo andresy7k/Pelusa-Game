@@ -45,4 +45,11 @@ public class GameEntity {
 
   public UUID getId() { return id; }
   public String getStatus() { return status; }
+  public UUID getCurrentPlayerId() { return currentPlayerId; }
+  public UUID getWinnerId() { return winnerId; }
+  public void setStatus(String status) { this.status = status; }
+  public void setCurrentPlayerId(UUID id) { this.currentPlayerId = id; }
+  public void setWinnerId(UUID id) { this.winnerId = id; }
+  public void setStartedAt(OffsetDateTime t) { this.startedAt = t; }
+  public void setFinishedAt(OffsetDateTime t) { this.finishedAt = t; }
 }

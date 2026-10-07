@@ -28,6 +28,12 @@ public class TurnEntity {
   @Column(columnDefinition = "TEXT")
   private String detail;
 
+  @Column(nullable = false)
+  private boolean acted;
+
+  @Column(nullable = false)
+  private boolean stashed;
+
   protected TurnEntity() {}
 
   public TurnEntity(UUID id, UUID gameId, UUID playerId) {
@@ -38,4 +44,13 @@ public class TurnEntity {
   }
 
   public UUID getId() { return id; }
+  public UUID getPlayerId() { return playerId; }
+  public String getDetail() { return detail; }
+  public boolean isActed() { return acted; }
+  public boolean isStashed() { return stashed; }
+  public void setEndedAt(OffsetDateTime t) { this.endedAt = t; }
+  public void setOutcome(String outcome) { this.outcome = outcome; }
+  public void setDetail(String detail) { this.detail = detail; }
+  public void setActed(boolean acted) { this.acted = acted; }
+  public void setStashed(boolean stashed) { this.stashed = stashed; }
 }
