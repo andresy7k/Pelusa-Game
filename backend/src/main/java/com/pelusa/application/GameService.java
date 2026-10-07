@@ -292,6 +292,9 @@ public class GameService {
   private void closeAndRotate(UUID gameId, TurnEntity turn, UUID playerId, Table table, String outcome) {
     turn.setEndedAt(OffsetDateTime.now());
     turn.setOutcome(outcome);
+    // La Table rotó en memoria: hay que persistir la rotación o el turno
+    // quedaría congelado en el jugador anterior (bug real cazado por CI).
+    games.getReferenceById(gameId).setCurrentPlayerId(table.currentPlayerId());
     turns.save(new TurnEntity(UUID.randomUUID(), gameId, table.currentPlayerId()));
   }
 
