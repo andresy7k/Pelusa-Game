@@ -47,7 +47,7 @@ CREATE TABLE turns (
   game_id    UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   player_id  UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
   started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  ended_at   TIMESTAMPTZ NULL,
+  ended_at   TIMESTAMP WITH TIME ZONE NULL,
   outcome    VARCHAR(16) NULL CHECK (outcome IN ('STAND','BUST','STEAL','AUTO_FINISH')),
   detail     TEXT NULL,
   CONSTRAINT chk_turn_end CHECK (ended_at IS NULL OR outcome IS NOT NULL)
