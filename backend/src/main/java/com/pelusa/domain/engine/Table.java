@@ -210,7 +210,9 @@ public class Table {
     this.stashedThisTurn = stashedFlag;
   }
 
-  // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---  public GameStatus status() {
+  // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---
+
+  public GameStatus status() {
     return status;
   }
 
