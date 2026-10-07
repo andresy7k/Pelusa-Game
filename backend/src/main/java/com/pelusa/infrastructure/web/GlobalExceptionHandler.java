@@ -22,11 +22,10 @@ public class GlobalExceptionHandler {
   private static final Set<String> NOT_FOUND =
       Set.of("GAME_NOT_FOUND");
   private static final Set<String> CONFLICT =
-      Set.of("GAME_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED", "ALREADY_STASHED_THIS_TURN",
-          "CONCURRENT_TURN");
+      Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED",
+          "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN");
   private static final Set<String> UNPROCESSABLE =
-      Set.of("DUST_PILE_EMPTY", "NO_STASHABLE_CARDS", "NO_STEALABLE_CARDS", "INVALID_PLAYER",
-          "GAME_NOT_FINISHED");
+      Set.of("DUST_PILE_EMPTY", "NO_STASHABLE_CARDS", "NO_STEALABLE_CARDS", "INVALID_PLAYER");
 
   @ExceptionHandler(com.pelusa.domain.engine.DomainException.class)
   public ProblemDetail domain(com.pelusa.domain.engine.DomainException e, HttpServletRequest req) {
