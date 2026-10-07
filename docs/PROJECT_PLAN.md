@@ -121,12 +121,16 @@ README.md
 ## Phase 2 — Backend foundation
 **Objetivo:** esqueleto Spring que compila, migra y responde health real.
 **Dependencias:** Phase 1. **Archivos:** `backend/*`, `docker-compose.yml`, `ci.yml` básico.
+**Estado 2026-10-06:** código completo en `feature/backend-foundation`, revisión estática OK.
+⛔ Build SIN verificar en esta máquina (JRE 8, sin Maven/Docker/winget; descarga JDK 24MB/10min → inviable en sesión).
+Ver `README.md` para instalar JDK 17. CI (`ci.yml` con Temurin 17) lo verificará.
 **Criterio de terminado:** `GET /actuator/health` verifica DB, Flyway V1 aplica en Postgres y H2, CI build verde, PR mergeado.
-- [ ] Scaffold Spring Boot 3 + JPA + Validation + Actuator
-- [ ] Config por entorno (sin secretos), Hikari default, logs estructurados + requestId
-- [ ] Flyway V1 (games, players, cards, turns), índices justificados
-- [ ] GlobalExceptionHandler RFC7807 + HealthIndicator DB
-- [ ] CI: build + unit skeleton
+- [x] Scaffold Spring Boot 3 + JPA + Validation + Actuator
+- [x] Config por entorno (sin secretos), Hikari default, logs estructurados + requestId
+- [x] Flyway V1 (games, players, cards, turns), índices justificados
+- [x] GlobalExceptionHandler RFC7807 + HealthIndicator DB
+- [x] CI: build + unit skeleton
+- [ ] `mvn verify` en máquina con JDK 17 (BLOQUEADO aquí, pendiente)
 
 ## Phase 3 — Game domain
 **Objetivo:** reglas puras 100% testeadas sin Spring ni DB.
