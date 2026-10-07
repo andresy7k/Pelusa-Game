@@ -67,6 +67,15 @@
 **Riesgos:** Puede quedar un error de compilación menor hasta correr CI — mitigado con `ci.yml` que corre `mvn verify` en cada push.
 **Cómo defenderlo:** "El build está pendiente de JDK 17 por entorno, no por código; la V1 ya es portable H2↔Postgres y el CI es el juez. Les muestro el `diff` y el checklist."
 
+### 2026-10-06 — Phase 3: dominio puro que se lee como las reglas + 2 bugs cazados sin compilar
+**Concepto:** `Table` es la partida en memoria; cada método es una regla con su `errorCode`. Records para `Card/DrawResult/StealResult/Score`, puertos para lo aleatorio.
+**Problema:** Sin compilador ni tests corriendo, cada línea debe defenderse sola.
+**Solución:** `DeckFactory` (110), `BustPolicy` (frecuencia>=2 post-colocación), `StashPolicy` (`actedThisTurn` cubre draw Y steal), `StealPolicy` (todas las del valor, sin mutar), `ScoringService` (Σ + lexicográfico), `Table` (máquina de turnos + `finish()` atómico + `GAME_FINISHED` terminal). 6 clases de test con mazos amañados como test seam.
+**Por qué:** Si el profe pide "roba solo 1 en vez de todas", cambias `stealCurrent` y 1 test; si pide otro desempate, cambias `compare`.
+**Alternativas:** Motor con Strings/ints sueltos (ilegible); lógica en el service transaccional (intesteable sin Spring).
+**Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DUST_PILE_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
+**Cómo defenderlo:** "Miren `TableTest`: 10 tests con mazos amañados cubren bust, robo total, guardado, fin y empate. El caso borde del bust-final lo encontramos sin compilar, solo leyendo."
+
 ---
 <!-- Plantilla para próximas entradas:
 ### Fecha — Título
