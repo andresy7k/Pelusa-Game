@@ -53,11 +53,12 @@
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- H2 solo tests: integración rápida sin Docker -->
+    <!-- H2 en runtime: permite correr local sin Docker (perfil local).
+         Prod sigue usando Postgres por variables de entorno. -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <scope>test</scope>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
