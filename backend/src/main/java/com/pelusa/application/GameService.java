@@ -87,6 +87,9 @@ public class GameService {
     for (int i = 0; i < names.size(); i++) {
       ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));
     }
+    // Orden obligatorio: primero el padre (games), luego los hijos (players).
+    // Al revés, la FK players.game_id apunta a una fila que aún no existe → 500.
+    games.save(game);
     try {
       players.saveAll(ps);
     } catch (DataIntegrityViolationException e) {
