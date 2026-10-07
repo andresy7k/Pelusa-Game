@@ -135,12 +135,15 @@ Ver `README.md` para instalar JDK 17. CI (`ci.yml` con Temurin 17) lo verificar�
 ## Phase 3 — Game domain
 **Objetivo:** reglas puras 100% testeadas sin Spring ni DB.
 **Dependencias:** Phase 2. **Archivos:** `backend/.../domain/*`, `*Test.java` unitarios.
+**Estado 2026-10-06:** código + tests escritos en `feature/game-domain`, revisión estática OK.
+⛔ Tests SIN correr aquí (sin JDK/Maven; `gh` sin login → sin CI aún). El CI será el juez al pushear.
 **Criterio de terminado:** `DeckFactory` (110 exactas), `TurnPolicy` (pérdida/continuar), `ScoringService` + desempate, `GameEngine` (stash/draw/steal/stand/bust/finish) con tests parametrizados + Pitest alto en paquete domain, PR verde.
-- [ ] DeckFactory + ShufflePort (seed inyectable)
-- [ ] TurnPolicy (regla ≥3 + repetido)
-- [ ] Stash / Draw / Steal / Bust / Finish
-- [ ] Scoring + tiebreak
-- [ ] Unit tests JUnit5+Mockito+AssertJ (normales, edge, errores, invariantes)
+- [x] DeckFactory + ShufflePort (seed inyectable)
+- [x] TurnPolicy (regla ≥3 + repetido) → `BustPolicy` + tabla de verdad 2×2
+- [x] Stash / Draw / Steal / Bust / Finish → `Table` + `StashPolicy`/`StealPolicy`
+- [x] Scoring + tiebreak → `ScoringService` lexicográfico 1→10
+- [x] Unit tests JUnit5+AssertJ (normales, edge, errores, invariantes)
+- [ ] `mvn test` verde + Pitest dominio (BLOQUEADO: pendiente JDK 17 / CI con remote)
 
 ## Phase 4 — REST API
 **Objetivo:** exponer dominio vía REST validado, backend como juez.
