@@ -1,0 +1,30 @@
+/* Phase 5: estilos funcionales mínimos. La identidad visual (Phase 6)
+   definirá tipografía, materiales y motion; esto solo garantiza legibilidad. */
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+header {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.error {
+  color: #a00;
+  font-weight: 600;
+}
+article {
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+}
