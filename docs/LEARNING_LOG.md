@@ -58,6 +58,15 @@
 **Riesgos:** Mappers aburridos y divergencia Postgres/H2 — mitigado con SQL estándar y CI dual en Phase 10.
 **Cómo defenderlo:** "Les muestro `domain/` sin un solo import Spring, luego el test de 110 cartas y el 409 concurrente. El cambio de desempate es 1 función."
 
+### 2026-10-06 — Phase 2: esqueleto antes que reglas + honestidad del build
+**Concepto:** Foundation primero (compila, migra, health real) y dominio después. Y nunca afirmar un verde que no corrió.
+**Problema:** Esta máquina tiene JRE 8 sin Maven/Docker/winget; Spring Boot 3 exige JDK 17. Descargar el JDK aquí iba a 40KB/s.
+**Solución:** Esqueleto completo (`pom`, `PelusaApplication`, `application.yml` + perfil `test` H2, V1, 4 entidades mínimas, `GameRepository`, `RequestIdFilter`, `GlobalExceptionHandler` RFC7807, `/api/health`, 2 tests, `docker-compose` Postgres 16, `ci.yml` Temurin 17, `README` con instalación). Revisión estática en vez de `mvn verify`, marcado explícito como pendiente.
+**Por qué:** La revisión estática cazó 4 bugs reales de portabilidad H2: `TIMESTAMPTZ`, `DEFERRABLE`, índice parcial `WHERE`, columnas `POSITION`/`VALUE` reservadas → `seat`/`card_value` solo en SQL+`@Column`.
+**Alternativas:** Afirmar "compila" sin compilar (deshonesto, prohibido); o bloquear todo hasta tener JDK (pierde la fase entera por entorno).
+**Riesgos:** Puede quedar un error de compilación menor hasta correr CI — mitigado con `ci.yml` que corre `mvn verify` en cada push.
+**Cómo defenderlo:** "El build está pendiente de JDK 17 por entorno, no por código; la V1 ya es portable H2↔Postgres y el CI es el juez. Les muestro el `diff` y el checklist."
+
 ---
 <!-- Plantilla para próximas entradas:
 ### Fecha — Título

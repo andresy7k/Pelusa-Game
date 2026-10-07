@@ -1,0 +1,47 @@
+# Phase 2 — config por entorno. Cero secretos en repo: todo lo sensible
+# llega por variables de entorno (ver .env.example). Valores de abajo = defaults locales.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pelusa}
+    username: ${SPRING_DATASOURCE_USERNAME:pelusa}
+    password: ${SPRING_DATASOURCE_PASSWORD:pelusa}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jpa:
+    # Migraciones mandan (Flyway). validate = la app falla si entidad y tabla divergen.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Nada de ddl-auto=update en prod: Flyway es la única fuente del esquema.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss} %-5level [%X{requestId:-n/a}] %logger{36} - %msg%n"
+  level:
+    org.hibernate.SQL: WARN
