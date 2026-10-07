@@ -76,6 +76,12 @@
 **Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DUST_PILE_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
 **Cómo defenderlo:** "Miren `TableTest`: 10 tests con mazos amañados cubren bust, robo total, guardado, fin y empate. El caso borde del bust-final lo encontramos sin compilar, solo leyendo."
 
+### 2026-10-07 — Phase 4: el service como traductor + 3 bugs que solo el CI ve
+**Concepto:** `guarded()` (validar→hidratar→ejecutar→persistir) + writes sobre entidades gestionadas + idempotencia por clave.
+**Problema:** Tres bugs invisibles a ojo: (1) `current_player_id` no rotaba en DB (estado en memoria sí, persistido no); (2) `GAME_NOT_FINISHED` iba a 422 contra contrato 409 — lo cazó el test escrito por el autor; (3) bulk `@Modifying` escribía la DB saltándose el contexto de persistencia, y la lectura posterior en la misma tx devolvía datos viejos → se eliminaron, ahora se mutan entidades gestionadas (dirty checking).
+**Por qué:** Cada bug enseña una capa: (1) reconstruir≠persistir, (2) el contrato manda, (3) JPA tiene caché de primer nivel y los bulks lo ignoran.
+**Cómo defenderlo:** "¿Doble request? `@Version`→409 más clave de idempotencia→200. ¿Bulk updates? Los prohibimos tras ver datos fantasma en el CI."
+
 ---
 <!-- Plantilla para próximas entradas:
 ### Fecha — Título
