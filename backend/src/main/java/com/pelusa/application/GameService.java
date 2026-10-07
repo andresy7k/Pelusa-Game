@@ -132,9 +132,9 @@ public class GameService {
 
   @Transactional
   public GameView stash(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn) -> {
+    return guarded(gameId, playerId, key, (t, turn, rows) -> {
       int count = t.stashCurrent();
-      cards.stashFront(gameId, playerId);
+      frontRows(rows, playerId).forEach(c -> c.setLocation("STASHED"));
       turn.setStashed(true);
       Map<String, Object> ev = event("STASH", Map.of("count", count, "playerId", playerId.toString()));
       turn.setDetail(toJson(ev));
@@ -144,22 +144,20 @@ public class GameService {
 
   @Transactional
   public GameView draw(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn) -> {
-      CardEntity top =
-          cards.findFirstByGameIdAndLocationOrderByPileOrderAsc(gameId, "DUST_PILE")
-              .orElseThrow(() -> new DomainException("DUST_PILE_EMPTY", "El montón de polvo está vacío"));
+    return guarded(gameId, playerId, key, (t, turn, rows) -> {
+      CardEntity top = topDust(rows)
+          .orElseThrow(() -> new DomainException("DUST_PILE_EMPTY", "El montón de polvo está vacío"));
       DrawResult r = t.drawCurrent();
       top.setLocation("FRONT");
       top.setOwnerPlayerId(playerId);
-      cards.save(top);
       turn.setActed(true);
       Map<String, Object> ev = event("DRAW", Map.of("value", r.drawn().value(), "bust", r.bust()));
       turn.setDetail(toJson(ev));
       if (r.bust()) {
-        cards.discardFront(gameId, playerId);
+        frontRows(rows, playerId).forEach(c -> c.setLocation("DISCARDED"));
       }
       if (r.gameFinished()) {
-        return finishGame(gameId, turn, t, ev, r.bust() ? "BUST" : "AUTO_FINISH");
+        return finishGame(gameId, turn, t, rows, ev, r.bust() ? "BUST" : "AUTO_FINISH");
       }
       if (r.bust()) {
         closeAndRotate(gameId, turn, playerId, t, "BUST");
@@ -170,7 +168,7 @@ public class GameService {
 
   @Transactional
   public GameView stand(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn) -> {
+    return guarded(gameId, playerId, key, (t, turn, rows) -> {
       t.standCurrent();
       closeAndRotate(gameId, turn, playerId, t, "STAND");
       return event("STAND", Map.of("playerId", playerId.toString()));
@@ -179,9 +177,13 @@ public class GameService {
 
   @Transactional
   public GameView steal(UUID gameId, UUID playerId, String key, int value) {
-    return guarded(gameId, playerId, key, (t, turn) -> {
+    return guarded(gameId, playerId, key, (t, turn, rows) -> {
       StealResult r = t.stealCurrent(value);
-      cards.stealValue(gameId, value, playerId);
+      rows.stream()
+          .filter(c -> "FRONT".equals(c.getLocation())
+              && c.getValue() == value
+              && !playerId.equals(c.getOwnerPlayerId()))
+          .forEach(c -> c.setOwnerPlayerId(playerId));
       turn.setActed(true);
       Map<String, Object> ev = event("STEAL", Map.of("value", value, "count", r.count()));
       turn.setDetail(toJson(ev));
@@ -211,7 +213,7 @@ public class GameService {
   // ---------- internas ----------
 
   private interface Action {
-    Map<String, Object> run(Table table, TurnEntity turn);
+    Map<String, Object> run(Table table, TurnEntity turn, List<CardEntity> rows);
   }
 
   private GameView guarded(UUID gameId, UUID playerId, String key, Action action) {
@@ -229,11 +231,12 @@ public class GameService {
     if (key != null && keys.existsByGameIdAndKey(gameId, key)) {
       return view(gameId, null); // reintento: mismo estado, sin actuar
     }
-    Table table = rebuild(gameId, ps);
+    List<CardEntity> rows = cards.findByGameId(gameId);
+    Table table = rebuild(gameId, game, ps, rows);
     TurnEntity turn =
         turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId)
             .orElseGet(() -> turns.save(new TurnEntity(UUID.randomUUID(), gameId, playerId)));
-    Map<String, Object> lastEvent = action.run(table, turn);
+    Map<String, Object> lastEvent = action.run(table, turn, rows);
     if (key != null) {
       try {
         keys.save(new ActionKeyEntity(gameId, key));
@@ -247,9 +250,8 @@ public class GameService {
     return view(gameId, lastEvent);
   }
 
-  private Table rebuild(UUID gameId, List<PlayerEntity> ps) {
+  private Table rebuild(UUID gameId, GameEntity game, List<PlayerEntity> ps, List<CardEntity> rows) {
     List<UUID> order = ps.stream().map(PlayerEntity::getId).toList();
-    List<CardEntity> rows = cards.findByGameId(gameId);
     List<Card> dust =
         rows.stream()
             .filter(c -> "DUST_PILE".equals(c.getLocation()))
@@ -257,15 +259,13 @@ public class GameService {
             .map(c -> new Card(c.getValue()))
             .toList();
     int first = 0;
-    UUID current =
-        games.getReferenceById(gameId).getCurrentPlayerId();
+    UUID current = game.getCurrentPlayerId();
     for (int i = 0; i < order.size(); i++) {
       if (order.get(i).equals(current)) {
         first = i;
       }
     }
     Table table = new Table(order, dust, first);
-    // currentIndex ya quedó en el jugador actual gracias a first
     Map<UUID, List<Card>> fronts = new HashMap<>();
     Map<UUID, List<Card>> saved = new HashMap<>();
     List<Card> discarded = new ArrayList<>();
@@ -285,8 +285,21 @@ public class GameService {
       stashedFlag = open.get().isStashed();
     }
     table.hydrate(fronts, saved, discarded, acted, stashedFlag);
-    // Gira el índice al jugador actual (el constructor parte de first)
     return table;
+  }
+
+  /** Filas gestionadas del frente de un jugador (dirty checking las persiste). */
+  private static List<CardEntity> frontRows(List<CardEntity> rows, UUID owner) {
+    return rows.stream()
+        .filter(c -> "FRONT".equals(c.getLocation()) && owner.equals(c.getOwnerPlayerId()))
+        .toList();
+  }
+
+  /** Primera carta del polvo por pile_order (ya cargada, sin query extra). */
+  private static java.util.Optional<CardEntity> topDust(List<CardEntity> rows) {
+    return rows.stream()
+        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+        .min(Comparator.comparingInt(CardEntity::getPileOrder));
   }
 
   private void closeAndRotate(UUID gameId, TurnEntity turn, UUID playerId, Table table, String outcome) {
@@ -299,8 +312,10 @@ public class GameService {
   }
 
   private Map<String, Object> finishGame(UUID gameId, TurnEntity turn, Table table,
-      Map<String, Object> lastEvent, String outcome) {
-    cards.stashAllFronts(gameId);
+      List<CardEntity> rows, Map<String, Object> lastEvent, String outcome) {
+    rows.stream()
+        .filter(c -> "FRONT".equals(c.getLocation()))
+        .forEach(c -> c.setLocation("STASHED"));
     GameEntity game = games.getReferenceById(gameId);
     game.setStatus("FINISHED");
     game.setFinishedAt(OffsetDateTime.now());
