@@ -1,0 +1,13 @@
+# Perfil local: jugar sin Docker. H2 en archivo (persiste entre reinicios).
+# Uso: SPRING_PROFILES_ACTIVE=local java -jar pelusa-game-*.jar
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/pelusa;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
