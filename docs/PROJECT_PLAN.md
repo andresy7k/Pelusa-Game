@@ -162,10 +162,11 @@ bulk updates que saltaban el contexto de persistencia.
 ## Phase 5 — Frontend foundation
 **Objetivo:** shell navegable que habla con API real, sin lógica de reglas.
 **Dependencias:** Phase 4 (API estable). **Archivos:** `frontend/*`, cliente API tipado.
+**Estado 2026-10-07:** implementado en `feature/frontend-foundation`, build verde local (tsc + vite) y job CI.
 **Criterio de terminado:** crear/unirse/ver estado/turno desde UI contra backend local, manejo de errores 4xx legible, skeleton responsive, PR verde.
-- [ ] Vite React TS + router + cliente API + estado server (React Query)
-- [ ] Pantallas: home, setup, board (placeholder), history, result
-- [ ] Manejo errores API (409 turno, 422 regla) sin decidir reglas en cliente
+- [x] Vite React TS + router + cliente API tipado + `useGame` (reconciliación por servidor)
+- [x] Pantallas: home, setup, board (funcional), history, result (en board)
+- [x] Manejo errores API (409/422 → mensajes, sin decidir reglas en cliente)
 
 ## Phase 6 — Visual system
 **Objetivo:** identidad propia, no AI-slop. 2–4 direcciones visuales antes de implementar.
