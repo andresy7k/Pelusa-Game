@@ -214,6 +214,16 @@ class GameApiTest {
   }
 
   @Test
+  void resultInNotFinishedGame() throws Exception {
+    JsonNode created = createGame("Ana", "Beto");
+    UUID gameId = UUID.fromString(created.get("id").asText());
+    start(gameId);
+
+    mvc.perform(get("/api/games/" + gameId + "/result")).andExpect(status().isConflict())
+        .andExpect(jsonPath("$.errorCode").value("GAME_NOT_FINISHED"));
+  }
+
+  @Test
   void unknownGameIs404() throws Exception {
     mvc.perform(get("/api/games/" + UUID.randomUUID())).andExpect(status().isNotFound())
         .andExpect(jsonPath("$.errorCode").value("GAME_NOT_FOUND"));
