@@ -191,9 +191,26 @@ public class Table {
     }
   }
 
-  // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---
+  /**
+   * Hidratación desde persistencia (Phase 4): el service reconstruye frentes,
+   * puntos y flags del turno en curso sobre una mesa fresca. Solo llamar una vez.
+   */
+  public void hydrate(
+      Map<UUID, List<Card>> savedFronts,
+      Map<UUID, List<Card>> savedStashed,
+      List<Card> savedDiscarded,
+      boolean acted,
+      boolean stashedFlag) {
+    for (UUID p : playerOrder) {
+      fronts.get(p).addAll(savedFronts.getOrDefault(p, List.of()));
+      stashed.get(p).addAll(savedStashed.getOrDefault(p, List.of()));
+    }
+    discarded.addAll(savedDiscarded);
+    this.actedThisTurn = acted;
+    this.stashedThisTurn = stashedFlag;
+  }
 
-  public GameStatus status() {
+  // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---  public GameStatus status() {
     return status;
   }
 
