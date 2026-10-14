@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Contrato REST (API_CONTRACT §10): status + errorCode + transiciones contra
- * persistencia real H2. El polvo se amaña vía repositorio para determinismo
+ * persistencia real H2. El mazo se amaña vía repositorio para determinismo
  * (el barajado real ya está cubierto en DeckFactoryTest).
  */
 @SpringBootTest
@@ -45,7 +45,7 @@ class GameApiTest {
     MvcResult r = mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.status").value("CREATED"))
-        .andExpect(jsonPath("$.dustRemaining").value(110))
+        .andExpect(jsonPath("$.deckRemaining").value(110))
         .andReturn();
     return json.readTree(r.getResponse().getContentAsString());
   }
@@ -68,26 +68,26 @@ class GameApiTest {
     return json.readTree(r.getResponse().getContentAsString());
   }
 
-  /** Reescribe el polvo con la secuencia dada (el resto se elimina). */
-  private void rigDust(UUID gameId, int... values) {
-    List<CardEntity> dust = cards.findByGameId(gameId).stream()
-        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+  /** Reescribe el mazo con la secuencia dada (el resto se elimina). */
+  private void rigDeck(UUID gameId, int... values) {
+    List<CardEntity> deck = cards.findByGameId(gameId).stream()
+        .filter(c -> "DECK".equals(c.getLocation()))
         .sorted(Comparator.comparingInt(CardEntity::getPileOrder))
         .toList();
-    assertThat(dust.size()).isGreaterThanOrEqualTo(values.length);
-    for (int i = values.length; i < dust.size(); i++) {
-      cards.delete(dust.get(i));
+    assertThat(deck.size()).isGreaterThanOrEqualTo(values.length);
+    for (int i = values.length; i < deck.size(); i++) {
+      cards.delete(deck.get(i));
     }
     // Se relee y se recrean las filas con los valores amañados en orden
     List<CardEntity> kept = cards.findByGameId(gameId).stream()
-        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+        .filter(c -> "DECK".equals(c.getLocation()))
         .sorted(Comparator.comparingInt(CardEntity::getPileOrder))
         .toList();
     for (int i = 0; i < values.length; i++) {
       // Nota: CardEntity no expone setValue (inmutable por diseño); se recrea la fila
       CardEntity old = kept.get(i);
       cards.delete(old);
-      cards.save(new CardEntity(UUID.randomUUID(), gameId, values[i], "DUST_PILE", null, i));
+      cards.save(new CardEntity(UUID.randomUUID(), gameId, values[i], "DECK", null, i));
     }
   }
 
@@ -114,7 +114,7 @@ class GameApiTest {
     UUID beto = playerId(s0, 1);
 
     JsonNode after = act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
-    assertThat(after.get("dustRemaining").asInt()).isEqualTo(109);
+    assertThat(after.get("deckRemaining").asInt()).isEqualTo(109);
     assertThat(after.get("fronts").get(ana.toString()).size()).isEqualTo(1);
 
     // Fuera de turno → 409
@@ -134,7 +134,7 @@ class GameApiTest {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
-    rigDust(gameId, 4, 5, 4, 9);
+    rigDeck(gameId, 4, 5, 4, 9);
     UUID ana = playerId(created, 0);
 
     act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
@@ -150,7 +150,7 @@ class GameApiTest {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
-    rigDust(gameId, 4, 4, 4, 7, 8);
+    rigDeck(gameId, 4, 4, 4, 7, 8);
     UUID ana = playerId(created, 0);
     UUID beto = playerId(created, 1);
 
@@ -181,7 +181,7 @@ class GameApiTest {
 
     JsonNode first = act(gameId, "draw", ana, key, null);
     JsonNode second = act(gameId, "draw", ana, key, null);
-    assertThat(second.get("dustRemaining").asInt()).isEqualTo(first.get("dustRemaining").asInt());
+    assertThat(second.get("deckRemaining").asInt()).isEqualTo(first.get("deckRemaining").asInt());
     assertThat(second.get("fronts").get(ana.toString()).size()).isEqualTo(1);
   }
 
@@ -190,7 +190,7 @@ class GameApiTest {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
-    rigDust(gameId, 5, 1);
+    rigDeck(gameId, 5, 1);
     UUID ana = playerId(created, 0);
     UUID beto = playerId(created, 1);
 

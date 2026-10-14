@@ -22,8 +22,8 @@ export function Board() {
     <main className="page">
       <h1>Mesa {state.status === 'FINISHED' ? '(terminada)' : ''}</h1>
       <p>
-        Turno de: <strong>{nameOf(state, state.currentPlayerId)}</strong> · Polvo:{' '}
-        {state.dustRemaining}
+        Turno de: <strong>{nameOf(state, state.currentPlayerId)}</strong> · Mazo:{' '}
+        {state.deckRemaining}
       </p>
 
       <label>

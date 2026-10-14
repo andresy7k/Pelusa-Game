@@ -30,7 +30,7 @@ export interface GameState {
   id: string;
   status: 'CREATED' | 'IN_PROGRESS' | 'FINISHED';
   currentPlayerId: string | null;
-  dustRemaining: number;
+  deckRemaining: number;
   players: PlayerView[];
   fronts: Record<string, number[]>;
   stashed: Record<string, StashView>;
@@ -63,8 +63,8 @@ export function friendlyMessage(code: string): string {
       return 'La partida ya terminó.';
     case 'GAME_NOT_FOUND':
       return 'Esa partida no existe.';
-    case 'DUST_PILE_EMPTY':
-      return 'No quedan cartas en el polvo.';
+    case 'DECK_EMPTY':
+      return 'No quedan cartas en el mazo.';
     case 'NO_STASHABLE_CARDS':
       return 'No tenés cartas para guardar ahora.';
     case 'NO_STEALABLE_CARDS':
