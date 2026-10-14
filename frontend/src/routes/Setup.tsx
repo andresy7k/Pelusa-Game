@@ -26,18 +26,25 @@ export function Setup() {
   }
 
   return (
-    <main className="page">
-      <h1>Nueva partida</h1>
-      <form onSubmit={submit}>
+    <main className="page narrow">
+      <p className="kicker">Mesa nueva</p>
+      <h1>¿Quién juega?</h1>
+      <form onSubmit={submit} className="panel">
         <label>
-          Jugadores (2 a 6, separados por coma)
-          <input value={names} onChange={(e) => setNames(e.target.value)} />
+          Jugadores · 2 a 6, separados por coma
+          <input value={names} onChange={(e) => setNames(e.target.value)} autoFocus />
         </label>
-        <button type="submit" disabled={busy}>
-          Crear y empezar
-        </button>
+        <div className="actions">
+          <button type="submit" className="primary" disabled={busy}>
+            {busy ? 'Repartiendo…' : 'Crear y empezar'}
+          </button>
+        </div>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
     </main>
   );
 }
