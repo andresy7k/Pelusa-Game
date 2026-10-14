@@ -8,7 +8,7 @@
 ```json
 {
   "id": "uuid", "status": "IN_PROGRESS",
-  "currentPlayerId": "uuid", "dustRemaining": 87,
+  "currentPlayerId": "uuid", "deckRemaining": 87,
   "players": [{"id":"uuid","name":"Ana","position":0}],
   "fronts": {"<playerId>": [{"value":4},{"value":4}]},
   "stashed": {"<playerId>": {"sum": 12, "countsByValue": {"1":2,"4":1}}},
@@ -16,7 +16,7 @@
   "result": null
 }
 ```
-`result` solo si `FINISHED`: `{ "winnerId":"uuid", "tiebreak":"ONES_THEN_TWOS...", "scores":[{"playerId":"uuid","sum":34,"countsByValue":{...}}], "reason":"DUST_EMPTY" }`.
+`result` solo si `FINISHED`: `{ "winnerId":"uuid", "tiebreak":"ONES_THEN_TWOS...", "scores":[{"playerId":"uuid","sum":34,"countsByValue":{...}}], "reason":"DECK_EMPTY" }`.
 
 **Error canónico (RFC7807):**
 ```json
@@ -28,15 +28,15 @@
 ---
 
 ## 1. `POST /api/games` — crear/configurar partida
-**Propósito:** crear juego + jugadores + mazo 110 barajado.
+**Propósito:** crear juego + jugadores + mazo de 110 barajado.
 **Request:**
 ```json
 { "names": ["Ana","Beto","Ceci"], "firstPlayerIndex": 0 }
 ```
 Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (o `null` = posición 0).
-**Response 201:** estado canónico con `status: CREATED`, `dustRemaining: 110`, frentes vacíos.
+**Response 201:** estado canónico con `status: CREATED`, `deckRemaining: 110`, frentes vacíos.
 **Errores:** 400 `VALIDATION_FAILED` (nombres inválidos/duplicados), 429 rate-limit.
-**Reglas:** ninguna de turno aún. Genera 110 `cards(DUST_PILE)` con `pile_order` aleatorio persistido.
+**Reglas:** ninguna de turno aún. Genera 110 `cards(DECK)` con `pile_order` aleatorio persistido.
 **Impacto BD:** 1 transacción: 1 game + N players + 110 cards.
 
 ## 2. `POST /api/games/{id}/start` — iniciar
@@ -47,7 +47,7 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 **Impacto BD:** update games + 1 turn abierto.
 
 ## 3. `GET /api/games/{id}` — estado
-**Propósito:** única fuente para render (turno, polvo, frentes, puntos).
+**Propósito:** única fuente para render (turno, mazo, frentes, puntos).
 **Response 200:** estado canónico.
 **Errores:** 404. Sin rate-limit estricto (GET cacheable 1s en React Query).
 **Impacto BD:** 3 selects con EntityGraph (sin N+1).
@@ -61,12 +61,12 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 **Impacto BD:** `UPDATE cards SET location='STASHED' WHERE game+owner+FRONT` + turn detail.
 
 ## 5. `POST /api/games/{id}/draw` — buscar pelusa
-**Propósito:** sacar superior del polvo a mi frente; puede causar bust o agotar polvo (auto-finish).
+**Propósito:** sacar superior del mazo a mi frente; puede causar bust o agotar el mazo (auto-finish).
 **Request:** `{ "playerId":"uuid" }` + key.
-**Response 200:** estado + `lastEvent: {type:DRAW, value, bust, gameFinished}`. Si agota polvo, `status:FINISHED` + `result` incluido.
-**Errores:** 404, 409 `NOT_YOUR_TURN` / `GAME_FINISHED` / `CONCURRENT_TURN`, 422 `DUST_PILE_EMPTY`.
-**Reglas:** I-02/03/04. Evaluación bust post-colocación. Si `dustRemaining` llega a 0 → auto-stash global + scoring + finish en la MISMA transacción.
-**Impacto BD:** 1 card `DUST→FRONT` (+ posible cascada finish: N updates FRONT→STASHED + update games).
+**Response 200:** estado + `lastEvent: {type:DRAW, value, bust, gameFinished}`. Si agota el mazo, `status:FINISHED` + `result` incluido.
+**Errores:** 404, 409 `NOT_YOUR_TURN` / `GAME_FINISHED` / `CONCURRENT_TURN`, 422 `DECK_EMPTY`.
+**Reglas:** I-02/03/04. Evaluación bust post-colocación. Si `deckRemaining` llega a 0 → auto-stash global + scoring + finish en la MISMA transacción.
+**Impacto BD:** 1 card `DECK→FRONT` (+ posible cascada finish: N updates FRONT→STASHED + update games).
 
 ## 6. `POST /api/games/{id}/stand` — continuar/finalizar voluntario
 **Propósito:** plantarse y pasar turno sin sacar más.
@@ -102,10 +102,10 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 
 | Caso | Esperado |
 |---|---|
-| Crear válido | 201 + `CREATED`, 110 polvo |
+| Crear válido | 201 + `CREATED`, 110 de mazo |
 | Crear nombres duplicados | 400 `VALIDATION_FAILED` |
 | Draw fuera de turno | 409 `NOT_YOUR_TURN` |
-| Draw sin polvo | 422 `DUST_PILE_EMPTY` (o auto-finish si fue la última) |
+| Draw sin mazo | 422 `DECK_EMPTY` (o auto-finish si fue la última) |
 | Doble draw concurrente | uno 200, otro 409 `CONCURRENT_TURN` |
 | Stash sin cartas | 422 `NO_STASHABLE_CARDS` |
 | Steal sin ese valor afuera | 422 `NO_STEALABLE_CARDS` |
@@ -115,4 +115,4 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 
 ## 11. Lo que la UI tiene prohibido (para tu defensa)
 
-Nunca `GET` para mutar, nunca `playerId` del body sin validar que es el `currentPlayerId` (v1 nominal: el body dice quién actúa y el servidor lo autoriza contra el turno; Phase 11 añadiría `playerToken`), nunca exponer `pile_order` futuro (solo `dustRemaining`, no qué valor viene).
+Nunca `GET` para mutar, nunca `playerId` del body sin validar que es el `currentPlayerId` (v1 nominal: el body dice quién actúa y el servidor lo autoriza contra el turno; Phase 11 añadiría `playerToken`), nunca exponer `pile_order` futuro (solo `deckRemaining`, no qué valor viene).

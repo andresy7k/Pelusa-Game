@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
       Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED",
           "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN");
   private static final Set<String> UNPROCESSABLE =
-      Set.of("DUST_PILE_EMPTY", "NO_STASHABLE_CARDS", "NO_STEALABLE_CARDS", "INVALID_PLAYER");
+      Set.of("DECK_EMPTY", "NO_STASHABLE_CARDS", "NO_STEALABLE_CARDS", "INVALID_PLAYER");
 
   @ExceptionHandler(com.pelusa.domain.engine.DomainException.class)
   public ProblemDetail domain(com.pelusa.domain.engine.DomainException e, HttpServletRequest req) {

@@ -101,7 +101,7 @@ public class GameService {
     List<Card> deck = DeckFactory.shuffledDeck(shuffle);
     List<CardEntity> rows = new ArrayList<>(deck.size());
     for (int i = 0; i < deck.size(); i++) {
-      rows.add(new CardEntity(UUID.randomUUID(), gameId, deck.get(i).value(), "DUST_PILE", null, i));
+      rows.add(new CardEntity(UUID.randomUUID(), gameId, deck.get(i).value(), "DECK", null, i));
     }
     cards.saveAll(rows);
     return view(gameId, null);
@@ -146,7 +146,7 @@ public class GameService {
   public GameView draw(UUID gameId, UUID playerId, String key) {
     return guarded(gameId, playerId, key, (t, turn, rows) -> {
       CardEntity top = topDust(rows)
-          .orElseThrow(() -> new DomainException("DUST_PILE_EMPTY", "El montón de polvo está vacío"));
+          .orElseThrow(() -> new DomainException("DECK_EMPTY", "El mazo está vacío"));
       DrawResult r = t.drawCurrent();
       top.setLocation("FRONT");
       top.setOwnerPlayerId(playerId);
@@ -252,9 +252,9 @@ public class GameService {
 
   private Table rebuild(UUID gameId, GameEntity game, List<PlayerEntity> ps, List<CardEntity> rows) {
     List<UUID> order = ps.stream().map(PlayerEntity::getId).toList();
-    List<Card> dust =
+    List<Card> deck =
         rows.stream()
-            .filter(c -> "DUST_PILE".equals(c.getLocation()))
+            .filter(c -> "DECK".equals(c.getLocation()))
             .sorted(Comparator.comparingInt(CardEntity::getPileOrder))
             .map(c -> new Card(c.getValue()))
             .toList();
@@ -265,7 +265,7 @@ public class GameService {
         first = i;
       }
     }
-    Table table = new Table(order, dust, first);
+    Table table = new Table(order, deck, first);
     Map<UUID, List<Card>> fronts = new HashMap<>();
     Map<UUID, List<Card>> saved = new HashMap<>();
     List<Card> discarded = new ArrayList<>();
@@ -295,10 +295,10 @@ public class GameService {
         .toList();
   }
 
-  /** Primera carta del polvo por pile_order (ya cargada, sin query extra). */
+  /** Primera carta del mazo por pile_order (ya cargada, sin query extra). */
   private static java.util.Optional<CardEntity> topDust(List<CardEntity> rows) {
     return rows.stream()
-        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+        .filter(c -> "DECK".equals(c.getLocation()))
         .min(Comparator.comparingInt(CardEntity::getPileOrder));
   }
 
@@ -364,7 +364,7 @@ public class GameService {
     GameEntity game = games.getReferenceById(gameId);
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
     List<CardEntity> rows = cards.findByGameId(gameId);
-    int dust = 0;
+    int deck = 0;
     Map<UUID, List<Integer>> fronts = new HashMap<>();
     Map<UUID, List<Integer>> stashValues = new HashMap<>();
     for (PlayerEntity p : ps) {
@@ -373,7 +373,7 @@ public class GameService {
     }
     for (CardEntity c : rows) {
       switch (c.getLocation()) {
-        case "DUST_PILE" -> dust++;
+        case "DECK" -> deck++;
         case "FRONT" -> fronts.get(c.getOwnerPlayerId()).add(c.getValue());
         case "STASHED" -> stashValues.get(c.getOwnerPlayerId()).add(c.getValue());
         default -> {}
@@ -414,11 +414,11 @@ public class GameService {
         scores.add(new ScoreView(p.getId(), p.getName(), s.sum(), s.countsByValue()));
       }
       scores.sort((a, b) -> Integer.compare(b.sum(), a.sum()));
-      result = new ResultView(game.getWinnerId(), game.getWinnerId() == null, "DUST_EMPTY", scores);
+      result = new ResultView(game.getWinnerId(), game.getWinnerId() == null, "DECK_EMPTY", scores);
     }
     List<PlayerView> playerViews =
         ps.stream().map(p -> new PlayerView(p.getId(), p.getName(), p.getSeat())).toList();
-    return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(), dust,
+    return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(), deck,
         playerViews, fronts, stashed, event, result);
   }
 }

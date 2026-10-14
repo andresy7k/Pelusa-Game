@@ -7,7 +7,7 @@
 ### 2026-10-06 — Phase 0 Discovery: por qué el backend es la fuente de verdad
 **Concepto:** Autoridad de reglas (server-authoritative) + máquina de estados + invariantes.
 **Problema:** Si la UI decide "puedo robar / es mi turno / perdí", un usuario (o un bug) puede romper o trampear la partida y el tribunal lo va a notar.
-**Solución:** Toda acción pasa por `GameEngine` en backend dentro de una transacción que valida turno, estado, polvo y frente; la UI solo refleja `GET /games/{id}` y maneja 409/422 con elegancia.
+**Solución:** Toda acción pasa por `GameEngine` en backend dentro de una transacción que valida turno, estado, mazo y frente; la UI solo refleja `GET /games/{id}` y maneja 409/422 con elegancia.
 **Por qué:** Un solo lugar donde las reglas viven = un solo lugar para testear, mutar y explicar. Es lo que permite 100% coverage honesto.
 **Alternativas:** Validar en frontend y "confirmar" en backend (duplica lógica, diverge); backend tonto que persiste lo que le mandan (indefendible).
 **Riesgos:** Latencia percibida — se mitiga con estados optimistas reconciliados por el servidor.
@@ -73,7 +73,7 @@
 **Solución:** `DeckFactory` (110), `BustPolicy` (frecuencia>=2 post-colocación), `StashPolicy` (`actedThisTurn` cubre draw Y steal), `StealPolicy` (todas las del valor, sin mutar), `ScoringService` (Σ + lexicográfico), `Table` (máquina de turnos + `finish()` atómico + `GAME_FINISHED` terminal). 6 clases de test con mazos amañados como test seam.
 **Por qué:** Si el profe pide "roba solo 1 en vez de todas", cambias `stealCurrent` y 1 test; si pide otro desempate, cambias `compare`.
 **Alternativas:** Motor con Strings/ints sueltos (ilegible); lógica en el service transaccional (intesteable sin Spring).
-**Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DUST_PILE_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
+**Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DECK_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
 **Cómo defenderlo:** "Miren `TableTest`: 10 tests con mazos amañados cubren bust, robo total, guardado, fin y empate. El caso borde del bust-final lo encontramos sin compilar, solo leyendo."
 
 ### 2026-10-07 — Phase 4: el service como traductor + 3 bugs que solo el CI ve

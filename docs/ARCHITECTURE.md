@@ -70,14 +70,14 @@ domain ← application ← infrastructure
 ## 5. Flujos (contrato con DATA_MODEL + API_CONTRACT)
 
 ```
-CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --polvo vacío--> FINISHED
+CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --mazo vacío--> FINISHED
 ```
 
-- **Crear:** `GameService.create(nombres, jugadorInicial)` → 1 `GameEntity` + N `PlayerEntity` + 110 `CardEntity(DUST_PILE, pile_order)` en 1 transacción. Sin cartas en frentes.
+- **Crear:** `GameService.create(nombres, jugadorInicial)` → 1 `GameEntity` + N `PlayerEntity` + 110 `CardEntity(DECK, pile_order)` en 1 transacción. Sin cartas en frentes.
 - **Start:** `CREATED→IN_PROGRESS`, fija `currentPlayerId`. Idempotente: si ya iniciado, 409.
-- **Turno típico:** `stash?` (inicio) → N×`draw` (cada draw: saca `MIN(pile_order)` de `DUST_PILE` → `FRONT` dueño actual; evalúa bust post-colocación) → `stand` o `bust` o `steal` → rota `currentPlayerId`. Cada acción = 1 transacción + incremento `@Version`.
+- **Turno típico:** `stash?` (inicio) → N×`draw` (cada draw: saca `MIN(pile_order)` de `DECK` → `FRONT` dueño actual; evalúa bust post-colocación) → `stand` o `bust` o `steal` → rota `currentPlayerId`. Cada acción = 1 transacción + incremento `@Version`.
 - **Bust:** `FRONT(activo)→DISCARDED` (mismo `game_id`, `owner` se conserva para auditoría, `location` cambia), `Turn.outcome=BUST`, rota. Nada a puntos.
-- **Finish:** trigger = `COUNT(DUST_PILE)==0` después de un draw/steal/stand. Efecto atómico: todos los `FRONT→STASHED`, `ScoringService` calcula, `status=FINISHED, winnerId, finishedAt` se fijan. Irreversible: cualquier acción posterior → 409/422 `GAME_FINISHED`.
+- **Finish:** trigger = `COUNT(DECK)==0` después de un draw/steal/stand. Efecto atómico: todos los `FRONT→STASHED`, `ScoringService` calcula, `status=FINISHED, winnerId, finishedAt` se fijan. Irreversible: cualquier acción posterior → 409/422 `GAME_FINISHED`.
 - **Steal (solo tu turno):** `POST .../steal {value}` → todas las `FRONT` ajenas con ese valor → `FRONT` del ladrón (mismo `game_id`, cambia `owner_player_id`). Si no hay → 422.
 
 ## 6. Transacciones, concurrencia, idempotencia
@@ -88,7 +88,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 
 ## 7. Errores, logs, observabilidad
 
-- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible: `NOT_YOUR_TURN, DUST_PILE_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS`.
+- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS`.
 - `OncePerRequestFilter` genera `X-Request-Id` (o respeta el entrante), lo pone en MDC; logs estructurados (timestamp, level, requestId, gameId, playerId, action) sin PII ni secretos.
 - `GET /actuator/health` verifica `DataSource` con `SELECT 1` (health real, no "UP" hardcodeado). `GET /api/health` público ligero para la UI.
 - Rate-limit (Bucket4j o filtro simple, Phase 11): `POST /api/games` 10/min por IP; acciones 60/min por IP. Excedido → 429 con `Retry-After`.
@@ -96,7 +96,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 ## 8. Frontend (límites para no romper la autoridad)
 
 - React Query solo cachea `GET` (estado, histórico). Mutaciones (`draw/stand/stash/steal`) siempre van al servidor y reconcilian con lo que el servidor devuelve. Prohibido `if (canSteal)` local sin refrendo: el botón puede predecir, pero el servidor decide.
-- Estado UI: `useGame(id)` → `GET /api/games/{id}` → `{ status, currentPlayer, dustRemaining, fronts{playerId:[cards]}, stashed{playerId:{sum, countsByValue}}, lastEvent }`. Agrupación por valor es solo render.
+- Estado UI: `useGame(id)` → `GET /api/games/{id}` → `{ status, currentPlayer, deckRemaining, fronts{playerId:[cards]}, stashed{playerId:{sum, countsByValue}}, lastEvent }`. Agrupación por valor es solo render.
 - Animaciones GSAP en capa de presentación, nunca bloquean la mutación ni guardan estado de juego.
 
 ## 9. Qué podría salir mal (riesgos vivos)

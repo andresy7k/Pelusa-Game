@@ -22,10 +22,10 @@ class TableTest {
     return java.util.Arrays.stream(values).mapToObj(Card::new).toList();
   }
 
-  private static Table twoPlayers(int first, int... dust) {
+  private static Table twoPlayers(int first, int... deck) {
     UUID ana = UUID.fromString("00000000-0000-0000-0000-000000000001");
     UUID beto = UUID.fromString("00000000-0000-0000-0000-000000000002");
-    return new Table(List.of(ana, beto), deck(dust), first);
+    return new Table(List.of(ana, beto), deck(deck), first);
   }
 
   @Test
@@ -116,11 +116,11 @@ class TableTest {
 
   @Test
   void emptyDustFinishesGameAndDeclaresWinner() {
-    // Polvo: [5, 1] → Ana 5, Beto 1 → gana Ana (5>1), auto-stash aplicado
+    // Mazo: [5, 1] → Ana 5, Beto 1 → gana Ana (5>1), auto-stash aplicado
     Table t = twoPlayers(0, 5, 1);
     t.drawCurrent(); // Ana 5
     t.standCurrent();
-    DrawResult last = t.drawCurrent(); // Beto 1, polvo vacío → fin
+    DrawResult last = t.drawCurrent(); // Beto 1, mazo vacío → fin
     assertThat(last.gameFinished()).isTrue();
     assertThat(t.status()).isEqualTo(GameStatus.FINISHED);
     assertThat(t.isTie()).isFalse();
@@ -129,7 +129,7 @@ class TableTest {
 
   @Test
   void bustOnLastDustCardAlsoFinishes() {
-    // Polvo [4,5,4]: Ana saca las 3 y revienta con la última → fin igual
+    // Mazo [4,5,4]: Ana saca las 3 y revienta con la última → fin igual
     Table t = twoPlayers(0, 4, 5, 4);
     t.drawCurrent();
     t.drawCurrent();
