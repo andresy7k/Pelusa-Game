@@ -1,0 +1,68 @@
+/* La carta es un objeto: marfil + sombra de elevación + filo de luz arriba.
+   El solape del grupo (.card-slot) imita la mano real y ahorra espacio. */
+.card {
+  width: 84px;
+  height: 120px;
+  border-radius: var(--r-card);
+  background: linear-gradient(165deg, var(--ivory) 0%, var(--ivory-shadow) 130%);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 60%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  color: var(--ink);
+  transition: transform var(--t-med) var(--ease-out), box-shadow var(--t-med) var(--ease-out);
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-lift), inset 0 1px 0 rgb(255 255 255 / 60%);
+}
+
+.card.small {
+  width: 56px;
+  height: 80px;
+}
+
+.card.small:hover {
+  transform: translateY(-3px);
+}
+
+.card-value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.card.small .card-value {
+  font-size: 1.6rem;
+}
+
+.card-pip {
+  font-size: 0.6rem;
+  opacity: 0.45;
+  margin-top: var(--s1);
+}
+
+.card-group {
+  display: flex;
+  align-items: center;
+  min-height: 88px;
+  padding: var(--s1) 0;
+}
+
+.card-slot {
+  margin-left: calc(var(--i) * -34px);
+}
+
+.card-slot:first-child {
+  margin-left: 0;
+}
+
+.empty-front {
+  color: var(--parchment-dim);
+  opacity: 0.6;
+}

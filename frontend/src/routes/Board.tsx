@@ -3,93 +3,106 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
+import { CardGroup } from '../components/CardView';
 
-// Tablero funcional Phase 5 (la identidad visual premium llega en Phase 6).
-// Decisiones: "jugar como" es un selector nominal (sin auth, ADR-010); cada
-// botón dispara la mutación y muestra lo que el backend responde; los 409/422
-// se traducen a mensajes sin reinterpretar reglas.
+// Mesa: el mazo al centro como objeto con su cuenta, jugadores en paneles,
+// el turno activo iluminado en ámbar. Una acción primaria (sacar), resto
+// secundario. Todo lo que ves lo decidió el backend.
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
   const [me, setMe] = useState<string>('');
   const [stealValue, setStealValue] = useState(4);
 
-  if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Cargando…'}</main>;
+  if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Repartiendo…'}</main>;
   const meId = me || state.currentPlayerId || '';
-  const isMe = (pid: string) => pid === state.currentPlayerId && pid === meId;
+  const finished = state.status === 'FINISHED';
 
   return (
-    <main className="page">
-      <h1>Mesa {state.status === 'FINISHED' ? '(terminada)' : ''}</h1>
-      <p>
-        Turno de: <strong>{nameOf(state, state.currentPlayerId)}</strong> · Mazo:{' '}
-        {state.deckRemaining}
-      </p>
-
-      <label>
-        Jugar como:{' '}
-        <select value={meId} onChange={(e) => setMe(e.target.value)}>
-          <option value="">— elegir —</option>
-          {state.players.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="actions">
-        <button disabled={busy} onClick={() => id && meId && act(() => api.draw(id, meId))}>
-          Sacar carta
-        </button>
-        <button disabled={busy} onClick={() => id && meId && act(() => api.stand(id, meId))}>
-          Plantarse
-        </button>
-        <button disabled={busy} onClick={() => id && meId && act(() => api.stash(id, meId))}>
-          Guardar pelusas
-        </button>
-        <label>
-          Robar valor:
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={stealValue}
-            onChange={(e) => setStealValue(Number(e.target.value))}
-          />
-        </label>
-        <button
-          disabled={busy}
-          onClick={() => id && meId && act(() => api.steal(id, meId, stealValue))}
-        >
-          Robar
-        </button>
+    <main className="page table">
+      <p className="kicker">{finished ? 'Mesa cerrada' : 'En juego'}</p>
+      <div className="table-head">
+        <h1>
+          Turno de <span className="turn-name">{nameOf(state, state.currentPlayerId)}</span>
+        </h1>
+        <div className="deck-pile" aria-label={`Mazo: ${state.deckRemaining} cartas`}>
+          <div className="deck-pile-card" />
+          <div className="deck-pile-card" />
+          <div className="deck-pile-card top" />
+          <span className="deck-count">{state.deckRemaining}</span>
+        </div>
       </div>
-      {error && <p className="error">{friendlyMessage(error)}</p>}
 
-      <section>
-        {state.players.map((p) => (
-          <article key={p.id}>
-            <h2>
-              {p.name} {isMe(p.id) ? '(tu turno)' : ''} — puntos: {state.stashed[p.id]?.sum ?? 0}
-            </h2>
-            <p>Frente: {grouped(state.fronts[p.id] ?? [])}</p>
-          </article>
-        ))}
+      {!finished && (
+        <>
+          <label className="identity">
+            Jugar como
+            <select value={meId} onChange={(e) => setMe(e.target.value)}>
+              <option value="">— elegir —</option>
+              {state.players.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="actions">
+            <button className="primary" disabled={busy} onClick={() => id && meId && act(() => api.draw(id, meId))}>
+              Sacar carta
+            </button>
+            <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.stand(id, meId))}>
+              Plantarse
+            </button>
+            <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.stash(id, meId))}>
+              Guardar pelusas
+            </button>
+            <span className="steal-inline">
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={stealValue}
+                aria-label="Valor a robar"
+                onChange={(e) => setStealValue(Number(e.target.value))}
+              />
+              <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.steal(id, meId, stealValue))}>
+                Robar
+              </button>
+            </span>
+          </div>
+          {error && (
+            <p className="error" role="alert">
+              {friendlyMessage(error)}
+            </p>
+          )}
+        </>
+      )}
+
+      <section className="fronts">
+        {state.players.map((p) => {
+          const active = p.id === state.currentPlayerId && !finished;
+          return (
+            <article key={p.id} className={active ? 'panel active' : 'panel'}>
+              <div className="player-head">
+                <h2>
+                  {p.name} {active && <span className="turn-dot" aria-label="en turno" />}
+                </h2>
+                <span className="points">{state.stashed[p.id]?.sum ?? 0} pts</span>
+              </div>
+              <CardGroup values={state.fronts[p.id] ?? []} />
+            </article>
+          );
+        })}
       </section>
 
-      {state.status === 'FINISHED' && state.result && (
-        <section>
-          <h2>Resultado</h2>
-          {state.result.tie ? (
-            <p>Empate.</p>
-          ) : (
-            <p>Ganador: {nameOf(state, state.result.winnerId)}</p>
-          )}
+      {finished && state.result && (
+        <section className="panel result">
+          <h2>{state.result.tie ? 'Empate en la mesa.' : `${nameOf(state, state.result.winnerId)} se lleva la noche.`}</h2>
           <ol>
             {state.result.scores.map((s) => (
               <li key={s.playerId}>
-                {s.name}: {s.sum}
+                <strong>{s.name}</strong> — {s.sum} pts
               </li>
             ))}
           </ol>
@@ -101,14 +114,4 @@ export function Board() {
 
 function nameOf(state: { players: { id: string; name: string }[] }, id: string | null): string {
   return state.players.find((p) => p.id === id)?.name ?? '—';
-}
-
-function grouped(values: number[]): string {
-  if (values.length === 0) return '—';
-  const counts = new Map<number, number>();
-  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
-  return [...counts.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([v, n]) => (n > 1 ? `${n}×${v}` : `${v}`))
-    .join(' ');
 }

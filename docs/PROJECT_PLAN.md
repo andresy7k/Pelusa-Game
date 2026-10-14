@@ -171,9 +171,12 @@ bulk updates que saltaban el contexto de persistencia.
 ## Phase 6 — Visual system
 **Objetivo:** identidad propia, no AI-slop. 2–4 direcciones visuales antes de implementar.
 **Dependencias:** Phase 5. **Archivos:** `frontend/src/styles/tokens/*`, componentes base.
+**Estado 2026-10-07:** elegida **A Mesa Nocturna** (fieltro, marfil, ámbar; Fraunces + Space Grotesk).
+Tokens oklch, grano CSS, cartas físicas con elevación, jerarquía primaria/secundaria,
+`prefers-reduced-motion`, foco visible. Hero físico = Phase 8.
 **Criterio de terminado:** dirección elegida por vos (concepto/composición/tipo/color/materiales/motion), tokens + tipografía + materiales translúcidos + modo reduced-motion, PR con screenshots.
-- [ ] Proponer 2–4 direcciones (ver §5–6 del brief)
-- [ ] Implementar elegida: tokens, tipografía SF-like, blur/translucidez, sombras suaves
+- [x] Proponer 2–4 direcciones (A Mesa Nocturna elegida)
+- [x] Implementar elegida: tokens, tipografía, grano, sombras de elevación
 
 ## Phase 7 — Game UX
 **Objetivo:** partida completa jugable con feedback de reglas.
