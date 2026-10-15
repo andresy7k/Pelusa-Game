@@ -16,8 +16,11 @@ body {
 body {
   font-family: var(--font-body);
   background:
-    radial-gradient(120% 90% at 50% 0%, oklch(0.22 0.04 155) 0%, var(--felt-950) 60%),
-    var(--felt-950);
+    radial-gradient(110% 70% at 50% -12%, oklch(0.4 0.16 300 / 55%) 0%, transparent 60%),
+    radial-gradient(70% 50% at 88% 18%, oklch(0.45 0.2 315 / 28%), transparent 65%),
+    radial-gradient(80% 60% at 8% 30%, oklch(0.42 0.18 275 / 26%), transparent 60%),
+    linear-gradient(180deg, oklch(0.12 0.04 290), oklch(0.09 0.03 285) 45%, oklch(0.07 0.025 280));
+  background-attachment: fixed;
   color: var(--parchment);
   min-height: 100vh;
   line-height: 1.5;
@@ -80,11 +83,16 @@ a {
 }
 
 header.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   padding: var(--s4) var(--s6);
-  border-bottom: 1px solid oklch(1 0 0 / 8%);
+  background: oklch(0.1 0.03 290 / 62%);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid oklch(0.6 0.16 300 / 20%);
 }
 
 header.topbar a.brand {
@@ -130,7 +138,9 @@ button:disabled {
 button.primary {
   background: var(--amber);
   color: var(--amber-ink);
-  box-shadow: 0 6px 20px oklch(0.78 0.15 75 / 25%);
+  box-shadow:
+    0 6px 24px oklch(0.78 0.15 75 / 35%),
+    0 0 0 1px oklch(1 0 0 / 12%) inset;
 }
 
 button.primary:hover:not(:disabled) {
@@ -173,8 +183,8 @@ label {
 }
 
 .panel {
-  background: oklch(1 0 0 / 3%);
-  border: 1px solid oklch(1 0 0 / 8%);
+  background: oklch(0.5 0.1 300 / 8%);
+  border: 1px solid oklch(0.7 0.12 300 / 16%);
   border-radius: var(--r-panel);
   padding: var(--s4) var(--s6);
   margin: var(--s4) 0;

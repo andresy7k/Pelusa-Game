@@ -1,11 +1,14 @@
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
+import { CardView } from './CardView';
 import './home-entrance.css';
 
 // Entrada del home: la baraja cae carta a carta al centro de la mesa con
-// tumble 3D, cada aterrizaje golpea el mazo (micro-bote + micro-shake) y la
-// última carta sacude toda la pantalla antes de que el título se abra y el
-// overlay se retire. Aquí SOLO se animan transform y opacity (sin layout).
+// tumble 3D, cada aterrizaje golpea el mazo (micro-bote + micro-shake +
+// puff de polvo de fieltro) y la última carta sacude toda la pantalla antes
+// de que el título se abra y el overlay se retire. Aquí SOLO se animan
+// transform y opacity (sin layout). Las cartas que caen son las reales del
+// juego: cada .fall-card envuelve una CardView (76×104) sin pintarla.
 
 // Trazado propio de cada carta: origen fuera de pantalla, tumble 3D,
 // aterrizaje imperfecto (mazo real) y duración de caída (0.45-0.6s).
@@ -80,8 +83,8 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
           x: d.x0,
           y: -caidaY,
           rotation: d.z0,
-          rotateX: -45,
-          rotateY: d.tiltY * -2.4,
+          rotateX: -40,
+          rotateY: d.tiltY * -2,
           transformPerspective: 900,
         });
       });
@@ -98,7 +101,8 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
         const t0 = i * STAGGER;
         const aterriza = t0 + d.dur;
 
-        // 1) Caída rápida con aceleración y tumble 3D (rotateX -45° -> 0°).
+        // 1) Caída rápida con aceleración y tumble 3D (rotateX -40° -> 0°,
+        // tumbada lo justo para que el monstruo no se vuelva ilegible).
         tl.to(
           carta,
           {
@@ -116,6 +120,27 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
         // 2) Micro-bote al aterrizar: sube 7px y se asienta (0.18s).
         tl.to(carta, { y: d.y1 - 7, duration: 0.07, ease: 'power2.out' }, aterriza)
           .to(carta, { y: d.y1, duration: 0.11, ease: 'power2.out' }, aterriza + 0.07);
+
+        // 2b) Puff de polvo de fieltro en la base: nace pequeño y se disipa
+        // justo con el impacto; el de la última carta es más grande.
+        // immediateRender en false para que el CSS (opacity: 0) aguante hasta
+        // el aterrizaje y el puff no asome durante la caída.
+        const puff = carta.querySelector<HTMLElement>('.fall-puff');
+        if (puff !== null) {
+          const esUltima = i === ultima;
+          tl.fromTo(
+            puff,
+            { scale: 0.3, opacity: 0.55 },
+            {
+              scale: esUltima ? 2 : 1.6,
+              opacity: 0,
+              duration: esUltima ? 0.35 : 0.28,
+              ease: 'power1.out',
+              immediateRender: false,
+            },
+            aterriza,
+          );
+        }
 
         // 3) Micro-shake del mazo con cada impacto (x ±2px, 0.08s).
         if (stack !== null) {
@@ -201,7 +226,8 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
         <div className="home-entrance-stack">
           {CARTAS.map((d, i) => (
             <div key={`${d.valor}-${i}`} className="fall-card">
-              <span className="fall-card-value">{d.valor}</span>
+              <CardView value={d.valor} />
+              <span className="fall-puff" aria-hidden="true" />
             </div>
           ))}
         </div>

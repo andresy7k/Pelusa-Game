@@ -1,5 +1,6 @@
 import { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { HomeCarousel } from '../components/HomeCarousel';
 
 // La entrada cinematográfica (baraja que cae y se apila) vive en
 // HomeEntrance y solo se muestra al entrar; al terminar avisa con onDone
@@ -35,6 +36,9 @@ export function Home() {
             Historial
           </Link>
         </nav>
+        <div className="reveal home-visual">
+          <HomeCarousel />
+        </div>
         <section className="howto reveal" aria-label="Cómo se juega">
           <div>
             <strong>1 · Sacá</strong>

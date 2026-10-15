@@ -16,6 +16,9 @@ export function Board() {
   const [robbing, setRobbing] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const flightSeq = useRef(0);
+  // Cartas recién ganadas (draw/steal) que aún están "en vuelo": se ocultan
+  // en el frente hasta que su fantasma aterriza (evita verlas duplicadas).
+  const [arrivals, setArrivals] = useState(0);
 
   // Al cambiar de turno (stand, bust) el modo robo queda obsoleto: se apaga.
   const turnKey = state?.currentPlayerId ?? null;
@@ -49,7 +52,11 @@ export function Board() {
     setFlights((prev) => [...prev, f]);
   }
 
-  const removeFlight = (fid: number) => setFlights((prev) => prev.filter((f) => f.id !== fid));
+  function removeFlight(fid: number) {
+    setFlights((prev) => prev.filter((f) => f.id !== fid));
+    // Cada vuelo creado tiene su +1 en `arrivals`: al aterrizar se descuenta.
+    setArrivals((n) => Math.max(0, n - 1));
+  }
 
   function centerOf(el: Element | null): FlightPoint | null {
     if (!el) return null;
@@ -57,20 +64,40 @@ export function Board() {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
+  // Cartas de mi frente que están ocultas esperando su vuelo (posición real).
+  function incomingSlots(): FlightPoint[] {
+    return Array.from(document.querySelectorAll(`.seat-panel[data-player="${meId}"] .card-slot.incoming`))
+      .map((el) => centerOf(el))
+      .filter((p): p is FlightPoint => p !== null);
+  }
+
+  // Rect del mazo ANTES de mutar (el mazo no se mueve; es más robusto).
+  // La carta nueva del frente nace oculta (`arrivals`) y el vuelo aterriza
+  // encima de ella: nunca se ven las dos a la vez.
   async function draw() {
     if (!id || !myTurn) return;
-    // Rect del mazo ANTES de mutar: el mazo no se mueve, pero es más robusto.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const deckRect = centerOf(document.getElementById('deck-pile'));
     const next = await act(() => api.draw(id, meId));
-    if (!next || !deckRect) return;
+    if (!next) return;
     const e = next.lastEvent as { type?: string; value?: number; bust?: boolean } | null;
-    if (e?.type !== 'DRAW' || e.bust || typeof e.value !== 'number') return;
-    const dest = centerOf(document.querySelector(`[data-front="${meId}"]`));
-    if (dest) addFlight(deckRect, dest, e.value, 0);
+    if (e?.type !== 'DRAW' || e.bust || typeof e.value !== 'number' || reduced) return;
+    const drawn = e.value;
+    setArrivals((n) => n + 1);
+    requestAnimationFrame(() => {
+      const slots = incomingSlots();
+      const dest = slots[slots.length - 1] ?? centerOf(document.querySelector(`[data-front="${meId}"]`));
+      if (!deckRect || !dest) {
+        setArrivals((n) => Math.max(0, n - 1));
+        return;
+      }
+      addFlight(deckRect, dest, drawn, 0);
+    });
   }
 
   async function doSteal(value: number) {
     if (!id || !myTurn) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Snapshot de las cartas resaltadas ANTES de mutar: al robarlas, esos
     // nodos desaparecen del DOM y perderíamos su posición.
     const sources = Array.from(document.querySelectorAll('.seat-panel.rival .card.stealable'))
@@ -79,9 +106,23 @@ export function Board() {
     const next = await act(() => api.steal(id, meId, value));
     if (!next) return;
     setRobbing(false);
-    const dest = centerOf(document.querySelector(`[data-front="${meId}"]`));
-    if (!dest) return;
-    sources.forEach((from, i) => addFlight(from, dest, value, i * 70));
+    if (reduced || sources.length === 0) return;
+    setArrivals((n) => n + sources.length);
+    requestAnimationFrame(() => {
+      const slots = incomingSlots();
+      const start = slots.length - sources.length;
+      let flying = 0;
+      sources.forEach((from, i) => {
+        const dest = slots[start + i] ?? centerOf(document.querySelector(`[data-front="${meId}"]`));
+        if (dest) {
+          addFlight(from, dest, value, i * 70);
+          flying += 1;
+        }
+      });
+      if (flying < sources.length) {
+        setArrivals((n) => Math.max(0, n - (sources.length - flying)));
+      }
+    });
   }
 
   return (
@@ -149,9 +190,15 @@ export function Board() {
             const isRival = p.id !== meId;
             return (
               <div key={p.id} className="seat" style={{ ['--a' as string]: `${angle}deg` }}>
-                <div className="seat-inner" style={{ ['--counter' as string]: `${counter}deg` }}>
+                <div
+                  className="seat-inner"
+                  style={{
+                    ['--counter' as string]: `${counter}deg`,
+                    ['--scale' as string]: active ? '1.12' : '1',
+                  }}
+                >
                   <article
-                    className={`seat-panel panel${active ? ' active' : ''}${isRival ? ' rival' : ''}`}
+                    className={`seat-panel${active ? ' active' : ''}${isRival ? ' rival' : ''}`}
                     data-player={p.id}
                   >
                     <header className="player-head">
@@ -165,6 +212,7 @@ export function Board() {
                       <FrontCards
                         values={state.fronts[p.id] ?? []}
                         steal={robbing && myTurn && isRival ? stealValue : undefined}
+                        hideTail={p.id === meId ? arrivals : 0}
                         onPick={doSteal}
                       />
                     </div>
@@ -241,10 +289,12 @@ export function Board() {
 function FrontCards({
   values,
   steal,
+  hideTail = 0,
   onPick,
 }: {
   values: number[];
   steal?: number | null;
+  hideTail?: number;
   onPick: (v: number) => void;
 }) {
   if (values.length === 0) return <span className="empty-front">Sin cartas a la vista</span>;
@@ -254,10 +304,13 @@ function FrontCards({
       {values.map((v, i) => {
         const match = robbing && v === steal;
         const dim = robbing && v !== steal;
+        // Las últimas `hideTail` cartas acaban de llegar: quedan ocultas
+        // hasta que su vuelo aterrice (si no, se ven duplicadas).
+        const incoming = i >= values.length - hideTail;
         return (
           <div
             key={`${v}-${i}`}
-            className={`card-slot pop-in${dim ? ' dimmed' : ''}`}
+            className={`card-slot pop-in${dim ? ' dimmed' : ''}${incoming ? ' incoming' : ''}`}
             style={{ ['--d' as string]: `${i * 45}ms` }}
           >
             <CardView value={v} small stealable={match} onPick={match ? () => onPick(v) : undefined} />
