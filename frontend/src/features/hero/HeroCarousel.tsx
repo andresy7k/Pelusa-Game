@@ -29,7 +29,14 @@ export function ringOffset(i: number, center: number, n: number): number {
 const WHEEL_STEP_PX = 60
 const DRAG_STEP_PX = 40
 
-export function HeroCarousel({ onActiveChange }: { onActiveChange: (v: HeroValue) => void }) {
+export function HeroCarousel({
+  onActiveChange,
+  paused: autoPaused = false,
+}: {
+  onActiveChange: (v: HeroValue) => void
+  /** Pausa externa: con el preloader arriba, HeroStage la activa. */
+  paused?: boolean
+}) {
   const n = HERO.order.length
   const [center, setCenter] = useState(0) // índice 0..n-1 dentro de HERO.order
   const [paused, setPaused] = useState(false)
@@ -78,12 +85,14 @@ export function HeroCarousel({ onActiveChange }: { onActiveChange: (v: HeroValue
 
   // Auto-avance en loop: setInterval (no rAF) a propósito — en segundo plano
   // sigue corriendo (throttled) y el estado siempre queda alineado al volver
-  // (Review Focus #2: sin saltos raros tras 30 s oculto).
+  // (Review Focus #2: sin saltos raros tras 30 s oculto). `autoPaused` viene
+  // de HeroStage: mientras el preloader cubre el hero no avanza, así al
+  // revelarse se ve la carta 1 al centro.
   useEffect(() => {
-    if (reduced || paused) return
+    if (reduced || autoPaused || paused) return
     const id = window.setInterval(() => setCenter((c) => (c + 1) % n), HERO.timings.autoAdvanceMs)
     return () => window.clearInterval(id)
-  }, [reduced, paused, n])
+  }, [reduced, autoPaused, paused, n])
 
   // Publica el valor activo hacia arriba (T4/T6 lo consumen).
   useEffect(() => {
@@ -193,11 +202,22 @@ export function HeroCarousel({ onActiveChange }: { onActiveChange: (v: HeroValue
         if (dragRef.current) dragRef.current.down = false
         resumeLater()
       }}
-      onFocus={() => {
-        focusRef.current = true
-        pause()
+      onFocus={(e) => {
+        // Solo el foco de teclado pausa: el clic de mouse también enfoca el
+        // stage (tabIndex=0) y sin blur posterior la pausa quedaría pegada.
+        // `:focus-visible` distingue teclado de puntero.
+        let kb = true
+        try {
+          kb = (e.target as Element).matches(':focus-visible')
+        } catch {
+          // target sin `matches` (no debería pasar): pausa conservadora.
+        }
+        focusRef.current = kb
+        if (kb) pause()
       }}
-      onBlur={() => {
+      onBlur={(e) => {
+        // Si el foco se movió dentro del carrusel, sigue siendo suyo.
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
         focusRef.current = false
         resumeLater()
       }}

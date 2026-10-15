@@ -202,3 +202,11 @@
     transition: none;
   }
 }
+
+/* Ventanas bajas (~1024×720): el carrusel terminaba bajo el fold y los dots
+   quedaban cortados; con menos aire bajo el copy vuelve a entrar completo. */
+@media (max-height: 780px) {
+  .hero-copy {
+    padding-bottom: var(--s4);
+  }
+}

@@ -32,7 +32,7 @@ export function HeroStage() {
       <div className="hero-content">
         <HeroNav />
         <HeroCopy />
-        <HeroCarousel onActiveChange={onActiveCard} />
+        <HeroCarousel onActiveChange={onActiveCard} paused={!revealed} />
         {/* T4 monta aquí el portal del canvas */}
       </div>
       {/* T4 conecta el `done` real del canvas; T7 usa el beat del wordmark */}
