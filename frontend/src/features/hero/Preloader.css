@@ -3,6 +3,9 @@
    transición al hero sea invisible) con la baraja cayendo, la mascota pelusa
    y el robo final. Solo GSAP anima transform/opacity acá. */
 .pl-overlay {
+  /* La escala vive en el overlay porque el wordmark la usa para separarse
+     del mazo. */
+  --pl-scale: 1.8;
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -15,13 +18,14 @@
 }
 
 /* Escena escalada: el mazo se ve grande sin tocar las medidas de CardView.
-   GSAP nunca escribe transform acá (la escala no pelea con el shake). */
+   GSAP nunca escribe transform acá (la escala no pelea con el shake). Único
+   hijo en flujo del grid (el wordmark va absoluto): el mazo centra exacto
+   en el viewport. */
 .pl-scene {
-  --pl-scale: 1.8;
   transform: scale(var(--pl-scale));
 }
-@media (min-width: 1024px) { .pl-scene { --pl-scale: 2.2; } }
-@media (min-width: 1600px) { .pl-scene { --pl-scale: 2.5; } }
+@media (min-width: 1024px) { .pl-overlay { --pl-scale: 2.2; } }
+@media (min-width: 1600px) { .pl-overlay { --pl-scale: 2.5; } }
 
 /* Escena: el mazo al centro de la mesa (76×104 = carta real). */
 .pl-stack {
@@ -161,13 +165,15 @@
 .pl-mascot__eye--r > i { position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #221a33; }
 
 /* Wordmark "Pelusas": gradiente violeta en el texto, letras que se abren
-   desde el centro (GSAP). Segundo hijo del grid: el mazo queda algo arriba
-   del centro y el nombre respira abajo. El margen es grande a propósito: el
-   scale de .pl-scene no agranda su caja de layout, así que el mazo desborda
-   ~42–78 px según --pl-scale y sin este hueco pisaría el borde superior del
-   nombre. */
+   desde el centro (GSAP). Anclado debajo del mazo (absoluto, fuera del
+   flujo): el scale no agranda la caja de layout del .pl-scene, así que la
+   separación se calcula con media carta (52px × --pl-scale) + aire. */
 .pl-wordmark {
-  margin: clamp(5.5rem, 10vh, 7rem) 0 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% 0;
+  margin-top: calc(52px * var(--pl-scale) + clamp(1.25rem, 3vh, 2rem));
   font-family: var(--font-hero);
   font-weight: 400;
   font-size: clamp(58px, 9.5vw, 148px);
