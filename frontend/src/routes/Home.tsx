@@ -1,17 +1,12 @@
-import { HomeCarousel } from '../components/HomeCarousel';
 import { HeroStage } from '../features/hero/HeroStage';
 
-// El hero (vórtice, navbar, textos y preloader) reemplaza a la entrada vieja
-// HomeEntrance, ya retirada. El carrusel actual queda montado debajo de forma
-// temporal hasta que la Task 3 lo reemplace por el del hero.
+// El hero (humo, navbar, textos, carrusel y preloader) reemplaza a la entrada
+// vieja HomeEntrance, ya retirada. "Cómo se juega" queda debajo del hero.
 export function Home() {
   return (
     <main>
       <HeroStage />
       <div className="page home">
-        <div className="home-visual">
-          <HomeCarousel />
-        </div>
         <section className="howto" id="como-se-juega" aria-label="Cómo se juega">
           <div>
             <strong>1 · Sacá</strong>
