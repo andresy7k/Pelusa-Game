@@ -1,59 +1,120 @@
 /* frontend/src/features/hero/Preloader.css */
-/* Pantalla de carga del hero: overlay opaco con el logo pelusa latiendo y
-   una barra de progreso (solo transform). */
-.hero-preloader {
+/* Carga del hero: overlay near-black (mismo #07050f del humo, para que la
+   transición al hero sea invisible) con la baraja cayendo, la mascota pelusa
+   y el robo final. Solo GSAP anima transform/opacity acá. */
+.pl-overlay {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: var(--s6);
+  overflow: hidden;
   background: #07050f;
   cursor: pointer;
 }
 
-/* Mismo lenguaje que el logo del navbar (círculo difuso + puntitos). */
-.hero-preloader__logo {
-  width: 88px;
-  height: 88px;
+/* Escena: el mazo al centro de la mesa (76×104 = carta real). */
+.pl-stack {
+  position: relative;
+  width: 76px;
+  height: 104px;
+}
+
+/* Contenedor de caída: no pinta nada (fondo, borde, costura y sombra los
+   trae CardView). GSAP anima este elemento, no la carta. */
+.pl-card {
+  position: absolute;
+  inset: 0;
+  width: 76px;
+  height: 104px;
+  will-change: transform;
+}
+.pl-card .card {
+  transition: none;
+  pointer-events: none;
+}
+
+/* Glow ámbar de robo: solo vive en la carta 10 (la de arriba). */
+.pl-card__glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 14px;
+  box-shadow: 0 0 26px 7px oklch(0.78 0.15 75 / 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Puff de polvo en la base de la carta: GSAP lo expande y desvanece. */
+.pl-puff {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 76px;
+  height: 22px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, oklch(0.9 0.02 300 / 42%), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Sombra del mazo: crece con las cartas (GSAP). */
+.pl-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  width: 110px;
+  height: 26px;
+  margin-left: -55px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 65%), transparent 70%);
+  opacity: 0.35;
+  will-change: transform;
+}
+
+/* Mascota pelusa: pompón violeta con puntos claros (mismo lenguaje que el
+   logo del navbar) y ojos locos cruzados. GSAP la deja caer sobre el mazo. */
+.pl-mascot {
+  position: absolute;
+  left: 50%;
+  bottom: 98px;
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  margin-left: -23px;
   border-radius: 50%;
   background:
-    radial-gradient(circle 6px at 68% 26%, oklch(0.96 0.02 320 / 90%), transparent 100%),
-    radial-gradient(circle 4px at 28% 60%, oklch(0.96 0.02 320 / 70%), transparent 100%),
-    radial-gradient(circle 5px at 58% 80%, oklch(0.96 0.02 320 / 60%), transparent 100%),
-    radial-gradient(circle at 35% 30%, oklch(0.66 0.22 320), oklch(0.42 0.18 290) 72%);
-  box-shadow: 0 0 70px oklch(0.6 0.22 320 / 45%);
-  animation: hero-preloader-beat 1.4s var(--ease-out) infinite;
+    radial-gradient(circle 3px at 30% 22%, oklch(0.96 0.02 320 / 80%), transparent 100%),
+    radial-gradient(circle 2px at 72% 30%, oklch(0.96 0.02 320 / 60%), transparent 100%),
+    radial-gradient(circle 2.5px at 24% 70%, oklch(0.96 0.02 320 / 50%), transparent 100%),
+    radial-gradient(circle 2px at 78% 76%, oklch(0.96 0.02 320 / 45%), transparent 100%),
+    radial-gradient(circle at 35% 30%, oklch(0.7 0.2 320), oklch(0.45 0.19 292) 75%);
+  box-shadow: 0 0 26px oklch(0.6 0.22 320 / 50%);
+  will-change: transform;
 }
-
-@keyframes hero-preloader-beat {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.07);
-  }
+.pl-mascot__eye {
+  position: absolute;
+  top: 9px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 -2px 3px rgb(0 0 0 / 18%);
+  will-change: transform;
 }
+.pl-mascot__eye--l { left: 7px; }
+.pl-mascot__eye--r { right: 7px; }
+/* Pupilas cruzadas (ojos locos), descentradas a propósito. */
+.pl-mascot__eye--l > i { position: absolute; left: 8px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: #221a33; }
+.pl-mascot__eye--r > i { position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #221a33; }
 
-.hero-preloader__bar {
-  width: 190px;
-  height: 6px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: oklch(1 0 0 / 10%);
-}
-
-.hero-preloader__bar > div {
-  height: 100%;
-  border-radius: inherit;
-  transform-origin: left;
-  transform: scaleX(0);
-  background: linear-gradient(90deg, var(--violet), var(--amber));
-}
-
-.hero-preloader__hint {
+.pl-hint {
+  position: absolute;
+  right: 0;
+  bottom: 11%;
+  left: 0;
+  text-align: center;
   font-size: 0.8rem;
   color: var(--parchment-dim);
 }
