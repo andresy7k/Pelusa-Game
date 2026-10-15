@@ -1,0 +1,210 @@
+/* frontend/src/features/hero/HeroStage.css */
+.hero-stage {
+  position: relative;
+  --hero-accent: oklch(0.6 0.22 300);
+  --px: 0;
+  --py: 0;
+}
+
+/* Capa 0: vórtice */
+.hero-vortex {
+  position: fixed;
+  inset: -25%;
+  z-index: 0;
+  background: #07050f;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-vortex__layer {
+  position: absolute;
+  inset: -30%;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.75;
+  will-change: transform;
+  transform: translate3d(calc(var(--px) * 14px), calc(var(--py) * 14px), 0);
+}
+.hero-vortex__layer--a {
+  background: radial-gradient(closest-side, oklch(0.5 0.24 295 / 85%), transparent 70%);
+  animation: hero-spin 75s linear infinite;
+}
+.hero-vortex__layer--b {
+  background: radial-gradient(closest-side, oklch(0.55 0.26 330 / 55%), transparent 68%);
+  animation: hero-spin 95s linear infinite reverse;
+}
+.hero-vortex__layer--c {
+  background: radial-gradient(closest-side, #3b1d8f99, transparent 72%);
+  animation: hero-spin 120s linear infinite;
+}
+@keyframes hero-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Capa 1: grano */
+.hero-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Capa 2: contenido DOM del hero */
+.hero-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* --- Composición del stage (T2) ---
+   La selección ocupa el alto de la ventana; el contenido viejo (carrusel
+   temporal y "cómo se juega") queda debajo, al hacer scroll. */
+.hero-stage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Navbar: misma gramática que .topbar (sticky + blur) pero transparente,
+   flotando sobre el vórtice. El toggle de sonido real llega en T8. */
+.hero-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s4) var(--s6);
+  background: transparent;
+  backdrop-filter: blur(10px);
+}
+.hero-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: var(--parchment);
+  text-decoration: none;
+}
+/* Logo: pelusa simple — círculo difuso con puntitos claros. */
+.hero-nav__logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle 3px at 68% 26%, oklch(0.96 0.02 320 / 90%), transparent 100%),
+    radial-gradient(circle 2px at 28% 60%, oklch(0.96 0.02 320 / 70%), transparent 100%),
+    radial-gradient(circle 2.5px at 58% 80%, oklch(0.96 0.02 320 / 60%), transparent 100%),
+    radial-gradient(circle at 35% 30%, oklch(0.66 0.22 320), oklch(0.42 0.18 290) 72%);
+  box-shadow: 0 0 16px oklch(0.6 0.22 320 / 55%);
+}
+.hero-nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 0.9rem;
+}
+.hero-nav__pill {
+  padding: var(--s2) var(--s4);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--parchment-dim);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    color var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
+}
+.hero-nav__pill:hover {
+  color: var(--parchment);
+  background: oklch(1 0 0 / 6%);
+  border-color: oklch(1 0 0 / 14%);
+  transform: translateY(-1px);
+}
+.hero-nav__sound {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-color: oklch(1 0 0 / 16%);
+  border-radius: 50%;
+  background: oklch(1 0 0 / 4%);
+  color: var(--parchment);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.hero-nav__sound:hover {
+  border-color: oklch(1 0 0 / 32%);
+  transform: translateY(-1px);
+}
+
+/* Copy: badge, titular por palabras, subtítulo y CTAs. */
+.hero-copy {
+  flex: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--s6);
+  padding: var(--s8) var(--s6) var(--s16);
+  text-align: center;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.hero-badge__dot {
+  color: var(--amber);
+  filter: drop-shadow(0 0 8px oklch(0.78 0.15 75 / 70%));
+}
+.hero-badge__gold {
+  color: var(--amber);
+}
+.hero-badge__white {
+  color: var(--parchment);
+}
+.hero-h1 {
+  margin: 0;
+  font-family: var(--font-hero);
+  font-weight: 400;
+  font-size: clamp(40px, 6vw, 96px);
+  line-height: 0.95;
+  color: #fff;
+  text-shadow: 0 10px 30px rgb(0 0 0 / 60%);
+}
+.hero-h1__line {
+  display: block;
+}
+/* Cada palabra en su span (inline-block + espacio preservado): la intro
+   escalonada de T7 las anima una por una. */
+.hero-h1__w {
+  display: inline-block;
+  white-space: pre;
+}
+.hero-sub {
+  max-width: 520px;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--parchment-dim);
+}
+.hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s3);
+}

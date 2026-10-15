@@ -1,0 +1,59 @@
+/* frontend/src/features/hero/Preloader.css */
+/* Pantalla de carga del hero: overlay opaco con el logo pelusa latiendo y
+   una barra de progreso (solo transform). */
+.hero-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s6);
+  background: #07050f;
+  cursor: pointer;
+}
+
+/* Mismo lenguaje que el logo del navbar (círculo difuso + puntitos). */
+.hero-preloader__logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle 6px at 68% 26%, oklch(0.96 0.02 320 / 90%), transparent 100%),
+    radial-gradient(circle 4px at 28% 60%, oklch(0.96 0.02 320 / 70%), transparent 100%),
+    radial-gradient(circle 5px at 58% 80%, oklch(0.96 0.02 320 / 60%), transparent 100%),
+    radial-gradient(circle at 35% 30%, oklch(0.66 0.22 320), oklch(0.42 0.18 290) 72%);
+  box-shadow: 0 0 70px oklch(0.6 0.22 320 / 45%);
+  animation: hero-preloader-beat 1.4s var(--ease-out) infinite;
+}
+
+@keyframes hero-preloader-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+.hero-preloader__bar {
+  width: 190px;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: oklch(1 0 0 / 10%);
+}
+
+.hero-preloader__bar > div {
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--violet), var(--amber));
+}
+
+.hero-preloader__hint {
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
