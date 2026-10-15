@@ -1,25 +1,62 @@
 import './card.css';
 
 // Carta física: marfil, valor en display grande, elevación real.
-// Hover = promesa de agarre (sube 4px, sombra profunda). Sin color por valor:
-// la jerarquía la da el tamaño, no el arcoíris (daltonismo + sobriedad).
-export function CardView({ value, small = false }: { value: number; small?: boolean }) {
-  return (
-    <div className={small ? 'card small' : 'card'} aria-label={`Carta ${value}`}>
+// `stealable` = se puede robar: brilla en ámbar e invita al click.
+// `onPick` convierte la carta en botón accesible (teclado incluido).
+export function CardView({
+  value,
+  small = false,
+  stealable = false,
+  onPick,
+}: {
+  value: number;
+  small?: boolean;
+  stealable?: boolean;
+  onPick?: () => void;
+}) {
+  const cls = `card${small ? ' small' : ''}${stealable ? ' stealable' : ''}`;
+  const inner = (
+    <>
       <span className="card-value">{value}</span>
       <span className="card-pip">●</span>
+    </>
+  );
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        className={`${cls} as-button`}
+        aria-label={`Robar carta ${value}`}
+        onClick={onPick}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <div className={cls} aria-label={`Carta ${value}`}>
+      {inner}
     </div>
   );
 }
 
-// Grupo del mismo valor: las cartas se solapan como en la mano real.
-export function CardGroup({ values }: { values: number[] }) {
-  if (values.length === 0) return <span className="empty-front">—</span>;
+// Frente desplegado: todas las cartas a la vista, con wrap. Nada se apila:
+// el rival debe ver en todo momento qué se le puede robar.
+export function CardGroup({
+  values,
+  stealable = false,
+  onPick,
+}: {
+  values: number[];
+  stealable?: boolean;
+  onPick?: (value: number) => void;
+}) {
+  if (values.length === 0) return <span className="empty-front">Sin cartas a la vista</span>;
   return (
-    <div className="card-group">
+    <div className="card-group spread">
       {values.map((v, i) => (
-        <div key={i} className="card-slot" style={{ ['--i' as string]: i }}>
-          <CardView value={v} small />
+        <div key={`${v}-${i}`} className="card-slot pop-in" style={{ ['--d' as string]: `${i * 45}ms` }}>
+          <CardView value={v} small stealable={stealable} onPick={onPick ? () => onPick(v) : undefined} />
         </div>
       ))}
     </div>

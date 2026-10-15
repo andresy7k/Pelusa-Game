@@ -54,12 +54,69 @@
   padding: var(--s1) 0;
 }
 
+/* spread: frente desplegado con wrap — todas visibles, nada apilado */
+.card-group.spread {
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.card-group.spread .card-slot {
+  margin-left: 0;
+}
+
 .card-slot {
   margin-left: calc(var(--i) * -34px);
 }
 
 .card-slot:first-child {
   margin-left: 0;
+}
+
+/* Entrada de carta nueva: nace pequeña, cae a su lugar (solo transform). */
+.pop-in {
+  animation: card-in var(--t-med) var(--ease-out) backwards;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Robable: filo ámbar + respiración. El hover la levanta (promesa de robo). */
+.card.stealable {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-card), 0 0 18px oklch(0.78 0.15 75 / 35%);
+  animation: steal-breathe 1.6s ease-in-out infinite;
+}
+
+.card.stealable:hover {
+  transform: translateY(-6px) scale(1.03);
+  animation: none;
+}
+
+@keyframes steal-breathe {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card), 0 0 10px oklch(0.78 0.15 75 / 25%);
+  }
+  50% {
+    box-shadow: var(--shadow-card), 0 0 22px oklch(0.78 0.15 75 / 50%);
+  }
+}
+
+/* Carta como botón: hereda tipografía, resetea chrome de button */
+.card.as-button {
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
 }
 
 .empty-front {

@@ -5,22 +5,30 @@ import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardGroup } from '../components/CardView';
 
-// Mesa: el mazo al centro como objeto con su cuenta, jugadores en paneles,
-// el turno activo iluminado en ámbar. Una acción primaria (sacar), resto
-// secundario. Todo lo que ves lo decidió el backend.
+// Mesa: modo robo por resaltado (sin inputs numéricos). Tocás "Robar",
+// las cartas ajenas brillan, tocás una y se roba ese valor. La elegibilidad
+// sale del estado (frentes ajenos no vacíos), la autorización del backend.
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
   const [me, setMe] = useState<string>('');
-  const [stealValue, setStealValue] = useState(4);
+  const [robbing, setRobbing] = useState(false);
 
   if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Repartiendo…'}</main>;
   const meId = me || state.currentPlayerId || '';
   const finished = state.status === 'FINISHED';
+  const bust = !finished && (state.lastEvent as { bust?: boolean } | null)?.bust === true;
+  const myTurn = !finished && state.currentPlayerId === meId && meId !== '';
+
+  async function stealValue(value: number) {
+    if (!id || !meId) return;
+    const next = await act(() => api.steal(id, meId, value));
+    if (next) setRobbing(false);
+  }
 
   return (
     <main className="page table">
-      <p className="kicker">{finished ? 'Mesa cerrada' : 'En juego'}</p>
+      <p className="kicker">{finished ? 'Mesa cerrada' : bust ? '¡Reventó!' : 'En juego'}</p>
       <div className="table-head">
         <h1>
           Turno de <span className="turn-name">{nameOf(state, state.currentPlayerId)}</span>
@@ -29,9 +37,17 @@ export function Board() {
           <div className="deck-pile-card" />
           <div className="deck-pile-card" />
           <div className="deck-pile-card top" />
-          <span className="deck-count">{state.deckRemaining}</span>
+          <span className="deck-count" key={state.deckRemaining}>
+            {state.deckRemaining}
+          </span>
         </div>
       </div>
+
+      {bust && (
+        <p className="bust-banner" role="alert">
+          Carta repetida con 3+ en frente: todo al descarte. Turno perdido.
+        </p>
+      )}
 
       {!finished && (
         <>
@@ -57,20 +73,16 @@ export function Board() {
             <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.stash(id, meId))}>
               Guardar pelusas
             </button>
-            <span className="steal-inline">
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={stealValue}
-                aria-label="Valor a robar"
-                onChange={(e) => setStealValue(Number(e.target.value))}
-              />
-              <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.steal(id, meId, stealValue))}>
-                Robar
-              </button>
-            </span>
+            <button
+              className={robbing ? 'primary' : 'ghost'}
+              disabled={busy}
+              onClick={() => setRobbing((r) => !r)}
+              aria-pressed={robbing}
+            >
+              {robbing ? 'Tocá una carta rival…' : 'Robar'}
+            </button>
           </div>
+          {robbing && myTurn && <p className="hint">Las cartas que brillan se pueden robar. Tocá una.</p>}
           {error && (
             <p className="error" role="alert">
               {friendlyMessage(error)}
@@ -82,6 +94,8 @@ export function Board() {
       <section className="fronts">
         {state.players.map((p) => {
           const active = p.id === state.currentPlayerId && !finished;
+          const rival = p.id !== meId;
+          const highlight = robbing && myTurn && rival;
           return (
             <article key={p.id} className={active ? 'panel active' : 'panel'}>
               <div className="player-head">
@@ -90,7 +104,11 @@ export function Board() {
                 </h2>
                 <span className="points">{state.stashed[p.id]?.sum ?? 0} pts</span>
               </div>
-              <CardGroup values={state.fronts[p.id] ?? []} />
+              <CardGroup
+                values={state.fronts[p.id] ?? []}
+                stealable={highlight}
+                onPick={highlight ? stealValue : undefined}
+              />
             </article>
           );
         })}
