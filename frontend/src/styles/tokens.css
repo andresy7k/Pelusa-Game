@@ -26,9 +26,11 @@
   /* Puntos: verde mesa apagado */
   --moss: oklch(0.55 0.09 160);
 
-  /* Tipo */
+  /* Tipo: Inter Tight = la voz Apple (UI y texto); Fraunces = display
+     editorial y numerales de carta; Space Grotesk = datos de tablero. */
   --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter Tight', -apple-system, system-ui, sans-serif;
+  --font-board: 'Space Grotesk', system-ui, sans-serif;
 
   /* Escala espacial base 4px: ritmo, no relleno parejo */
   --s1: 0.25rem;
