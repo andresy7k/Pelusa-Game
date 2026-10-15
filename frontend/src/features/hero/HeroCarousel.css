@@ -1,0 +1,92 @@
+/* frontend/src/features/hero/HeroCarousel.css
+   Carrusel 1→10 del hero. Ranuras en anillo: HeroCarousel calcula
+   --hc-tx (offset), --hc-scale, --hc-lift, --hc-rot, --hc-op y --hc-z por
+   ranura (números sin unidad) y este archivo los traduce a transform/opacity.
+   Solo transform/opacity; el paso de carta transiciona con --hc-slide. */
+
+.hero-carousel {
+  /* Fallbacks: HeroCarousel setea ambas inline desde config.ts. */
+  --hc-slide: 650ms;
+  --hc-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  height: clamp(260px, 34vh, 340px);
+  overflow: hidden; /* las ranuras lejanas no generan scroll lateral */
+  user-select: none;
+}
+
+.hc-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0; /* contiene los z de las ranuras: los dots quedan por encima */
+  touch-action: pan-y; /* el swipe horizontal lo maneja el carrusel */
+}
+
+/* Ranura de carta: anclada abajo (las cartas "se apoyan" en la base) y con
+   origen en el borde inferior para que el escalado crezca hacia arriba. */
+.hc-slot {
+  --hc-step: clamp(120px, 16vw, 190px);
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  margin-left: -38px; /* mitad del ancho base de 76px */
+  z-index: var(--hc-z);
+  opacity: var(--hc-op);
+  transform-origin: bottom center;
+  transform:
+    translateX(calc(var(--hc-tx) * var(--hc-step)))
+    translateY(calc(var(--hc-lift, 0) * 1px))
+    scale(var(--hc-scale))
+    rotate(calc(var(--hc-rot) * 1deg));
+  transition:
+    transform var(--hc-slide) var(--hc-ease),
+    opacity var(--hc-slide) var(--hc-ease);
+  will-change: transform;
+  cursor: pointer;
+}
+
+/* Las lejanas viven invisibles: el salto del anillo (4 → -5) y todo el
+   recorrido por atrás quedan ocultos. */
+.hc-slot--far {
+  visibility: hidden;
+}
+
+/* Dots de progreso: botones reales (foco visible global); el activo se
+   marca en ámbar con glow. */
+.hc-dots {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  left: 0;
+  z-index: 30; /* por encima del escenario: quedan clickeables */
+  display: flex;
+  justify-content: center;
+  gap: var(--s2);
+}
+
+.hc-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 1px solid var(--violet-soft);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast) linear,
+    border-color var(--t-fast) linear,
+    box-shadow var(--t-fast) linear;
+}
+
+.hc-dot--active {
+  border-color: var(--amber);
+  background: var(--amber);
+  box-shadow: 0 0 10px oklch(0.78 0.15 75 / 75%);
+}
+
+/* Movimiento reducido: los cambios de carta son instantáneos (el TSX no
+   programa el auto-avance). */
+@media (prefers-reduced-motion: reduce) {
+  .hc-slot {
+    transition: none;
+  }
+}
