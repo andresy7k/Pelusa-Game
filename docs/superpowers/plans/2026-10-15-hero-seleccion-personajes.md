@@ -6,7 +6,7 @@
 
 **Architecture:** Enfoque A — las cartas son DOM (accesibles, reusan el sistema visual actual); un único canvas React Three Fiber fijo, `pointer-events:none`, dibuja los monstruos + partículas anclados al `rect` de cada carta (medido solo cuando algo se mueve). Vórtice en capas CSS con parallax. Todo parametrizado en `features/hero/config.ts`.
 
-**Tech Stack:** React 19, Vite 5, TypeScript, GSAP 3.15 (ya presentes) + `three`, `@react-three/fiber`, `@react-three/drei`, `@react-three/postprocessing` (nuevas).
+**Tech Stack:** React 18.3.1, Vite 5.4, TypeScript 5.5, GSAP 3.15 (ya presentes) + `three@^0.170`, `@react-three/fiber@^8.18`, `@react-three/drei@^9.122`, `@react-three/postprocessing@^2.19` (nuevas; línea compatible con React 18 — las majors fiber 9 / drei 10 / postprocessing 3 exigen React 19 y fallan ERESOLVE).
 
 **Spec:** `docs/superpowers/specs/2026-10-15-hero-seleccion-personajes-design.md` — leerlo completo antes de empezar. Este plan argumenta desde el spec; viajan juntos.
 
@@ -19,7 +19,7 @@
 - **a11y en cada tarea**: teclado navegable, `prefers-reduced-motion` respetado, `aria` correctos, foco visible.
 - **Todo el código y comentarios en español**, como el resto del proyecto.
 - **Copy del hero** (spec §4.8): badge "UN JUEGO DE MESA" (ámbar) · "VERSIÓN DIGITAL" (blanco); h1 "Pelusas, bajo la lámpara."; subtítulo "Sacá cartas del mazo, guardá tus pelusas y robale al resto. Vos jugás; las reglas las decide el servidor."; CTAs "Nueva partida" (`/setup`) y "Historial" (`/history`).
-- **Dependencias permitidas**: solo `three`, `@react-three/fiber`, `@react-three/drei`, `@react-three/postprocessing`. Nada más.
+- **Dependencias permitidas**: solo `three@^0.170`, `@react-three/fiber@^8.18`, `@react-three/drei@^9.122`, `@react-three/postprocessing@^2.19` (línea React 18: el frontend usa React 18.3.1; instalar las majors nuevas SIN versión falla con ERESOLVE — `npm install` sin pin NO sirve). Nada más.
 - **Rama de implementación**: `feature/hero-seleccion` creada desde `feature/mazo-y-visual` (PR #8 sigue abierto; si el usuario lo mergea antes de terminar, rebasar sobre `main`). Push/PR solo con autorización explícita del usuario.
 - **Monstruos pintados** (`CardView`/`MonsterFace` actuales + `card.css`) se **conservan** para el tablero del juego. El hero tiene sus propios `CardFace` y monstruos 3D.
 
@@ -58,10 +58,10 @@ git checkout -b feature/hero-seleccion
 
 ```powershell
 cd frontend
-npm install three @react-three/fiber @react-three/drei @react-three/postprocessing
+npm install three@^0.170.0 @react-three/fiber@^8.18.0 @react-three/drei@^9.122.0 @react-three/postprocessing@^2.19.1
 ```
 
-Esperado: sin errores; `package.json` con las 4 dependencias nuevas.
+Esperado: sin errores; `package.json` con las 4 dependencias nuevas. (Pin obligatorio: el frontend es React 18.3.1; `@react-three/fiber@9`/`drei@10`/`postprocessing@3` requieren React 19 → ERESOLVE.)
 
 - [ ] **Step 3: Crear `config.ts` con el esqueleto completo**
 
