@@ -150,7 +150,7 @@ class GameApiTest {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
-    rigDeck(gameId, 4, 4, 4, 7, 8);
+    rigDeck(gameId, 4, 4, 4, 4, 9);
     UUID ana = playerId(created, 0);
     UUID beto = playerId(created, 1);
 
@@ -159,16 +159,82 @@ class GameApiTest {
     act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
     act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
     act(gameId, "stand", beto, UUID.randomUUID().toString(), null);
+    // Ana debe sacar este turno: su 4 es la última carta y habilita robar 4
+    JsonNode drawn = act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
+    assertThat(drawn.get("lastDrawnValue").asInt()).isEqualTo(4);
 
     JsonNode after = act(gameId, "steal", ana, UUID.randomUUID().toString(),
         "{\"playerId\":\"" + ana + "\",\"value\":4}");
-    assertThat(after.get("fronts").get(ana.toString()).size()).isEqualTo(3);
+    // Ana: 4,4 propios + 4,4 robados de Beto
+    assertThat(after.get("fronts").get(ana.toString()).size()).isEqualTo(4);
+    // El evento del robo identifica a la víctima (contrato §7: fromPlayerIds)
+    assertThat(after.get("lastEvent").get("fromPlayerIds").get(0).asText()).isEqualTo(beto.toString());
 
-    // Sin ese valor → 422
+    // Mismo valor (4) pero ya no queda ninguno en frentes ajenos → 422
     mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\",\"value\":9}"))
+            .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STEALABLE_CARDS"));
+  }
+
+  @Test
+  void stealMismatchedValueRejected() throws Exception {
+    // Regresión del bug: Beto tiene un 4 boca arriba, pero Ana sacó 5.
+    // Robar el 4 debe ser rechazado: solo vale el valor de la última sacada.
+    JsonNode created = createGame("Ana", "Beto");
+    UUID gameId = UUID.fromString(created.get("id").asText());
+    start(gameId);
+    rigDeck(gameId, 4, 4, 5, 9);
+    UUID ana = playerId(created, 0);
+    UUID beto = playerId(created, 1);
+
+    act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
+    act(gameId, "stand", ana, UUID.randomUUID().toString(), null);
+    act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
+    act(gameId, "stand", beto, UUID.randomUUID().toString(), null);
+    JsonNode drawn = act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
+    assertThat(drawn.get("lastDrawnValue").asInt()).isEqualTo(5);
+
+    mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.errorCode").value("STEAL_VALUE_MISMATCH"));
+  }
+
+  @Test
+  void stealBeforeDrawingThisTurnRejected() throws Exception {
+    // Contrato §10: robar sin haber sacado carta en el turno → 422.
+    JsonNode created = createGame("Ana", "Beto");
+    UUID gameId = UUID.fromString(created.get("id").asText());
+    start(gameId);
+    UUID ana = playerId(created, 0);
+
+    mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.errorCode").value("STEAL_VALUE_MISMATCH"));
+  }
+
+  @Test
+  void viewExposesLastDrawnValue() throws Exception {
+    JsonNode created = createGame("Ana", "Beto");
+    UUID gameId = UUID.fromString(created.get("id").asText());
+    start(gameId);
+    rigDeck(gameId, 4, 5, 6);
+    UUID ana = playerId(created, 0);
+
+    JsonNode before = json.readTree(mvc.perform(get("/api/games/" + gameId))
+        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    assertThat(before.get("lastDrawnValue").isNull()).isTrue();
+
+    JsonNode after = act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
+    assertThat(after.get("lastDrawnValue").asInt()).isEqualTo(4);
+    // El tope del mazo NO se expone (§11): no debe existir "nextCard" en la vista
+    assertThat(after.has("nextCard")).isFalse();
+
+    // Al rotar el turno el valor robable se limpia: el siguiente turno lo trae null
+    JsonNode rotated = act(gameId, "stand", ana, UUID.randomUUID().toString(), null);
+    assertThat(rotated.get("lastDrawnValue").isNull()).isTrue();
   }
 
   @Test

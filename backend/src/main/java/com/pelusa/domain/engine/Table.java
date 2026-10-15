@@ -22,9 +22,10 @@ import java.util.UUID;
  * <p>Una instancia = una partida. Phase 4 la reconstruye desde las entidades
  * al inicio de cada request y la persiste al final, todo en 1 transacción.
  *
- * <p>Reglas aplicadas aquí: R-01 robo solo en turno (todas las del valor),
- * R-02 bust = repetido && frente>=3 post-colocación, R-03 suma + desempate
- * 1→10, I-05 stash solo al inicio del turno, I-06 fin al agotarse el mazo.
+ * <p>Reglas aplicadas aquí: R-01 robo solo en turno y SOLO el valor de la
+ * última carta sacada (todas las de ese valor), R-02 bust = repetido && frente>=3
+ * post-colocación, R-03 suma + desempate 1→10, I-05 stash solo al inicio del
+ * turno, I-06 fin al agotarse el mazo.
  */
 public class Table {
   private final List<UUID> playerOrder;
@@ -36,6 +37,7 @@ public class Table {
   private GameStatus status = GameStatus.IN_PROGRESS;
   private boolean actedThisTurn;
   private boolean stashedThisTurn;
+  private Integer lastDrawnValue;
   private UUID winnerId;
   private boolean tie;
   private Map<UUID, Score> scores = Map.of();
@@ -93,6 +95,7 @@ public class Table {
     List<Card> front = fronts.get(currentPlayerId());
     front.add(drawn);
     actedThisTurn = true;
+    lastDrawnValue = drawn.value();
 
     if (BustPolicy.isBust(front, drawn)) {
       discarded.addAll(front);
@@ -120,11 +123,17 @@ public class Table {
   /**
    * Robar: trae a mi frente TODAS las cartas del valor pedido que estén
    * boca arriba en frentes ajenos. No dispara bust (solo el draw lo hace).
+   * R-01 (ADR-014): solo se puede robar el valor de la última carta sacada
+   * este turno; sin draw previo o con otro valor → STEAL_VALUE_MISMATCH.
    */
   public StealResult stealCurrent(int value) {
     requireInProgress();
     if (value < 1 || value > 10) {
       throw new IllegalArgumentException("value debe estar entre 1 y 10");
+    }
+    if (lastDrawnValue == null || value != lastDrawnValue) {
+      throw new DomainException("STEAL_VALUE_MISMATCH",
+          "Solo puedes robar el valor de la última carta que sacaste");
     }
     UUID me = currentPlayerId();
     List<Card> taken = new ArrayList<>();
@@ -183,6 +192,7 @@ public class Table {
     currentIndex = (currentIndex + 1) % playerOrder.size();
     actedThisTurn = false;
     stashedThisTurn = false;
+    lastDrawnValue = null;
   }
 
   private void requireInProgress() {
@@ -200,7 +210,8 @@ public class Table {
       Map<UUID, List<Card>> savedStashed,
       List<Card> savedDiscarded,
       boolean acted,
-      boolean stashedFlag) {
+      boolean stashedFlag,
+      Integer lastDrawn) {
     for (UUID p : playerOrder) {
       fronts.get(p).addAll(savedFronts.getOrDefault(p, List.of()));
       stashed.get(p).addAll(savedStashed.getOrDefault(p, List.of()));
@@ -208,6 +219,7 @@ public class Table {
     discarded.addAll(savedDiscarded);
     this.actedThisTurn = acted;
     this.stashedThisTurn = stashedFlag;
+    this.lastDrawnValue = lastDrawn;
   }
 
   // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---
@@ -218,6 +230,11 @@ public class Table {
 
   public int deckRemaining() {
     return deck.size();
+  }
+
+  /** Valor de la última carta sacada este turno (null si aún no sacó). */
+  public Integer lastDrawnValue() {
+    return lastDrawnValue;
   }
 
   public Map<UUID, List<Card>> fronts() {

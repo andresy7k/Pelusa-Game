@@ -24,8 +24,9 @@ public class GlobalExceptionHandler {
   private static final Set<String> CONFLICT =
       Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED",
           "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN");
-  private static final Set<String> UNPROCESSABLE =
-      Set.of("DECK_EMPTY", "NO_STASHABLE_CARDS", "NO_STEALABLE_CARDS", "INVALID_PLAYER");
+  // Cualquier otro código de dominio cae en el default 422 (regla violada):
+  // DECK_EMPTY, NO_STASHABLE_CARDS, NO_STEALABLE_CARDS, STEAL_VALUE_MISMATCH,
+  // INVALID_PLAYER.
 
   @ExceptionHandler(com.pelusa.domain.engine.DomainException.class)
   public ProblemDetail domain(com.pelusa.domain.engine.DomainException e, HttpServletRequest req) {

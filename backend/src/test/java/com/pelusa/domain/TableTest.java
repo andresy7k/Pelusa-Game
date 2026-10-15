@@ -86,29 +86,65 @@ class TableTest {
   }
 
   @Test
-  void stealTakesAllOfValueFromOtherFronts() {
-    // Ana: 4 | Beto: 4,4,7 → Ana roba los dos 4
-    Table t = twoPlayers(0, 4, 4, 4, 7, 8, 9);
-    t.drawCurrent(); // Ana 4
+  void stealTakesAllOfLastDrawnValueFromOtherFronts() {
+    // Ana saca 4 este turno; Beto tiene 4,4 boca arriba → Ana roba ambas (R-01/ADR-014)
+    Table t = twoPlayers(0, 4, 4, 4, 4, 9, 9);
+    t.drawCurrent(); // Ana 4 (turno 1)
     t.standCurrent();
     t.drawCurrent(); // Beto 4
     t.drawCurrent(); // Beto 4 (frente 2, sin bust)
-    t.drawCurrent(); // Beto 7
-    t.standCurrent(); // turno Ana
+    t.standCurrent(); // vuelve Ana
+    t.drawCurrent(); // Ana 4 (última sacada = 4)
     var steal = t.stealCurrent(4);
     assertThat(steal.count()).isEqualTo(2);
     assertThat(t.fronts().get(t.currentPlayerId()))
-        .containsExactly(new Card(4), new Card(4), new Card(4));
+        .containsExactly(new Card(4), new Card(4), new Card(4), new Card(4));
   }
 
   @Test
-  void stealWithoutValueFails() {
-    Table t = twoPlayers(0, 4, 5, 6);
-    t.drawCurrent();
+  void stealOfValueOtherThanLastDrawnFails() {
+    // Regresión del bug reportado: Ana sacó 7 y Beto tiene un 4 boca arriba.
+    // Antes se robaba el 4 igual; ahora solo vale el valor de la última sacada.
+    Table t = twoPlayers(0, 4, 4, 4, 9, 7, 7);
+    t.drawCurrent(); // Ana 4 (turno 1)
     t.standCurrent();
-    t.drawCurrent();
+    t.drawCurrent(); // Beto 4
+    t.drawCurrent(); // Beto 9
     t.standCurrent();
+    t.drawCurrent(); // Ana 7 (última sacada = 7)
+    assertThatThrownBy(() -> t.stealCurrent(4))
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("STEAL_VALUE_MISMATCH");
     assertThatThrownBy(() -> t.stealCurrent(9))
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("STEAL_VALUE_MISMATCH");
+  }
+
+  @Test
+  void stealBeforeDrawingThisTurnFails() {
+    // Beto tiene un 4 boca arriba y es el turno de Ana, pero Ana aún no sacó.
+    Table t = twoPlayers(0, 4, 4, 5);
+    t.drawCurrent(); // Ana 4 (turno 1)
+    t.standCurrent();
+    t.drawCurrent(); // Beto 4
+    t.standCurrent(); // Ana turno 2: sin draw todavía
+    assertThatThrownBy(() -> t.stealCurrent(4))
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("STEAL_VALUE_MISMATCH");
+  }
+
+  @Test
+  void stealWithNoMatchingCardFails() {
+    Table t = twoPlayers(0, 4, 5, 6, 7);
+    t.drawCurrent(); // Ana 4
+    t.standCurrent();
+    t.drawCurrent(); // Beto 5
+    t.standCurrent();
+    t.drawCurrent(); // Ana 6 (última = 6; Beto no tiene ningún 6)
+    assertThatThrownBy(() -> t.stealCurrent(6))
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())
         .isEqualTo("NO_STEALABLE_CARDS");
