@@ -151,6 +151,7 @@ public class GameService {
       top.setLocation("FRONT");
       top.setOwnerPlayerId(playerId);
       turn.setActed(true);
+      turn.setLastDrawnValue(r.drawn().value());
       Map<String, Object> ev = event("DRAW", Map.of("value", r.drawn().value(), "bust", r.bust()));
       turn.setDetail(toJson(ev));
       if (r.bust()) {
@@ -185,7 +186,8 @@ public class GameService {
               && !playerId.equals(c.getOwnerPlayerId()))
           .forEach(c -> c.setOwnerPlayerId(playerId));
       turn.setActed(true);
-      Map<String, Object> ev = event("STEAL", Map.of("value", value, "count", r.count()));
+      Map<String, Object> ev = event("STEAL",
+          Map.of("value", value, "count", r.count(), "fromPlayerIds", r.fromPlayerIds()));
       turn.setDetail(toJson(ev));
       return ev;
     });
@@ -279,12 +281,14 @@ public class GameService {
     }
     boolean acted = false;
     boolean stashedFlag = false;
+    Integer lastDrawn = null;
     var open = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId);
     if (open.isPresent()) {
       acted = open.get().isActed();
       stashedFlag = open.get().isStashed();
+      lastDrawn = open.get().getLastDrawnValue();
     }
-    table.hydrate(fronts, saved, discarded, acted, stashedFlag);
+    table.hydrate(fronts, saved, discarded, acted, stashedFlag, lastDrawn);
     return table;
   }
 
@@ -418,7 +422,12 @@ public class GameService {
     }
     List<PlayerView> playerViews =
         ps.stream().map(p -> new PlayerView(p.getId(), p.getName(), p.getSeat())).toList();
+    // R-01/ADR-014: valor robable este turno = última carta sacada (null si no hay).
+    // La próxima carta del mazo NO se expone (§11 del contrato): filtra estrategia.
+    Integer lastDrawn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId)
+        .map(TurnEntity::getLastDrawnValue)
+        .orElse(null);
     return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(), deck,
-        playerViews, fronts, stashed, event, result);
+        lastDrawn, playerViews, fronts, stashed, event, result);
   }
 }

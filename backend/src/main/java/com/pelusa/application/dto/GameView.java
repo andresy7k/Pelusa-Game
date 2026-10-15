@@ -14,6 +14,7 @@ public record GameView(
     String status,
     UUID currentPlayerId,
     int deckRemaining,
+    Integer lastDrawnValue,
     List<PlayerView> players,
     Map<UUID, List<Integer>> fronts,
     Map<UUID, StashView> stashed,

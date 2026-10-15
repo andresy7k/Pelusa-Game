@@ -34,6 +34,10 @@ public class TurnEntity {
   @Column(nullable = false)
   private boolean stashed;
 
+  /** R-01/ADR-014: valor de la última carta sacada este turno (null = sin draw). */
+  @Column(name = "last_drawn_value")
+  private Integer lastDrawnValue;
+
   protected TurnEntity() {}
 
   public TurnEntity(UUID id, UUID gameId, UUID playerId) {
@@ -48,6 +52,8 @@ public class TurnEntity {
   public String getDetail() { return detail; }
   public boolean isActed() { return acted; }
   public boolean isStashed() { return stashed; }
+  public Integer getLastDrawnValue() { return lastDrawnValue; }
+  public void setLastDrawnValue(Integer v) { this.lastDrawnValue = v; }
   public void setEndedAt(OffsetDateTime t) { this.endedAt = t; }
   public void setOutcome(String outcome) { this.outcome = outcome; }
   public void setDetail(String detail) { this.detail = detail; }
