@@ -22,9 +22,10 @@ import java.util.UUID;
  * <p>Una instancia = una partida. Phase 4 la reconstruye desde las entidades
  * al inicio de cada request y la persiste al final, todo en 1 transacción.
  *
- * <p>Reglas aplicadas aquí: R-01 robo solo en turno (todas las del valor),
- * R-02 bust = repetido && frente>=3 post-colocación, R-03 suma + desempate
- * 1→10, I-05 stash solo al inicio del turno, I-06 fin al agotarse el polvo.
+ * <p>Reglas aplicadas aquí: R-01 robo solo en turno y SOLO el valor de la
+ * última carta sacada (todas las de ese valor), R-02 bust = repetido && frente>=3
+ * post-colocación, R-03 suma + desempate 1→10, I-05 stash solo al inicio del
+ * turno, I-06 fin al agotarse el mazo.
  */
 public class Table {
   private final List<UUID> playerOrder;
@@ -32,21 +33,22 @@ public class Table {
   private final Map<UUID, List<Card>> fronts = new HashMap<>();
   private final Map<UUID, List<Card>> stashed = new HashMap<>();
   private final List<Card> discarded = new ArrayList<>();
-  private final Deque<Card> dust;
+  private final Deque<Card> deck;
   private GameStatus status = GameStatus.IN_PROGRESS;
   private boolean actedThisTurn;
   private boolean stashedThisTurn;
+  private Integer lastDrawnValue;
   private UUID winnerId;
   private boolean tie;
   private Map<UUID, Score> scores = Map.of();
 
   /**
    * @param players orden de turno (2-6, sin duplicados)
-   * @param dustPile cartas del polvo; la primera de la lista se saca primero.
+   * @param deck cartas del mazo; la primera de la lista se saca primero.
    *     Prod pasa {@code DeckFactory.shuffledDeck(...)}; los tests pasan mazos amañados.
    * @param firstPlayerIndex quién empieza
    */
-  public Table(List<UUID> players, List<Card> dustPile, int firstPlayerIndex) {
+  public Table(List<UUID> players, List<Card> deck, int firstPlayerIndex) {
     if (players.size() < 2 || players.size() > 6) {
       throw new IllegalArgumentException("La partida necesita de 2 a 6 jugadores");
     }
@@ -55,7 +57,7 @@ public class Table {
     }
     this.playerOrder = List.copyOf(players);
     this.currentIndex = firstPlayerIndex;
-    this.dust = new ArrayDeque<>(dustPile);
+    this.deck = new ArrayDeque<>(deck);
     for (UUID p : players) {
       fronts.put(p, new ArrayList<>());
       stashed.put(p, new ArrayList<>());
@@ -83,28 +85,29 @@ public class Table {
     return count;
   }
 
-  /** Sacar carta del polvo. Puede causar bust o terminar la partida. */
+  /** Sacar carta del mazo. Puede causar bust o terminar la partida. */
   public DrawResult drawCurrent() {
     requireInProgress();
-    if (dust.isEmpty()) {
-      throw new DomainException("DUST_PILE_EMPTY", "El montón de polvo está vacío");
+    if (deck.isEmpty()) {
+      throw new DomainException("DECK_EMPTY", "El mazo está vacío");
     }
-    Card drawn = dust.removeFirst();
+    Card drawn = deck.removeFirst();
     List<Card> front = fronts.get(currentPlayerId());
     front.add(drawn);
     actedThisTurn = true;
+    lastDrawnValue = drawn.value();
 
     if (BustPolicy.isBust(front, drawn)) {
       discarded.addAll(front);
       front.clear();
       nextTurn();
-      if (dust.isEmpty()) {
-        finish(); // el polvo se agotó con el bust: también termina
+      if (deck.isEmpty()) {
+        finish(); // el mazo se agotó con el bust: también termina
         return new DrawResult(drawn, true, true);
       }
       return new DrawResult(drawn, true, false);
     }
-    if (dust.isEmpty()) {
+    if (deck.isEmpty()) {
       finish();
       return new DrawResult(drawn, false, true);
     }
@@ -120,11 +123,17 @@ public class Table {
   /**
    * Robar: trae a mi frente TODAS las cartas del valor pedido que estén
    * boca arriba en frentes ajenos. No dispara bust (solo el draw lo hace).
+   * R-01 (ADR-014): solo se puede robar el valor de la última carta sacada
+   * este turno; sin draw previo o con otro valor → STEAL_VALUE_MISMATCH.
    */
   public StealResult stealCurrent(int value) {
     requireInProgress();
     if (value < 1 || value > 10) {
       throw new IllegalArgumentException("value debe estar entre 1 y 10");
+    }
+    if (lastDrawnValue == null || value != lastDrawnValue) {
+      throw new DomainException("STEAL_VALUE_MISMATCH",
+          "Solo puedes robar el valor de la última carta que sacaste");
     }
     UUID me = currentPlayerId();
     List<Card> taken = new ArrayList<>();
@@ -148,7 +157,7 @@ public class Table {
     return new StealResult(value, taken.size(), List.copyOf(victims));
   }
 
-  /** Fin I-06: polvo vacío → auto-stash de frentes, puntuación, ganador. */
+  /** Fin I-06: mazo vacío → auto-stash de frentes, puntuación, ganador. */
   private void finish() {
     for (UUID p : playerOrder) {
       stashed.get(p).addAll(fronts.get(p));
@@ -183,6 +192,7 @@ public class Table {
     currentIndex = (currentIndex + 1) % playerOrder.size();
     actedThisTurn = false;
     stashedThisTurn = false;
+    lastDrawnValue = null;
   }
 
   private void requireInProgress() {
@@ -200,7 +210,8 @@ public class Table {
       Map<UUID, List<Card>> savedStashed,
       List<Card> savedDiscarded,
       boolean acted,
-      boolean stashedFlag) {
+      boolean stashedFlag,
+      Integer lastDrawn) {
     for (UUID p : playerOrder) {
       fronts.get(p).addAll(savedFronts.getOrDefault(p, List.of()));
       stashed.get(p).addAll(savedStashed.getOrDefault(p, List.of()));
@@ -208,6 +219,7 @@ public class Table {
     discarded.addAll(savedDiscarded);
     this.actedThisTurn = acted;
     this.stashedThisTurn = stashedFlag;
+    this.lastDrawnValue = lastDrawn;
   }
 
   // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---
@@ -216,8 +228,13 @@ public class Table {
     return status;
   }
 
-  public int dustRemaining() {
-    return dust.size();
+  public int deckRemaining() {
+    return deck.size();
+  }
+
+  /** Valor de la última carta sacada este turno (null si aún no sacó). */
+  public Integer lastDrawnValue() {
+    return lastDrawnValue;
   }
 
   public Map<UUID, List<Card>> fronts() {

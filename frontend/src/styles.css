@@ -1,30 +1,206 @@
-/* Phase 5: estilos funcionales mínimos. La identidad visual (Phase 6)
-   definirá tipografía, materiales y motion; esto solo garantiza legibilidad. */
-:root {
-  font-family: system-ui, -apple-system, sans-serif;
+@import './styles/tokens.css';
+
+/* Base Mesa Nocturna: fieltro con grano CSS (sin imágenes), jerarquía que
+   funciona incluso sin color. El grano es un SVG de turbulencia a 4% —
+   textura sin costo de GPU en animaciones (el fondo nunca se anima). */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background:
+    radial-gradient(110% 70% at 50% -12%, oklch(0.4 0.16 300 / 55%) 0%, transparent 60%),
+    radial-gradient(70% 50% at 88% 18%, oklch(0.45 0.2 315 / 28%), transparent 65%),
+    radial-gradient(80% 60% at 8% 30%, oklch(0.42 0.18 275 / 26%), transparent 60%),
+    linear-gradient(180deg, oklch(0.12 0.04 290), oklch(0.09 0.03 285) 45%, oklch(0.07 0.025 280));
+  background-attachment: fixed;
+  color: var(--parchment);
+  min-height: 100vh;
   line-height: 1.5;
 }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1,
+h2,
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0 0 var(--s4);
+}
+
+h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 900;
+}
+
+h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+}
+
+p {
+  margin: 0 0 var(--s3);
+  color: var(--parchment-dim);
+}
+
+p strong,
+li strong {
+  color: var(--parchment);
+}
+
+a {
+  color: var(--amber);
+  text-underline-offset: 3px;
+}
+
+/* Foco visible siempre: primero teclado, después mouse */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: var(--r-control);
+}
+
 .page {
-  max-width: 720px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: var(--s8) var(--s4) var(--s16);
 }
-header {
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #ddd;
+
+header.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--s4) var(--s6);
+  background: oklch(0.1 0.03 290 / 62%);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid oklch(0.6 0.16 300 / 20%);
 }
+
+header.topbar a.brand {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: var(--parchment);
+  text-decoration: none;
+}
+
+header.topbar nav {
+  display: flex;
+  gap: var(--s4);
+  font-size: 0.9rem;
+}
+
+/* Jerarquía de acciones: una primaria, resto secundarias/terciarias */
 .actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--s2);
   flex-wrap: wrap;
-  margin: 1rem 0;
+  align-items: center;
+  margin: var(--s6) 0;
 }
+
+button {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: var(--r-control);
+  border: 1px solid transparent;
+  padding: var(--s3) var(--s6);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+button.primary {
+  background: var(--amber);
+  color: var(--amber-ink);
+  box-shadow:
+    0 6px 24px oklch(0.78 0.15 75 / 35%),
+    0 0 0 1px oklch(1 0 0 / 12%) inset;
+}
+
+button.primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--parchment);
+  border-color: oklch(1 0 0 / 18%);
+}
+
+button.ghost:hover:not(:disabled) {
+  border-color: oklch(1 0 0 / 35%);
+  transform: translateY(-1px);
+}
+
+input,
+select {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  background: var(--felt-800);
+  color: var(--parchment);
+  border: 1px solid oklch(1 0 0 / 14%);
+  border-radius: var(--r-control);
+  padding: var(--s2) var(--s3);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: 0.85rem;
+  color: var(--parchment-dim);
+}
+
 .error {
-  color: #a00;
-  font-weight: 600;
+  color: oklch(0.78 0.12 25);
+  font-weight: 700;
 }
-article {
-  border: 1px solid #ddd;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
+
+.panel {
+  background: oklch(0.5 0.1 300 / 8%);
+  border: 1px solid oklch(0.7 0.12 300 / 16%);
+  border-radius: var(--r-panel);
+  padding: var(--s4) var(--s6);
+  margin: var(--s4) 0;
+}
+
+.panel.active {
+  border-color: oklch(0.78 0.15 75 / 45%);
+  background: oklch(0.78 0.15 75 / 6%);
+}
+
+/* Movimiento con propósito y respeto: todo lo no esencial se apaga */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -30,19 +30,19 @@
 
 ## ADR-005 — Modelado de cartas: una fila por carta con `location` + `pileOrder` (2026-10-06, propuesta)
 **Contexto:** Trazabilidad total (histórico, auditoría, re-jugabilidad) vs tabla compacta de contadores.
-**Decisión:** `cards(id, game_id FK, value 1–10 CHECK, location CHECK[DUST_PILE,FRONT,STASHED,DISCARDED], owner_player_id NULLABLE FK, pile_order INT, created_at)`. Índices: `(game_id, location)`, `(game_id, owner_player_id, location)`. Mazo barajado = `pile_order` aleatorio persistido.
+**Decisión:** `cards(id, game_id FK, value 1–10 CHECK, location CHECK[DECK,FRONT,STASHED,DISCARDED], owner_player_id NULLABLE FK, pile_order INT, created_at)`. Índices: `(game_id, location)`, `(game_id, owner_player_id, location)`. Mazo barajado = `pile_order` aleatorio persistido.
 **Alternativas:** (a) Solo contadores por valor — ahorra filas pero pierde orden/auditoría y complica robo/descarte. (b) JSON del frente en columna — rápido pero sin constraints ni queries.
 **Consecuencias:** + Invariante 110 verificable con `COUNT`, + Historia completa. − 110 inserts por partida (trivial para Postgres; batch en una transacción).
 
 ## ADR-006 — Concurrencia e idempotencia: transacción + `@Version` + Idempotency-Key (2026-10-06, propuesta Phase 4/11)
-**Contexto:** Doble-click en "sacar" o doble request pueden corromper turno/polvo.
+**Contexto:** Doble-click en "sacar" o doble request pueden corromper turno/mazo.
 **Decisión:** Cada acción (draw/stand/stash/steal) en una transacción; `Game.version` optimista → concurrente recibe 409; `Idempotency-Key` header en POSTs de acción (reintento seguro). Reintentos solo en errores transitorios (deadlock/500), nunca en 4xx de regla.
 **Alternativas:** Bloqueo pesimista siempre — simple pero serializa de más. Sin nada — inaceptable.
 **Consecuencias:** + Defendible ("¿qué pasa si hago doble click?"), − Un 409 más que la UI debe manejar con elegancia.
 
 ## ADR-007 — Errores REST: RFC 7807 ProblemDetails + `errorCode` de dominio (2026-10-06, propuesta)
 **Contexto:** La UI y el tribunal necesitan distinguir "no es tu turno" de "no hay cartas" de "500".
-**Decisión:** `GlobalExceptionHandler` → `application/problem+json` con `type, title, status, detail, instance, errorCode(NOT_YOUR_TURN, DUST_PILE_EMPTY, GAME_FINISHED, ...)`, más `requestId` correlacionado en logs. Status: 201 crear, 200 acciones, 400 validación, 404 no existe, 409 conflicto de turno/concurrencia, 422 regla violada, 429 rate-limit.
+**Decisión:** `GlobalExceptionHandler` → `application/problem+json` con `type, title, status, detail, instance, errorCode(NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, ...)`, más `requestId` correlacionado en logs. Status: 201 crear, 200 acciones, 400 validación, 404 no existe, 409 conflicto de turno/concurrencia, 422 regla violada, 429 rate-limit.
 **Alternativas:** Strings sueltos o stacktraces — indefendibles.
 **Consecuencias:** + Tests MockMvc asertan `errorCode`, + UI muestra mensajes sin adivinar.
 
@@ -81,3 +81,10 @@
 **Decisión:** Puntos = Σ valores guardados (`STASHED`). Gana mayor suma. Desempate: comparar conteo de 1s guardados; si empate, 2s; … hasta 10s. Si empate total, empate declarado (Phase 1 definirá si se usa orden de turno como último criterio).
 **Alternativas:** "Más cartas totales" o "menor max robado" — descartadas por el autor por ser menos fieles al espíritu de Pelusas.
 **Consecuencias:** + `ScoringService.compare(a,b)` puro y testeable con tests de oro (ej: [3×1 vs 1×3], cadenas de empates hasta el 10). − Requiere guardar conteo por valor en el resultado/histórico, no solo la suma.
+
+## ADR-014 — Robo refinado: solo el valor de la última carta sacada (2026-10-15, CERRADO por el autor)
+**Contexto:** ADR-011 dejó el robo como "cualquier valor presente en frente ajeno". Probando la partida real, el autor corrigió la regla: el robo debe estar atado al draw del turno (sacaste un 2 → solo se roban 2s). Reproducido por API antes de tocar código: Ana sacó 5 y el backend aceptó robar el 3 de Beto.
+**Decisión:** Además de las precondiciones de ADR-011, `steal` exige `value == last_drawn_value` del turno en curso (la última carta sacada ESTE turno). Sin draw previo también rechaza. Nuevo `errorCode STEAL_VALUE_MISMATCH` → 422. El valor vive en `turns.last_drawn_value` (migración V5) y arranca NULL al rotar el turno.
+**Alternativas:** (a) robar cualquier valor (estado previo) — permite robar sin relación con tu draw; (b) robar solo "inmediatamente después del draw" — más rígido que la regla del autor ("la última que saqué").
+**Consecuencias:** + Regla fiel al juego físico; la UI resalta SOLO las cartas robables. − 1 columna + V5; los tests de robo deben amañar el mazo para sacar el valor correcto primero.
+**Defensa:** "El riesgo estaba previsto en ADR-011; el cambio fue quirúrgico: 1 método de dominio, 1 columna, 1 errorCode, tests de tabla (sin draw / valor distinto / valor igual)."

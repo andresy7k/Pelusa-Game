@@ -21,14 +21,14 @@ El autor debe poder defender, modificar y explicar arquitectura, reglas, persist
 ### Requisitos funcionales (RF)
 - **RF-01 Crear/configurar partida:** nombre, nº jugadores (mín 2, máx propuesto 6), nombres, jugador inicial (elegible o aleatorio).
 - **RF-02 Inicializar mazo:** exactamente 110 cartas (13× valores 1–5 = 65, 9× valores 6–10 = 45), mezclado con `SecureRandom`, orden persistido.
-- **RF-03 Estado de partida:** `CREATED → IN_PROGRESS → FINISHED`. Exponer turno actual, montón de polvo restante, frente de cada jugador, puntos guardados, descartes.
+- **RF-03 Estado de partida:** `CREATED → IN_PROGRESS → FINISHED`. Exponer turno actual, mazo restante, frente de cada jugador, puntos guardados, descartes.
 - **RF-04 Guardar pelusas (stash):** si el jugador tiene cartas boca arriba de un turno anterior al inicio de su turno, puede moverlas a su montón de puntos. Solo una vez por turno, antes de sacar.
-- **RF-05 Buscar pelusas (draw):** sacar carta superior del polvo, queda visible delante del jugador. Backend valida: es su turno, partida en curso, quedan cartas.
+- **RF-05 Buscar pelusas (draw):** sacar carta superior del mazo, queda visible delante del jugador. Backend valida: es su turno, partida en curso, quedan cartas.
 - **RF-06 Agrupación visual:** cartas del mismo valor identificables/agrupadas (responsabilidad UI, dato provisto por API).
 - **RF-07 Continuar / finalizar voluntario:** después de cada draw sin pérdida, el jugador puede seguir sacando o plantarse y pasar turno.
-- **RF-08 Robar (steal) — CERRADO 2026-10-06:** solo en tu turno. El jugador en turno puede tomar cartas del mismo valor que estén boca arriba delante de otros jugadores. Backend valida: es tu turno + valor presente en frente ajeno. Efecto: esas cartas pasan a tu frente (no directo a puntos).
+- **RF-08 Robar (steal) — CERRADO 2026-10-06:** solo en tu turno. El jugador en turno puede tomar cartas del mismo valor que estén boca arriba delante de otros jugadores. Backend valida: es tu turno + valor presente en frente ajeno. Efecto: esas cartas pasan a tu frente (no directo a puntos). **Refinado 2026-10-15 (ADR-014):** el valor debe ser el de la última carta sacada en el turno; sin draw o valor distinto → `STEAL_VALUE_MISMATCH` 422.
 - **RF-09 Pérdida de turno — CERRADA 2026-10-06:** `bust = frenteContiene(valorRecienSacado) && frente.size() >= 3` evaluado DESPUÉS de colocar la carta. Si repite con <3, SIGUE jugando. Efecto atómico: frente → descarte (no puntúa), turno rota.
-- **RF-10 Finalización:** cuando se agota el polvo. Auto-stash de frentes restantes → calcular puntuaciones → ganador + desempate → persistir histórico.
+- **RF-10 Finalización:** cuando se agota el mazo. Auto-stash de frentes restantes → calcular puntuaciones → ganador + desempate → persistir histórico.
 - **RF-11 Resultado + ranking:** puntos por jugador, cartas acumuladas, ganador, motivo de fin.
 - **RF-12 Histórico de partidas:** listar + detalle de finalizadas (id, jugadores, resultado, cartas, puntuación, ganador, fechas).
 
@@ -44,26 +44,26 @@ El autor debe poder defender, modificar y explicar arquitectura, reglas, persist
 ### Reglas de negocio — invariantes críticas
 1. `I-01` Mazo siempre 110 cartas al crear; composición exacta 13×(1–5), 9×(6–10).
 2. `I-02` Solo el jugador con turno puede actuar; un solo turno activo por partida.
-3. `I-03` Draw solo si `status=IN_PROGRESS` y quedan cartas en polvo.
+3. `I-03` Draw solo si `status=IN_PROGRESS` y quedan cartas en el mazo.
 4. `I-04` Pérdida ⟺ (valor repetido en frente propio) ∧ (total frente ≥3). Efecto atómico: frente→descarte, turno rota, nada puntúa.
 5. `I-05` Stash solo al inicio del turno propio y solo de cartas de turnos anteriores.
-6. `I-06` Fin ⟺ polvo vacío. Efecto: auto-stash de todos los frentes, cálculo, ganador, `status=FINISHED` irreversible.
+6. `I-06` Fin ⟺ mazo vacío. Efecto: auto-stash de todos los frentes, cálculo, ganador, `status=FINISHED` irreversible.
 7. `I-07` Puntuación = suma de valores guardados. Ganador = mayor suma. Desempate lexicográfico por conteo — CERRADO 2026-10-06: comparar nº de 1s guardados, si empate nº de 2s, luego 3s… hasta 10. Si persiste empate total, empate declarado (o primer jugador en orden de turno según se defina en Phase 1).
 
 ### Entidades del dominio (borrador Phase 1)
-`Game {id, status, currentPlayerIndex/turnPlayerId, createdAt, finishedAt, winnerId}` · `Player {id, gameId, name, position/order}` · `Card {id, gameId, value 1–10, location: DUST_PILE|FRONT|STASHED|DISCARDED|STOLEN?, ownerPlayerId?, pileOrder}` · `Turn {id, gameId, playerId, startedAt, endedAt, outcome: STAND|BUST|STOLEN_FROM?}` · `GameHistory` (vista/materialización de finalizadas: participantes, puntuación, cartas, ganador). Relaciones: Game 1—N Player, Game 1—N Card, Game 1—N Turn. Ciclo de vida Card: `DUST_PILE → FRONT → (STASHED | DISCARDED | FRONT(otro jugador) si robo)`.
+`Game {id, status, currentPlayerIndex/turnPlayerId, createdAt, finishedAt, winnerId}` · `Player {id, gameId, name, position/order}` · `Card {id, gameId, value 1–10, location: DECK|FRONT|STASHED|DISCARDED|STOLEN?, ownerPlayerId?, pileOrder}` · `Turn {id, gameId, playerId, startedAt, endedAt, outcome: STAND|BUST|STOLEN_FROM?}` · `GameHistory` (vista/materialización de finalizadas: participantes, puntuación, cartas, ganador). Relaciones: Game 1—N Player, Game 1—N Card, Game 1—N Turn. Ciclo de vida Card: `DECK → FRONT → (STASHED | DISCARDED | FRONT(otro jugador) si robo)`.
 
 ### Estados del juego (máquina de estados)
 ```
 CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS
-IN_PROGRESS --dustPile empty--> FINISHED (terminal)
+IN_PROGRESS --deck empty--> FINISHED (terminal)
 ```
 Turno dentro de IN_PROGRESS: `START_TURN [stash opcional] → DRAW* → {STAND | BUST | (STEAL cuando aplique)} → NEXT_PLAYER`. Toda transición validada en backend, en transacción.
 
 ### Riesgos
 | ID | Riesgo | Impacto | Mitigación Phase 1 |
 |----|--------|---------|--------------------|
-| R-01 | Disparador exacto de "robar" ambiguo en enunciado | Lógica y tests bloqueados | ✅ CERRADO 2026-10-06: solo en tu turno (ver RF-08) |
+| R-01 | Disparador exacto de "robar" ambiguo en enunciado | Lógica y tests bloqueados | ✅ CERRADO 2026-10-06: solo en tu turno (ver RF-08) · refinado 2026-10-15 (ADR-014): valor de la última carta sacada |
 | R-02 | Repetición con <3 cartas: ¿pierde o sigue? | Bug crítico de reglas | ✅ CERRADO 2026-10-06: sigue; bust solo si ≥3 + repetido post-colocación |
 | R-03 | Cálculo puntuación/desempate no especificado | Resultado indefendible | ✅ CERRADO 2026-10-06: suma guardadas; desempate lexicográfico 1→10 |
 | R-04 | Aleatoriedad no testeable | Tests flaky | `ShufflePort` inyectable + seed fijo en tests |
@@ -171,15 +171,18 @@ bulk updates que saltaban el contexto de persistencia.
 ## Phase 6 — Visual system
 **Objetivo:** identidad propia, no AI-slop. 2–4 direcciones visuales antes de implementar.
 **Dependencias:** Phase 5. **Archivos:** `frontend/src/styles/tokens/*`, componentes base.
+**Estado 2026-10-07:** elegida **A Mesa Nocturna** (fieltro, marfil, ámbar; Fraunces + Space Grotesk).
+Tokens oklch, grano CSS, cartas físicas con elevación, jerarquía primaria/secundaria,
+`prefers-reduced-motion`, foco visible. Hero físico = Phase 8.
 **Criterio de terminado:** dirección elegida por vos (concepto/composición/tipo/color/materiales/motion), tokens + tipografía + materiales translúcidos + modo reduced-motion, PR con screenshots.
-- [ ] Proponer 2–4 direcciones (ver §5–6 del brief)
-- [ ] Implementar elegida: tokens, tipografía SF-like, blur/translucidez, sombras suaves
+- [x] Proponer 2–4 direcciones (A Mesa Nocturna elegida)
+- [x] Implementar elegida: tokens, tipografía, grano, sombras de elevación
 
 ## Phase 7 — Game UX
 **Objetivo:** partida completa jugable con feedback de reglas.
 **Dependencias:** Phase 6. **Archivos:** componentes juego, explicaciones contextuales.
 **Criterio de terminado:** flujo crear→iniciar→draw→stand/stash/steal→bust→finish→ranking funciona contra API, agrupación por valor, explicación visual de repetición/pérdida/robo, Caso funcional 1 manual OK.
-- [ ] Board, frentes, polvo, puntos, turnos
+- [ ] Board, frentes, mazo, puntos, turnos
 - [ ] Acciones con estados optimistas reconciliados por backend
 - [ ] Reglas explicadas in-context + ejemplos animados
 

@@ -7,8 +7,14 @@ import { Setup } from './routes/Setup';
 export function App() {
   return (
     <BrowserRouter>
-      <header>
-        <Link to="/">Pelusas</Link>
+      <header className="topbar">
+        <Link to="/" className="brand">
+          Pelusas
+        </Link>
+        <nav>
+          <Link to="/setup">Nueva</Link>
+          <Link to="/history">Historial</Link>
+        </nav>
       </header>
       <Routes>
         <Route path="/" element={<Home />} />

@@ -7,7 +7,7 @@
 ### 2026-10-06 — Phase 0 Discovery: por qué el backend es la fuente de verdad
 **Concepto:** Autoridad de reglas (server-authoritative) + máquina de estados + invariantes.
 **Problema:** Si la UI decide "puedo robar / es mi turno / perdí", un usuario (o un bug) puede romper o trampear la partida y el tribunal lo va a notar.
-**Solución:** Toda acción pasa por `GameEngine` en backend dentro de una transacción que valida turno, estado, polvo y frente; la UI solo refleja `GET /games/{id}` y maneja 409/422 con elegancia.
+**Solución:** Toda acción pasa por `GameEngine` en backend dentro de una transacción que valida turno, estado, mazo y frente; la UI solo refleja `GET /games/{id}` y maneja 409/422 con elegancia.
 **Por qué:** Un solo lugar donde las reglas viven = un solo lugar para testear, mutar y explicar. Es lo que permite 100% coverage honesto.
 **Alternativas:** Validar en frontend y "confirmar" en backend (duplica lógica, diverge); backend tonto que persiste lo que le mandan (indefendible).
 **Riesgos:** Latencia percibida — se mitiga con estados optimistas reconciliados por el servidor.
@@ -73,7 +73,7 @@
 **Solución:** `DeckFactory` (110), `BustPolicy` (frecuencia>=2 post-colocación), `StashPolicy` (`actedThisTurn` cubre draw Y steal), `StealPolicy` (todas las del valor, sin mutar), `ScoringService` (Σ + lexicográfico), `Table` (máquina de turnos + `finish()` atómico + `GAME_FINISHED` terminal). 6 clases de test con mazos amañados como test seam.
 **Por qué:** Si el profe pide "roba solo 1 en vez de todas", cambias `stealCurrent` y 1 test; si pide otro desempate, cambias `compare`.
 **Alternativas:** Motor con Strings/ints sueltos (ilegible); lógica en el service transaccional (intesteable sin Spring).
-**Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DUST_PILE_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
+**Riesgos:** 2 bugs reales encontrados releyendo: (1) `BustPolicy` con `!equals` excluía la propia carta (records igualan por valor) → reescrito a `frequency>=2`; (2) bust con última carta dejaba la partida colgada en `DECK_EMPTY` → ahora también hace `finish()`. Ambos tienen test.
 **Cómo defenderlo:** "Miren `TableTest`: 10 tests con mazos amañados cubren bust, robo total, guardado, fin y empate. El caso borde del bust-final lo encontramos sin compilar, solo leyendo."
 
 ### 2026-10-07 — Phase 4: el service como traductor + 3 bugs que solo el CI ve
@@ -81,6 +81,15 @@
 **Problema:** Tres bugs invisibles a ojo: (1) `current_player_id` no rotaba en DB (estado en memoria sí, persistido no); (2) `GAME_NOT_FINISHED` iba a 422 contra contrato 409 — lo cazó el test escrito por el autor; (3) bulk `@Modifying` escribía la DB saltándose el contexto de persistencia, y la lectura posterior en la misma tx devolvía datos viejos → se eliminaron, ahora se mutan entidades gestionadas (dirty checking).
 **Por qué:** Cada bug enseña una capa: (1) reconstruir≠persistir, (2) el contrato manda, (3) JPA tiene caché de primer nivel y los bulks lo ignoran.
 **Cómo defenderlo:** "¿Doble request? `@Version`→409 más clave de idempotencia→200. ¿Bulk updates? Los prohibimos tras ver datos fantasma en el CI."
+
+### 2026-10-15 — El bug que era una decisión: regla de robo refinada en vivo
+**Concepto:** No todo reporte de bug es un bug: a veces el código cumple un ADR viejo y la regla cambió. Primero se reproduce por API, luego se distingue "implementación incorrecta" de "contrato desactualizado" — y se actualiza el ADR, no solo el código.
+**Problema:** Jugando la partida real, el autor reportó que podía robar cualquier carta ajena (sacó 2 y robó una 4). Reproducido contra el backend local antes de tocar nada: Ana sacó 5 y el steal del 3 de Beto devolvió 200. El código cumplía ADR-011 al pie de la letra; el riesgo ya estaba anotado en este log: "si el profe interpreta robar solo el valor recién sacado, se ajusta `StealPolicy`".
+**Solución:** `lastDrawnValue` en el motor (se setea en `drawCurrent`, se limpia en `nextTurn`, `steal` valida igualdad), persistido en `turns.last_drawn_value` (V5, NULL al rotar), expuesto como `lastDrawnValue` en la vista, error `STEAL_VALUE_MISMATCH` → 422, y la UI resalta solo las cartas robables. Tests de dominio (sin draw / valor distinto / valor igual+presente / valor igual+ausente) y de API (regresión del valor cruzado).
+**Por qué:** La regla aislada en 1 método más los flags de turno ya persistidos hicieron el cambio quirúrgico: 1 columna, 1 validación, 1 errorCode. El diseño "predicho" en Phase 3 pagó.
+**Alternativas:** robar solo "inmediatamente después del draw" (más rígido); dejar como estaba y documentarlo (el autor ya lo había pedido dos veces).
+**Riesgos:** El estado transitorio del turno se reconstruye en cada request; si no se persiste, el valor se pierde entre acciones — cubierto por `turns.last_drawn_value` y el test `viewExposesLastDrawnValue`. (Nota: el tope del mazo se probó visible y se revirtió — filtra estrategia; §11 del contrato sigue en pie.)
+**Cómo defenderlo:** "Tabla de verdad del robo: sin draw → 422; valor distinto → 422; valor igual y presente → roba todas. El cambio tocó 1 clase de dominio + V5; los tests viejos fallaron exactamente donde debían y se reescribieron con la regla nueva."
 
 ---
 <!-- Plantilla para próximas entradas:

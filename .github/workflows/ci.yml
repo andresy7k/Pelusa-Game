@@ -18,6 +18,12 @@ jobs:
       - name: Build + tests (H2 real, Flyway V1)
         working-directory: backend
         run: mvn -B -ntp verify
+      - name: Upload jar (para probar local sin JDK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pelusa-backend
+          path: backend/target/*.jar
+          retention-days: 14
 
   frontend:
     runs-on: ubuntu-latest

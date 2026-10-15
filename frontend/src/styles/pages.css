@@ -1,0 +1,515 @@
+/* Páginas Mesa Nocturna: composición editorial asimétrica, kickers,
+   mazo como objeto. Nada centrado por defecto. */
+.kicker {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: var(--s2);
+}
+
+.lede {
+  font-size: 1.15rem;
+  max-width: 34ch;
+}
+
+.page.narrow {
+  max-width: 560px;
+}
+
+.btn-primary,
+.btn-ghost {
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 700;
+  border-radius: var(--r-control);
+  padding: var(--s3) var(--s6);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.btn-primary {
+  background: var(--amber);
+  color: var(--amber-ink);
+  box-shadow:
+    0 6px 24px oklch(0.78 0.15 75 / 35%),
+    0 0 0 1px oklch(1 0 0 / 12%) inset;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  border: 1px solid oklch(1 0 0 / 18%);
+  color: var(--parchment);
+}
+
+/* Home: portada con carrusel de pelusas 1→10 (decorativo). */
+.home {
+  position: relative;
+  padding-top: var(--s16);
+}
+
+/* Título de portada: gradiente blanco→lavanda con glow de neón. */
+.home h1 {
+  font-size: clamp(3.2rem, 10vw, 6.5rem);
+  background: linear-gradient(180deg, oklch(0.99 0.005 300), oklch(0.76 0.1 300));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 42px oklch(0.6 0.22 305 / 40%));
+}
+
+.deck-teaser {
+  position: absolute;
+  right: var(--s4);
+  top: var(--s12);
+  width: 120px;
+  height: 170px;
+  opacity: 0.9;
+}
+
+.deck-teaser-card {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-card);
+  background: linear-gradient(165deg, var(--ivory) 0%, var(--ivory-shadow) 130%);
+  box-shadow: var(--shadow-card);
+}
+
+.deck-teaser-card:nth-child(1) {
+  transform: rotate(-8deg) translate(-10px, 6px);
+}
+
+.deck-teaser-card:nth-child(2) {
+  transform: rotate(5deg) translate(8px, 2px);
+}
+
+/* Mesa: cabecera con evento + anillo 3D rotativo de asientos */
+.table-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s6);
+  margin-bottom: var(--s2);
+}
+
+.turn-name {
+  color: var(--amber);
+}
+
+.event-chip {
+  font-family: var(--font-board);
+  font-size: 0.9rem;
+  color: var(--parchment-dim);
+  background: oklch(1 0 0 / 6%);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  white-space: nowrap;
+}
+
+.event-chip strong {
+  color: var(--amber);
+}
+
+/* Anillo 3D: la mesa gira (--ring-rot) para que el jugador en turno caiga
+   siempre abajo; cada asiento se coloca con rotateZ(--a) + radio desde el
+   centro, y su contenido contra-rota (--counter) para quedar legible. */
+.table {
+  max-width: 1080px;
+}
+
+.table-stage {
+  position: relative;
+  height: clamp(440px, 62vmin, 640px);
+  margin: var(--s3) 0;
+  perspective: 1400px;
+}
+
+.table-felt {
+  --t-radius: clamp(150px, 24vmin, 250px);
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(9deg) rotateZ(var(--ring-rot, 0deg));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+
+.felt-disc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(58%, 520px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 14px solid transparent;
+  background:
+    radial-gradient(circle at 42% 36%, oklch(0.32 0.07 295 / 95%), transparent 58%),
+    radial-gradient(circle at 50% 50%, oklch(0.23 0.06 290), oklch(0.15 0.045 288) 82%) padding-box,
+    linear-gradient(155deg, #3a2752, #241636 40%, #4a3068 72%, #180d28) border-box;
+  box-shadow:
+    inset 0 0 90px oklch(0 0 0 / 50%),
+    0 24px 60px oklch(0 0 0 / 55%);
+}
+
+.felt-disc::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed oklch(1 0 0 / 14%);
+  pointer-events: none;
+}
+
+.felt-disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 112%, oklch(0 0 0 / 32%), transparent 55%);
+  pointer-events: none;
+}
+
+.deck-area {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+.deck-inner {
+  transform: rotateZ(var(--counter));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+
+.deck-pile {
+  position: relative;
+  width: 48px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--r-card);
+}
+
+.deck-pile:disabled {
+  opacity: 1;
+}
+
+.deck-pile.clickable {
+  cursor: pointer;
+}
+
+.deck-stack {
+  position: relative;
+  display: block;
+  width: 48px;
+  height: 66px;
+  filter: drop-shadow(0 12px 16px oklch(0 0 0 / 45%));
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.deck-pile.clickable:hover .deck-stack {
+  transform: translateY(-4px);
+}
+
+.deck-stack .card-back {
+  position: absolute;
+  inset: 0;
+}
+
+.deck-stack .card-back:nth-child(1) {
+  transform: translate(6px, 5px) rotate(3deg);
+}
+
+.deck-stack .card-back:nth-child(2) {
+  transform: translate(3px, 2px) rotate(-1deg);
+}
+
+.deck-pile .deck-count {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--s2));
+  translate: -50% 0;
+  background: oklch(0 0 0 / 55%);
+  border: 1px solid oklch(1 0 0 / 14%);
+  border-radius: 999px;
+  padding: 2px var(--s3);
+  font-family: var(--font-board);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--parchment);
+  white-space: nowrap;
+}
+
+.seat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: rotateZ(var(--a)) translateY(calc(-1 * var(--t-radius)));
+}
+
+.seat-inner {
+  translate: -50% -50%;
+  transform: rotateZ(var(--counter)) scale(var(--scale, 1));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+
+/* Sin caja: las cartas viven SOBRE el fieltro; solo el cartel del nombre
+   es un objeto de la mesa (como la placa con el nombre en un casino). */
+.seat-panel {
+  width: clamp(216px, 27vmin, 292px);
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: center;
+}
+
+.seat-panel .player-head h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.seat-panel.active .player-head {
+  background: oklch(0.3 0.06 75 / 60%);
+  border-color: oklch(0.78 0.15 75 / 70%);
+  box-shadow: 0 0 18px oklch(0.78 0.15 75 / 30%), 0 4px 14px oklch(0 0 0 / 40%);
+}
+
+.seat-panel .card-group {
+  justify-content: center;
+}
+
+.front-zone {
+  min-height: 70px;
+  margin-top: var(--s2);
+}
+
+/* Robo: solo el valor de la última carta resaltada; el resto se atenúa. */
+.card-slot.dimmed .card {
+  opacity: 0.3;
+  filter: saturate(0.45);
+  pointer-events: none;
+  transition: opacity var(--t-med) var(--ease-out), filter var(--t-med) var(--ease-out);
+}
+
+/* Cartas recién llegadas: ocultas hasta que su vuelo aterrice encima. */
+.card-slot.incoming .card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Acciones: en flujo normal (nunca tapan al jugador en turno). */
+.table-actions {
+  max-width: 720px;
+  margin: var(--s4) auto var(--s2);
+  background: oklch(0.11 0.035 290 / 88%);
+  backdrop-filter: blur(8px);
+  border: 1px solid oklch(0.7 0.12 300 / 18%);
+  border-radius: var(--r-panel);
+  padding: var(--s2) var(--s3);
+  justify-content: center;
+}
+
+/* Vuelo de cartas: capa fija; GSAP anima solo el inner (transform). */
+.flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.flight-card {
+  position: fixed;
+  translate: -50% -50%;
+  z-index: 40;
+}
+
+@media (max-width: 640px) {
+  .table-felt {
+    --t-radius: 112px;
+  }
+
+  .table-stage {
+    height: 400px;
+  }
+
+  .seat-panel {
+    width: 156px;
+  }
+
+  .seat-panel .player-head h2 {
+    font-size: 0.9rem;
+  }
+}
+
+.player-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+  background: oklch(0.1 0.035 290 / 85%);
+  border: 1px solid oklch(0.7 0.12 300 / 22%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 40%);
+}
+
+.player-head h2 {
+  margin: 0;
+}
+
+.points {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--moss);
+  white-space: nowrap;
+}
+
+.turn-dot {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-left: var(--s2);
+  box-shadow: 0 0 12px oklch(0.78 0.15 75 / 80%);
+}
+
+.result ol {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s6);
+}
+
+.history-list {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+
+/* Home dinámico: el contenido entra escalonado solo tras la entrada. */
+.home .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.home.entered .reveal {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--t-med) var(--ease-out), transform var(--t-med) var(--ease-out);
+}
+
+.home.entered .reveal:nth-child(2) {
+  transition-delay: 60ms;
+}
+
+.home.entered .reveal:nth-child(3) {
+  transition-delay: 130ms;
+}
+
+.home.entered .reveal:nth-child(4) {
+  transition-delay: 200ms;
+}
+
+.home.entered .reveal:nth-child(5) {
+  transition-delay: 280ms;
+}
+
+.howto {
+  display: grid;
+  gap: var(--s3);
+  margin-top: var(--s8);
+}
+
+@media (min-width: 640px) {
+  .howto {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Brillo extra: cada paso es una tarjeta con luz violeta propia. */
+.howto > div {
+  background: oklch(0.5 0.1 300 / 8%);
+  border: 1px solid oklch(0.7 0.12 300 / 16%);
+  border-radius: var(--r-panel);
+  padding: var(--s4);
+  box-shadow:
+    0 10px 30px oklch(0.55 0.2 300 / 12%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
+.howto strong {
+  display: block;
+  color: var(--amber);
+  margin-bottom: var(--s1);
+  text-shadow: 0 0 18px oklch(0.78 0.15 75 / 45%);
+}
+
+.howto p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.bust-banner {
+  background: oklch(0.62 0.17 25 / 15%);
+  border: 1px solid oklch(0.62 0.17 25 / 50%);
+  color: oklch(0.82 0.1 25);
+  font-weight: 700;
+  border-radius: var(--r-panel);
+  padding: var(--s3) var(--s4);
+  animation: bust-in var(--t-med) var(--ease-out);
+}
+
+@keyframes bust-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hint {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.deck-count {
+  animation: deck-tick var(--t-med) var(--ease-out);
+}
+
+@keyframes deck-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin: var(--s4) 0 var(--s6);
+}
+
+.stepper-count {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 3rem;
+  min-width: 3.5rem;
+  text-align: center;
+  color: var(--amber);
+}
