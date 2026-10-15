@@ -51,6 +51,11 @@
   padding-top: var(--s16);
 }
 
+/* El "cómo se juega" respira más ancho: 4 tarjetas por fila en desktop. */
+.page.home {
+  max-width: 1120px;
+}
+
 /* Título de portada: gradiente blanco→lavanda con glow de neón. */
 .home h1 {
   font-size: clamp(3.2rem, 10vw, 6.5rem);
@@ -423,19 +428,19 @@
 }
 
 .howto {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--s3);
   margin-top: var(--s8);
 }
 
-@media (min-width: 640px) {
-  .howto {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Brillo extra: cada paso es una tarjeta con luz violeta propia. */
+/* Cada paso es una tarjeta con luz violeta propia. Línea de 4 en desktop;
+   en ventanas angostas envuelven centradas (la 4ª queda bajo la 2ª). */
 .howto > div {
+  flex: 1 1 230px;
+  max-width: 320px;
+  position: relative;
   background: oklch(0.5 0.1 300 / 8%);
   border: 1px solid oklch(0.7 0.12 300 / 16%);
   border-radius: var(--r-panel);
@@ -443,6 +448,63 @@
   box-shadow:
     0 10px 30px oklch(0.55 0.2 300 / 12%),
     0 2px 8px oklch(0 0 0 / 30%);
+  transition:
+    border-color var(--t-med) var(--ease-out),
+    box-shadow var(--t-med) var(--ease-out);
+}
+
+/* Lucecita tras cada tarjeta: solo al hover, con el color de su paso
+   (1 azul, 2 ámbar, 3 rojo, 4 verde). En reposo quedan igual que antes. */
+.howto > div:nth-child(1):hover {
+  border-color: oklch(0.68 0.15 250 / 45%);
+  box-shadow:
+    0 0 34px -4px oklch(0.68 0.15 250 / 55%),
+    0 0 70px -18px oklch(0.68 0.15 250 / 45%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
+.howto > div:nth-child(2):hover {
+  border-color: oklch(0.78 0.15 75 / 45%);
+  box-shadow:
+    0 0 34px -4px oklch(0.78 0.15 75 / 55%),
+    0 0 70px -18px oklch(0.78 0.15 75 / 45%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
+.howto > div:nth-child(3):hover {
+  border-color: oklch(0.65 0.18 22 / 45%);
+  box-shadow:
+    0 0 34px -4px oklch(0.65 0.18 22 / 55%),
+    0 0 70px -18px oklch(0.65 0.18 22 / 45%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
+.howto > div:nth-child(4):hover {
+  border-color: oklch(0.75 0.16 150 / 45%);
+  box-shadow:
+    0 0 34px -4px oklch(0.75 0.16 150 / 55%),
+    0 0 70px -18px oklch(0.75 0.16 150 / 45%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
+/* Palabras clave resaltadas dentro de cada paso. */
+.howto-hl {
+  font-weight: 700;
+}
+
+.howto-hl--red {
+  color: oklch(0.72 0.17 25);
+  text-shadow: 0 0 14px oklch(0.72 0.17 25 / 45%);
+}
+
+.howto-hl--amber {
+  color: var(--amber);
+  text-shadow: 0 0 14px oklch(0.78 0.15 75 / 45%);
+}
+
+.howto-hl--green {
+  color: oklch(0.78 0.17 150);
+  text-shadow: 0 0 14px oklch(0.78 0.17 150 / 45%);
 }
 
 .howto strong {

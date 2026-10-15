@@ -10,15 +10,19 @@ export function Home() {
         <section className="howto" id="como-se-juega" aria-label="Cómo se juega">
           <div>
             <strong>1 · Sacá</strong>
-            <p>Carta del mazo a tu frente. ¿Repetida con 3+? Reventás.</p>
+            <p>Sacá una carta del mazo. <span className="howto-hl howto-hl--red">Cuidado</span>, si tenes 2 o más y la siguiente es repetida, <span className="howto-hl howto-hl--red">perdiste</span>, te ganó la avaricia.</p>
           </div>
           <div>
-            <strong>2 · Guardá o robá</strong>
-            <p>Asegurá tus pelusas o robale el valor a otro frente.</p>
+            <strong>2 · Guardá</strong>
+            <p>Al empezar tu turno guardá las cartas que no te robaron. <span className="howto-hl howto-hl--amber">Guardá</span> antes de pedir. </p>
           </div>
           <div>
-            <strong>3 · Ganá</strong>
-            <p>Se acaba el mazo, suma más quien más guardó.</p>
+            <strong>3 · Robá</strong>
+            <p>¿Sacaste una carta y cualquiera de tus rivales tiene una del mismo valor? <span className="howto-hl howto-hl--amber">Podes robarla</span>, es toda tuya.</p>
+          </div>
+          <div>
+            <strong>4 · Ganá</strong>
+            <p>Se acaba el mazo, <span className="howto-hl howto-hl--green">gana</span> quien más sume con lo que guardó.</p>
           </div>
         </section>
       </div>
