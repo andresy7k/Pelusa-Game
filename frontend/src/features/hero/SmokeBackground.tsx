@@ -49,6 +49,7 @@ export function SmokeBackground() {
       <div className="hero-smoke__layer hero-smoke__layer--d">
         <div className="hero-smoke__blob hero-smoke__blob--d" />
       </div>
+      <div className="hero-smoke__noise" aria-hidden="true" />
     </div>
   )
 }
