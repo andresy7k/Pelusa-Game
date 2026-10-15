@@ -27,6 +27,9 @@ export interface HeroConfig {
     slideMs: number
     introStaggerMs: number
     preloaderMinMs: number
+    deckStaggerMs: number
+    deckFallMs: number
+    preloaderHoldMs: number
   }
   easings: { slide: string; slideCss: string; pop: string }
   fur: { shells: number; rootDarken: number; tipLighten: number; thickness: number }
@@ -64,6 +67,9 @@ export const HERO: HeroConfig = {
     slideMs: 650,
     introStaggerMs: 90,
     preloaderMinMs: 600,
+    deckStaggerMs: 90,
+    deckFallMs: 480,
+    preloaderHoldMs: 2000,
   },
   easings: { slide: 'expo.out', slideCss: 'cubic-bezier(0.16, 1, 0.3, 1)', pop: 'back.out(1.7)' },
   fur: { shells: 20, rootDarken: 0.12, tipLighten: 0.18, thickness: 0.06 },
