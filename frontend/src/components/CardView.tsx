@@ -1,8 +1,9 @@
 import './card.css';
+import { MonsterFace } from './MonsterFace';
 
-// Carta física: marfil, valor en display grande, elevación real.
-// `stealable` = se puede robar: brilla en ámbar e invita al click.
-// `onPick` convierte la carta en botón accesible (teclado incluido).
+// Carta de acuarela: cada valor trae su propio color (card.css, .card[data-v])
+// y su propio monstruo (MonsterFace). `stealable` = se puede robar: brilla en
+// ámbar e invita al click. `onPick` convierte la carta en botón accesible.
 export function CardView({
   value,
   small = false,
@@ -17,8 +18,11 @@ export function CardView({
   const cls = `card${small ? ' small' : ''}${stealable ? ' stealable' : ''}`;
   const inner = (
     <>
-      <span className="card-value">{value}</span>
-      <span className="card-pip">●</span>
+      <span className="card-stitch" aria-hidden="true" />
+      <span className="card-value" data-v={value} aria-hidden="true">
+        {value}
+      </span>
+      <MonsterFace value={value} className="card-monster" />
     </>
   );
   if (onPick) {
@@ -26,6 +30,7 @@ export function CardView({
       <button
         type="button"
         className={`${cls} as-button`}
+        data-v={value}
         aria-label={`Robar carta ${value}`}
         onClick={onPick}
       >
@@ -34,8 +39,19 @@ export function CardView({
     );
   }
   return (
-    <div className={cls} aria-label={`Carta ${value}`}>
+    <div className={cls} data-v={value} aria-label={`Carta ${value}`}>
       {inner}
+    </div>
+  );
+}
+
+// Dorso: peluche blanco sobre índigo, sin número. El mazo de Board.tsx lo
+// apila boca abajo asumiendo 48×66 en tamaño small.
+export function CardBack({ small = false }: { small?: boolean }) {
+  return (
+    <div className={`card-back${small ? ' small' : ''}`}>
+      <span className="card-stitch" aria-hidden="true" />
+      <MonsterFace value={1} className="card-monster" />
     </div>
   );
 }

@@ -73,7 +73,7 @@
   transform: rotate(5deg) translate(8px, 2px);
 }
 
-/* Mesa: cabecera con el mazo como objeto + cuenta */
+/* Mesa: cabecera con evento + anillo 3D rotativo de asientos */
 .table-head {
   display: flex;
   align-items: flex-end;
@@ -86,70 +86,218 @@
   color: var(--amber);
 }
 
+.event-chip {
+  font-family: var(--font-board);
+  font-size: 0.9rem;
+  color: var(--parchment-dim);
+  background: oklch(1 0 0 / 6%);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  white-space: nowrap;
+}
+
+.event-chip strong {
+  color: var(--amber);
+}
+
+/* Anillo 3D: la mesa gira (--ring-rot) para que el jugador en turno caiga
+   siempre abajo; cada asiento se coloca con rotateZ(--a) + radio desde el
+   centro, y su contenido contra-rota (--counter) para quedar legible. */
+.table {
+  max-width: 1080px;
+}
+
+.table-stage {
+  position: relative;
+  height: clamp(440px, 62vmin, 640px);
+  margin: var(--s3) 0;
+  perspective: 1400px;
+}
+
+.table-felt {
+  --t-radius: clamp(150px, 24vmin, 250px);
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(9deg) rotateZ(var(--ring-rot, 0deg));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+
+.felt-disc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(52%, 460px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 34%, oklch(0.32 0.055 160 / 90%), transparent 60%),
+    radial-gradient(circle at 50% 50%, var(--felt-800), var(--felt-950) 80%);
+  border: 1px solid oklch(1 0 0 / 8%);
+  box-shadow: inset 0 0 70px oklch(0 0 0 / 45%), var(--shadow-deck);
+}
+
+.deck-area {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+.deck-inner {
+  transform: rotateZ(var(--counter));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+}
+
 .deck-pile {
   position: relative;
-  width: 110px;
-  height: 130px;
-  flex-shrink: 0;
-}
-
-.deck-pile-card {
-  position: absolute;
-  inset: 0;
+  width: 48px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  background: none;
   border-radius: var(--r-card);
-  background: linear-gradient(165deg, var(--felt-700), var(--felt-900));
-  border: 1px solid oklch(1 0 0 / 12%);
-  box-shadow: var(--shadow-deck);
 }
 
-.deck-pile-card:nth-child(1) {
-  transform: translate(6px, 6px);
+.deck-pile:disabled {
+  opacity: 1;
 }
 
-.deck-pile-card:nth-child(2) {
-  transform: translate(3px, 3px);
+.deck-pile.clickable {
+  cursor: pointer;
 }
 
-.deck-count {
+.deck-stack {
+  position: relative;
+  display: block;
+  width: 48px;
+  height: 66px;
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.deck-pile.clickable:hover .deck-stack {
+  transform: translateY(-4px);
+}
+
+.deck-stack .card-back {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 2.75rem;
+}
+
+.deck-stack .card-back:nth-child(1) {
+  transform: translate(6px, 5px) rotate(3deg);
+}
+
+.deck-stack .card-back:nth-child(2) {
+  transform: translate(3px, 2px) rotate(-1deg);
+}
+
+.deck-pile .deck-count {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--s2));
+  translate: -50% 0;
+  background: oklch(0 0 0 / 55%);
+  border: 1px solid oklch(1 0 0 / 14%);
+  border-radius: 999px;
+  padding: 2px var(--s3);
+  font-family: var(--font-board);
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--parchment);
+  white-space: nowrap;
 }
 
-.identity {
-  max-width: 280px;
-  margin: var(--s4) 0;
+.seat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: rotateZ(var(--a)) translateY(calc(-1 * var(--t-radius)));
 }
 
-.steal-inline {
-  display: inline-flex;
-  gap: var(--s2);
-  align-items: stretch;
+.seat-inner {
+  translate: -50% -50%;
+  transform: rotateZ(var(--counter));
+  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
 }
 
-.steal-inline input {
-  width: 4.5rem;
+.seat-panel {
+  width: clamp(216px, 27vmin, 292px);
+  margin: 0;
+  padding: var(--s3);
+  background: oklch(0.2 0.025 160 / 82%);
+  backdrop-filter: blur(6px);
 }
 
-.fronts {
-  display: grid;
-  gap: var(--s3);
-  margin-top: var(--s6);
+.seat-panel .player-head h2 {
+  font-size: 1.05rem;
+  margin: 0;
 }
 
-@media (min-width: 640px) {
-  .fronts {
-    grid-template-columns: 1.2fr 1fr;
+.seat-panel.active {
+  border-color: oklch(0.78 0.15 75 / 55%);
+  background: oklch(0.78 0.15 75 / 8%);
+  box-shadow: 0 0 26px oklch(0.78 0.15 75 / 18%);
+}
+
+.front-zone {
+  min-height: 70px;
+  margin-top: var(--s2);
+}
+
+/* Robo: solo el valor de la última carta resaltada; el resto se atenúa. */
+.card-slot.dimmed .card {
+  opacity: 0.3;
+  filter: saturate(0.45);
+  pointer-events: none;
+  transition: opacity var(--t-med) var(--ease-out), filter var(--t-med) var(--ease-out);
+}
+
+/* Acciones sticky: siempre a mano en la mesa larga. */
+.table-actions {
+  position: sticky;
+  bottom: var(--s2);
+  z-index: 30;
+  background: oklch(0.16 0.02 160 / 88%);
+  backdrop-filter: blur(8px);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: var(--r-panel);
+  padding: var(--s2) var(--s3);
+  justify-content: center;
+}
+
+/* Vuelo de cartas: capa fija; GSAP anima solo el inner (transform). */
+.flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.flight-card {
+  position: fixed;
+  translate: -50% -50%;
+  z-index: 40;
+}
+
+@media (max-width: 640px) {
+  .table-felt {
+    --t-radius: 118px;
   }
 
-  .fronts article:first-child {
-    grid-row: span 2;
+  .table-stage {
+    height: 400px;
+  }
+
+  .seat-panel {
+    width: 168px;
+    padding: var(--s2) var(--s3);
+  }
+
+  .seat-panel .player-head h2 {
+    font-size: 0.9rem;
   }
 }
 
