@@ -1,0 +1,289 @@
+/* Cartas "Pelusas": acuarela + monstruo por valor.
+   Cada valor define su paleta (--c-bg, --c-bg2, --c-accent, --c-monster) vía
+   .card[data-v]; el resto (forma, costura, tipografía, motion) es común. */
+
+/* Paleta por valor (referencia: cartas físicas) */
+.card[data-v='1'] {
+  --c-bg: #a9d6f5;
+  --c-bg2: #8fc6ec;
+  --c-accent: #1f6fb8;
+  --c-monster: #6fb4e8;
+}
+
+.card[data-v='2'] {
+  --c-bg: #474c87;
+  --c-bg2: #3a3f75;
+  --c-accent: #1e2150;
+  --c-monster: #5a5fa0;
+}
+
+.card[data-v='3'] {
+  --c-bg: #f2a48f;
+  --c-bg2: #e89580;
+  --c-accent: #c0452e;
+  --c-monster: #e0715c;
+}
+
+.card[data-v='4'] {
+  --c-bg: #b78fd0;
+  --c-bg2: #a97cc4;
+  --c-accent: #7a3e9e;
+  --c-monster: #9256b5;
+}
+
+.card[data-v='5'] {
+  --c-bg: #9ed37a;
+  --c-bg2: #8cc468;
+  --c-accent: #2f8e44;
+  --c-monster: #6fbc57;
+}
+
+.card[data-v='6'] {
+  --c-bg: #cbd96a;
+  --c-bg2: #bacb55;
+  --c-accent: #6e8e1e;
+  --c-monster: #a9bc3e;
+}
+
+.card[data-v='7'] {
+  --c-bg: #f2e06e;
+  --c-bg2: #e8d45a;
+  --c-accent: #c9a61e;
+  --c-monster: #e8c84a;
+}
+
+.card[data-v='8'] {
+  --c-bg: #f2a45c;
+  --c-bg2: #e9964c;
+  --c-accent: #c96a16;
+  --c-monster: #e8823a;
+}
+
+.card[data-v='9'] {
+  --c-bg: #7ed4cb;
+  --c-bg2: #6ac4ba;
+  --c-accent: #25857a;
+  --c-monster: #46b4a6;
+}
+
+.card[data-v='10'] {
+  --c-bg: #f291c4;
+  --c-bg2: #e87fb6;
+  --c-accent: #be2f7a;
+  --c-monster: #e0559e;
+}
+
+/* La carta es un objeto: acuarela con manchas suaves + sombra de elevación.
+   La costura va por dentro (.card-stitch) y el monstruo pegado al borde. */
+.card {
+  /* Fallback defensivo si algún día no llegara data-v. */
+  --c-bg: #a9d6f5;
+  --c-bg2: #8fc6ec;
+  --c-accent: #1f6fb8;
+  --c-monster: #6fb4e8;
+  position: relative;
+  width: 76px;
+  height: 104px;
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(70% 55% at 20% 12%, rgb(255 255 255 / 30%), transparent 70%),
+    radial-gradient(80% 60% at 92% 100%, rgb(20 26 48 / 18%), transparent 72%),
+    linear-gradient(160deg, var(--c-bg), var(--c-bg2));
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 55%);
+  overflow: hidden;
+  transition: transform var(--t-med) var(--ease-out), box-shadow var(--t-med) var(--ease-out);
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-lift), inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.card.small {
+  width: 48px;
+  height: 66px;
+}
+
+.card.small:hover {
+  transform: translateY(-3px);
+}
+
+/* Costura blanca punteada: el "marco" de tela de la carta física. */
+.card-stitch {
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed rgb(255 255 255 / 85%);
+  border-radius: calc(var(--r-card) - 3px);
+  pointer-events: none;
+}
+
+.card.small .card-stitch,
+.card-back.small .card-stitch {
+  inset: 3px;
+  border-width: 1.5px;
+  border-radius: calc(var(--r-card) - 4px);
+}
+
+/* Número sticker: la copia base dibuja SOLO el contorno blanco grueso
+   (-webkit-text-stroke) y el ::after pinta encima el relleno con el acento. */
+.card-value {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  translate: -50% 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.9rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 6px #fff;
+}
+
+.card-value::after {
+  content: attr(data-v);
+  position: absolute;
+  inset: 0;
+  color: var(--c-accent);
+  -webkit-text-stroke-width: 0;
+}
+
+.card.small .card-value {
+  top: 1px;
+  font-size: 1.8rem;
+  -webkit-text-stroke-width: 4px;
+}
+
+/* Monstruo: ~88% del ancho, pegado al borde inferior (se recorta un poco). */
+.card-monster {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  translate: -50% 0;
+  width: 88%;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 -1px 2px rgb(20 30 60 / 15%));
+}
+
+.card.small .card-monster {
+  bottom: -3px;
+  width: 92%;
+}
+
+.card-group {
+  display: flex;
+  align-items: center;
+  min-height: 74px;
+  padding: var(--s1) 0;
+}
+
+/* spread: frente desplegado con wrap — todas visibles, nada apilado */
+.card-group.spread {
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.card-group.spread .card-slot {
+  margin-left: 0;
+}
+
+/* Slot de carta: nunca se apila con márgenes negativos. */
+.card-slot {
+  margin-left: 0;
+}
+
+/* Entrada de carta nueva: nace pequeña, cae a su lugar (solo transform). */
+.pop-in {
+  animation: card-in var(--t-med) var(--ease-out) backwards;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Robable: filo ámbar + respiración. El hover la levanta (promesa de robo). */
+.card.stealable {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-card), 0 0 18px oklch(0.78 0.15 75 / 35%);
+  animation: steal-breathe 1.6s ease-in-out infinite;
+}
+
+.card.stealable:hover {
+  transform: translateY(-6px) scale(1.03);
+  animation: none;
+}
+
+@keyframes steal-breathe {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card), 0 0 10px oklch(0.78 0.15 75 / 25%);
+  }
+  50% {
+    box-shadow: var(--shadow-card), 0 0 22px oklch(0.78 0.15 75 / 50%);
+  }
+}
+
+/* Carta como botón: hereda tipografía, resetea chrome de button */
+.card.as-button {
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.empty-front {
+  color: var(--parchment-dim);
+  opacity: 0.6;
+}
+
+/* --- Dorso: peluche blanco sobre índigo (nunca muestra número) --- */
+.card-back {
+  --c-monster: #fff;
+  position: relative;
+  width: 76px;
+  height: 104px;
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(70% 55% at 22% 14%, rgb(255 255 255 / 20%), transparent 70%),
+    radial-gradient(85% 60% at 88% 100%, rgb(8 10 26 / 30%), transparent 72%),
+    linear-gradient(160deg, #454c86, #2e3260);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 30%);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* El mazo de Board.tsx mide 48×66: el dorso small mide exactamente eso. */
+.card-back.small {
+  width: 48px;
+  height: 66px;
+}
+
+/* Peluche blanco: el contorno pasa de blanco a tinta suave para leerse. */
+.card-back .monster-body {
+  stroke: #2b3050;
+}
+
+.card-back .monster-eye {
+  stroke: #2b3050;
+  stroke-width: 1.5;
+}
+
+.card-back .card-monster {
+  width: 64%;
+  bottom: 3px;
+}
+
+.card-back.small .card-monster {
+  width: 68%;
+  bottom: 2px;
+}
