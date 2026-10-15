@@ -218,6 +218,8 @@ git commit -m "feat(hero): feature skeleton, config unico, modos full/lite/off"
 ### Task 2: Atmósfera, navbar, textos y preloader básico
 
 > **Revisión de aceptación T2b (2026-10-15):** tras la aceptación visual del usuario, este paso cambió: el vórtice se reemplaza por un fondo de **humo violeta** (`SmokeBackground`) y el preloader por la **baraja cayendo** recuperada de HomeEntrance y mejorada, con mascota pelusa encima del mazo y robo final de la carta 10. Los pasos 5–6 de esta tarea quedan superseded por el brief `.superpowers/sdd/2026-10-15-hero-seleccion-personajes/task-2b-brief.md`; el resto (navbar, copy, fuentes, Home, grano) sigue vigente.
+>
+> **Revisión de aceptación T2c (2026-10-15):** 2ª ronda de feedback: baraja ~~~2× más grande~~ y más lenta, chispas de aterrizaje + rayos en el robo, wordmark "Pelusas" con entrada degradada y **crossfade** al hero (reveal del copy por `onReveal`), y humo con **textura de turbulencia** en deriva visible (el color era correcto pero el movimiento no se percibía). Brief: `.superpowers/sdd/2026-10-15-hero-seleccion-personajes/task-2c-brief.md`.
 
 **Files:**
 - Create: `frontend/src/features/hero/HeroStage.tsx`

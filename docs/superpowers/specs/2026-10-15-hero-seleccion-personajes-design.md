@@ -223,3 +223,11 @@ Tras revisar el hero en el navegador, el usuario pidió dos cambios sobre lo apro
 2. **Carga/entrada.** La carga (y la entrada) vuelven a ser la **baraja cayendo** de la vieja HomeEntrance, mejorada: 10 cartas (valores 1?10) con tumble 3D, squash & stretch al aterrizar, sombra del mazo que crece, puffs de polvo, screen shake final; después aterriza la **mascota pelusa** (pompón violeta con ojos locos) sobre el mazo y se roba la carta 10 (glow ámbar, mismo lenguaje que "robar" en el tablero) antes de que el overlay se retire con fade. Sin logo ni barra de progreso (el \done\ real se reconecta en T7).
 
 Los estilos ya aceptados (navbar, copy, tipografía, grano, CTAs) no cambian.
+
+## Enmienda — feedback de aceptación T2c (2026-10-15)
+
+2ª ronda sobre carga/entrada y fondo:
+
+1. **Escala y ritmo.** La baraja es ~2× más grande (escala responsiva en \.pl-scene\) y la secuencia ~30-35% más lenta. Se suman **chispas** en el aterrizaje final, **rayos ámbar** en el robo y un pulso de anticipación del glow.
+2. **Cierre con el nombre.** Tras el robo aparece el **wordmark "Pelusas"** (Bowlby One, degradado violeta, letras que se abren desde el centro) y el overlay se retira en **crossfade simultáneo con el reveal del hero** (\onReveal\ nuevo en el Preloader; el copy entra con fade+rise escalonado vía \.hero-stage--entered\, que antes no tenía estilos). Se acabó el corte seco al home.
+3. **Humo.** El color es el correcto, pero el movimiento no se percibía: se sube la amplitud/velocidad de la deriva de los blobs y se agrega una **capa de turbulencia** (SVG fractalNoise, desaturada, soft-light) que se traslada lento — el humo ahora "hierve" visiblemente. Sigue todo en transform/opacity.
