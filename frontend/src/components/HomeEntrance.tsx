@@ -2,39 +2,50 @@ import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import './home-entrance.css';
 
-// Baraja física cayendo: 9 cartas caen desde arriba con trayectoria propia
-// y aterrizan apiladas como un mazo real (offsets imperfectos).
-// El padre desmonta con `!entered && <HomeEntrance/>`; onDone se llama una vez.
-const VALUES: number[] = [7, 3, 9, 2, 5, 8, 1, 4, 6];
+// Entrada del home: la baraja cae carta a carta al centro de la mesa con
+// tumble 3D, cada aterrizaje golpea el mazo (micro-bote + micro-shake) y la
+// última carta sacude toda la pantalla antes de que el título se abra y el
+// overlay se retire. Aquí SOLO se animan transform y opacity (sin layout).
 
-// X inicial distinta por carta (fuera de pantalla, arriba).
-const START_X: number[] = [-220, -160, -110, -55, 0, 60, 115, 170, 230];
-// Rotación inicial propia, entre -25 y 25deg.
-const START_ROT: number[] = [-22, 18, -14, 24, -20, 12, -25, 20, -10];
-// Duración de caída propia, entre 0.55 y 0.8s.
-const DUR: number[] = [0.62, 0.75, 0.58, 0.8, 0.66, 0.72, 0.55, 0.78, 0.7];
+// Trazado propio de cada carta: origen fuera de pantalla, tumble 3D,
+// aterrizaje imperfecto (mazo real) y duración de caída (0.45-0.6s).
+type Carta = {
+  valor: number;
+  x0: number; // x inicial (arriba, fuera de pantalla)
+  z0: number; // rotación 2D inicial (tumble)
+  tiltY: number; // rotateY final, distinto por carta (±8°)
+  x1: number; // x final en el mazo
+  y1: number; // y final en el mazo
+  z1: number; // rotación 2D final
+  dur: number; // duración de la caída
+};
 
-// Stack final: leve offset/rotación por carta (mazo real, no alineado perfecto).
-const END: Array<{ x: number; y: number; r: number }> = [
-  { x: -10, y: 6, r: -12 },
-  { x: 9, y: -5, r: 10 },
-  { x: -7, y: -9, r: -7 },
-  { x: 11, y: 4, r: 15 },
-  { x: -13, y: -3, r: -17 },
-  { x: 7, y: 9, r: 8 },
-  { x: -5, y: -7, r: -5 },
-  { x: 12, y: -1, r: 19 },
-  { x: 2, y: 1, r: 3 },
+const CARTAS: readonly Carta[] = [
+  { valor: 7, x0: -240, z0: -24, tiltY: -7, x1: -5, y1: -2, z1: -6, dur: 0.5 },
+  { valor: 3, x0: -180, z0: 20, tiltY: 5, x1: 6, y1: 3, z1: 8, dur: 0.55 },
+  { valor: 9, x0: -120, z0: -16, tiltY: 8, x1: -4, y1: -3, z1: -3, dur: 0.47 },
+  { valor: 2, x0: -60, z0: 26, tiltY: -4, x1: 7, y1: 2, z1: 5, dur: 0.58 },
+  { valor: 5, x0: 0, z0: -22, tiltY: 7, x1: -6, y1: -4, z1: -7, dur: 0.52 },
+  { valor: 8, x0: 70, z0: 14, tiltY: -6, x1: 5, y1: 3, z1: 4, dur: 0.56 },
+  { valor: 1, x0: 130, z0: -26, tiltY: 2, x1: -7, y1: -2, z1: -4, dur: 0.46 },
+  { valor: 4, x0: 195, z0: 22, tiltY: -8, x1: 8, y1: 4, z1: 7, dur: 0.57 },
+  { valor: 6, x0: 250, z0: -12, tiltY: 3, x1: 2, y1: 0, z1: 1, dur: 0.6 },
 ];
+
+const STAGGER = 0.08; // ritmo entre caídas
+const TITULO = 'PELUSAS';
+const PASO_LETRA = 7; // px que cada letra se comprime antes de abrirse
+const CENTRO_TITULO = (TITULO.length - 1) / 2;
 
 export function HomeEntrance({ onDone }: { onDone: () => void }) {
   const scopeRef = useRef<HTMLDivElement>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
   const doneRef = useRef(false);
   const onDoneRef = useRef(onDone);
 
   useLayoutEffect(() => {
     onDoneRef.current = onDone;
-    const fireDone = (): void => {
+    const avisarFin = (): void => {
       if (doneRef.current) return;
       doneRef.current = true;
       onDoneRef.current();
@@ -42,46 +53,135 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
 
     // Movimiento reducido: sin animación, avisar de inmediato.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      fireDone();
+      avisarFin();
       return;
     }
 
     const ctx = gsap.context(() => {
-      const cards = gsap.utils.toArray<HTMLElement>('.fall-card');
       const overlay = scopeRef.current;
-      if (overlay === null || cards.length === 0) {
-        fireDone();
+      const cartas = gsap.utils.toArray<HTMLElement>('.fall-card');
+      const stack = scopeRef.current?.querySelector<HTMLElement>('.home-entrance-stack') ?? null;
+      const letras = gsap.utils.toArray<HTMLElement>('.home-entrance-title-char');
+      if (overlay === null || cartas.length === 0) {
+        avisarFin();
         return;
       }
-      const dropY: number = window.innerHeight + 200;
-      cards.forEach((card, i) => {
-        gsap.set(card, {
-          x: START_X[i % START_X.length],
-          y: -dropY,
-          rotation: START_ROT[i % START_ROT.length],
-          opacity: 1,
+
+      const caidaY = window.innerHeight + 220;
+      const ultima = CARTAS.length - 1;
+
+      // Estado inicial: cartas arriba fuera de pantalla y título plegado.
+      // La perspectiva va por carta (transformPerspective) para que el
+      // apilado final siga pintándose en orden de documento, sin que el
+      // ordenamiento 3D compartido mezcle las cartas del mazo.
+      cartas.forEach((carta, i) => {
+        const d = CARTAS[i % CARTAS.length];
+        gsap.set(carta, {
+          x: d.x0,
+          y: -caidaY,
+          rotation: d.z0,
+          rotateX: -45,
+          rotateY: d.tiltY * -2.4,
+          transformPerspective: 900,
         });
       });
-      const tl = gsap.timeline({ onComplete: fireDone });
-      cards.forEach((card, i) => {
-        const end = END[i % END.length];
-        tl.to(
-          card,
-          {
-            x: end.x,
-            y: end.y,
-            rotation: end.r,
-            duration: DUR[i % DUR.length],
-            ease: 'expo.out',
-          },
-          i * 0.09,
-        );
+      gsap.set(letras, {
+        x: (i) => (CENTRO_TITULO - i) * PASO_LETRA,
+        opacity: 0,
       });
-      // Pausa legible con el stack completo, luego fade+scale del overlay.
-      tl.to({}, { duration: 0.35 });
-      tl.to(overlay, { opacity: 0, scale: 0.96, duration: 0.4, ease: 'power2.inOut' });
+
+      const tl = gsap.timeline({ onComplete: avisarFin });
+      tlRef.current = tl;
+
+      cartas.forEach((carta, i) => {
+        const d = CARTAS[i % CARTAS.length];
+        const t0 = i * STAGGER;
+        const aterriza = t0 + d.dur;
+
+        // 1) Caída rápida con aceleración y tumble 3D (rotateX -45° -> 0°).
+        tl.to(
+          carta,
+          {
+            x: d.x1,
+            y: d.y1,
+            rotation: d.z1,
+            rotateX: 0,
+            rotateY: d.tiltY,
+            duration: d.dur,
+            ease: 'power3.in',
+          },
+          t0,
+        );
+
+        // 2) Micro-bote al aterrizar: sube 7px y se asienta (0.18s).
+        tl.to(carta, { y: d.y1 - 7, duration: 0.07, ease: 'power2.out' }, aterriza)
+          .to(carta, { y: d.y1, duration: 0.11, ease: 'power2.out' }, aterriza + 0.07);
+
+        // 3) Micro-shake del mazo con cada impacto (x ±2px, 0.08s).
+        if (stack !== null) {
+          tl.to(stack, { x: 2, duration: 0.03, ease: 'none' }, aterriza)
+            .to(stack, { x: -2, duration: 0.03, ease: 'none' }, aterriza + 0.03)
+            .to(stack, { x: 0, duration: 0.02, ease: 'none' }, aterriza + 0.06);
+        }
+      });
+
+      // Momento del golpe final (≈1.24s con estos datos).
+      const tImpacto = ultima * STAGGER + CARTAS[ultima].dur;
+
+      // 4) La última carta golpea: screen shake de todo el overlay
+      // (x/y ±4px, 3 oscilaciones, 0.25s) y el título se abre en paralelo.
+      tl.to(
+        overlay,
+        {
+          keyframes: [
+            { x: -4, y: 2, duration: 0.035 },
+            { x: 4, y: -2, duration: 0.035 },
+            { x: -3, y: 2, duration: 0.035 },
+            { x: 3, y: -2, duration: 0.035 },
+            { x: -2, y: 1, duration: 0.03 },
+            { x: 2, y: -1, duration: 0.03 },
+            { x: 0, y: 0, duration: 0.05 },
+          ],
+          ease: 'none',
+        },
+        tImpacto,
+      );
+      // Fade + espaciado abriéndose: las letras viajan en x (transform).
+      tl.to(
+        letras,
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.5,
+          ease: 'power3.out',
+          stagger: { each: 0.03, from: 'center' },
+        },
+        tImpacto + 0.02,
+      );
+
+      // 5) Pausa breve, la carta superior se suelta (8°) y el overlay se
+      // retira con fade + scale(0.96); onComplete cierra la secuencia.
+      const tSuelta = tImpacto + 0.61;
+      tl.to(
+        cartas[ultima],
+        {
+          x: CARTAS[ultima].x1 + 30,
+          y: CARTAS[ultima].y1 - 6,
+          rotation: 8,
+          duration: 0.3,
+          ease: 'power2.inOut',
+        },
+        tSuelta,
+      );
+      tl.to(
+        overlay,
+        { opacity: 0, scale: 0.96, duration: 0.45, ease: 'power2.inOut' },
+        tSuelta + 0.35,
+      );
     }, scopeRef);
+
     return () => {
+      tlRef.current = null;
       ctx.revert();
     };
     // Intencionado: la secuencia corre una sola vez al montar;
@@ -89,17 +189,29 @@ export function HomeEntrance({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Click en cualquier parte: acelera la secuencia; el final sigue siendo
+  // el mismo onComplete (onDone se dispara una sola vez).
+  const saltarSecuencia = (): void => {
+    tlRef.current?.timeScale(5);
+  };
+
   return (
-    <div ref={scopeRef} className="home-entrance" aria-hidden="true">
+    <div ref={scopeRef} className="home-entrance" aria-hidden="true" onClick={saltarSecuencia}>
       <div className="home-entrance-stage">
         <div className="home-entrance-stack">
-          {VALUES.map((v, i) => (
-            <div key={`${v}-${i}`} className="fall-card">
-              <span className="fall-card-value">{v}</span>
+          {CARTAS.map((d, i) => (
+            <div key={`${d.valor}-${i}`} className="fall-card">
+              <span className="fall-card-value">{d.valor}</span>
             </div>
           ))}
         </div>
-        <p className="home-entrance-title">PELUSAS</p>
+        <p className="home-entrance-title">
+          {TITULO.split('').map((letra, i) => (
+            <span key={`${letra}-${i}`} className="home-entrance-title-char">
+              {letra}
+            </span>
+          ))}
+        </p>
       </div>
     </div>
   );

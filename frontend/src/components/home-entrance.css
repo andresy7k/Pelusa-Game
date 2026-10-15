@@ -1,25 +1,27 @@
-/* Entrada del home: overlay decorativo con baraja cayendo (solo GSAP
+/* Entrada del home: overlay decorativo con la baraja cayendo (solo GSAP
    anima transform/opacity aquí; este CSS no define transiciones). */
 .home-entrance {
   position: fixed;
-  inset: 0;
+  /* Inset negativo: el felt sigue cubriendo los bordes durante el
+     screen shake del impacto final (x/y ±4px). */
+  inset: -8px;
   z-index: 50;
   background: var(--felt-950);
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  /* Captura el click en cualquier punto para acelerar la secuencia. */
+  pointer-events: auto;
 }
 
-/* Stack descentrado a la izquierda, como mazo real sobre la mesa. */
 .home-entrance-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s6);
-  transform: translateX(-48px);
 }
 
+/* Mazo: cartas absolutas superpuestas en el centro de la mesa. */
 .home-entrance-stack {
   position: relative;
   width: 90px;
@@ -56,4 +58,11 @@
   letter-spacing: 0.3em;
   text-indent: 0.3em;
   color: var(--parchment-dim);
+}
+
+/* Cada letra viaja en x para que el espaciado se abra sin animar
+   letter-spacing (propiedad de layout). */
+.home-entrance-title-char {
+  display: inline-block;
+  will-change: transform, opacity;
 }

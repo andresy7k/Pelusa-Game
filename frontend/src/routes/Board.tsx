@@ -1,88 +1,214 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
-import { CardGroup } from '../components/CardView';
+import { CardBack, CardView } from '../components/CardView';
+import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
 
-// Mesa: modo robo por resaltado (sin inputs numéricos). Tocás "Robar",
-// las cartas ajenas brillan, tocás una y se roba ese valor. La elegibilidad
-// sale del estado (frentes ajenos no vacíos), la autorización del backend.
+// Mesa 3D rotativa: los asientos viven en un anillo alrededor del fieltro y la
+// mesa gira para que el jugador en turno quede SIEMPRE abajo (ringRot). El
+// contenido de cada asiento contra-rota para quedar legible.
+// Hotseat: la UI siempre actúa como el jugador del turno — el backend decide.
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
-  const [me, setMe] = useState<string>('');
   const [robbing, setRobbing] = useState(false);
+  const [flights, setFlights] = useState<Flight[]>([]);
+  const flightSeq = useRef(0);
+
+  // Al cambiar de turno (stand, bust) el modo robo queda obsoleto: se apaga.
+  const turnKey = state?.currentPlayerId ?? null;
+  useEffect(() => {
+    setRobbing(false);
+  }, [turnKey]);
 
   if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Repartiendo…'}</main>;
-  const meId = me || state.currentPlayerId || '';
-  const finished = state.status === 'FINISHED';
-  const bust = !finished && (state.lastEvent as { bust?: boolean } | null)?.bust === true;
-  const myTurn = !finished && state.currentPlayerId === meId && meId !== '';
 
-  async function stealValue(value: number) {
-    if (!id || !meId) return;
+  const finished = state.status === 'FINISHED';
+  const meId = state.currentPlayerId ?? '';
+  const myTurn = !finished && meId !== '';
+  const ev = state.lastEvent as { type?: string; value?: number; count?: number; bust?: boolean } | null;
+  const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
+  const stealValue = state.lastDrawnValue;
+  const rivals = state.players.filter((p) => p.id !== meId);
+  const hasStealTarget = stealValue != null && rivals.some((p) => (state.fronts[p.id] ?? []).includes(stealValue));
+  // Modo robo efectivo: activo, mi turno y con algo robable este turno.
+  const stealing = robbing && myTurn && stealValue != null;
+
+  // Geometría del anillo: asiento i en (360/n)·i grados; la mesa se gira para
+  // que el ángulo del activo caiga en 180° (abajo). n=1 no ocurre (mín. 2).
+  const n = state.players.length;
+  const step = 360 / n;
+  const activeIdx = Math.max(0, state.players.findIndex((p) => p.id === meId));
+  const ringRot = 180 - step * activeIdx;
+
+  function addFlight(from: FlightPoint, to: FlightPoint, value: number, delay: number) {
+    flightSeq.current += 1;
+    const f: Flight = { id: flightSeq.current, from, to, value, delay };
+    setFlights((prev) => [...prev, f]);
+  }
+
+  const removeFlight = (fid: number) => setFlights((prev) => prev.filter((f) => f.id !== fid));
+
+  function centerOf(el: Element | null): FlightPoint | null {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  async function draw() {
+    if (!id || !myTurn) return;
+    // Rect del mazo ANTES de mutar: el mazo no se mueve, pero es más robusto.
+    const deckRect = centerOf(document.getElementById('deck-pile'));
+    const next = await act(() => api.draw(id, meId));
+    if (!next || !deckRect) return;
+    const e = next.lastEvent as { type?: string; value?: number; bust?: boolean } | null;
+    if (e?.type !== 'DRAW' || e.bust || typeof e.value !== 'number') return;
+    const dest = centerOf(document.querySelector(`[data-front="${meId}"]`));
+    if (dest) addFlight(deckRect, dest, e.value, 0);
+  }
+
+  async function doSteal(value: number) {
+    if (!id || !myTurn) return;
+    // Snapshot de las cartas resaltadas ANTES de mutar: al robarlas, esos
+    // nodos desaparecen del DOM y perderíamos su posición.
+    const sources = Array.from(document.querySelectorAll('.seat-panel.rival .card.stealable'))
+      .map((el) => centerOf(el))
+      .filter((p): p is FlightPoint => p !== null);
     const next = await act(() => api.steal(id, meId, value));
-    if (next) setRobbing(false);
+    if (!next) return;
+    setRobbing(false);
+    const dest = centerOf(document.querySelector(`[data-front="${meId}"]`));
+    if (!dest) return;
+    sources.forEach((from, i) => addFlight(from, dest, value, i * 70));
   }
 
   return (
     <main className="page table">
-      <p className="kicker">{finished ? 'Mesa cerrada' : bust ? '¡Reventó!' : 'En juego'}</p>
       <div className="table-head">
-        <h1>
-          Turno de <span className="turn-name">{nameOf(state, state.currentPlayerId)}</span>
-        </h1>
-        <div className="deck-pile" aria-label={`Mazo: ${state.deckRemaining} cartas`}>
-          <div className="deck-pile-card" />
-          <div className="deck-pile-card" />
-          <div className="deck-pile-card top" />
-          <span className="deck-count" key={state.deckRemaining}>
-            {state.deckRemaining}
-          </span>
+        <div>
+          <p className="kicker">{finished ? 'Mesa cerrada' : 'Turno de'}</p>
+          <h1 className="turn-name">{finished ? 'Partida terminada' : nameOf(state.players, meId)}</h1>
+        </div>
+        <div className="event-chip">
+          {ev?.type === 'DRAW' && (
+            <>
+              Sacó <strong>{String(ev.value)}</strong>
+            </>
+          )}
+          {ev?.type === 'STEAL' && (
+            <>
+              Robó <strong>{String(ev.count)}</strong> × {String(ev.value)}
+            </>
+          )}
+          {ev?.type === 'STASH' && (
+            <>
+              Guardó <strong>{String(ev.count)}</strong>
+            </>
+          )}
         </div>
       </div>
 
       {bust && (
         <p className="bust-banner" role="alert">
-          Carta repetida con 3+ en frente: todo al descarte. Turno perdido.
+          Carta repetida con 3+ en el frente: todo al descarte. Turno perdido.
         </p>
       )}
 
+      <div className="table-stage">
+        <div className="table-felt" style={{ ['--ring-rot' as string]: `${ringRot}deg` }}>
+          <div className="felt-disc" aria-hidden="true" />
+
+          <div className="deck-area">
+            <div className="deck-inner" style={{ ['--counter' as string]: `${-ringRot}deg` }}>
+              <button
+                type="button"
+                id="deck-pile"
+                className={`deck-pile${myTurn ? ' clickable' : ''}`}
+                onClick={draw}
+                disabled={!myTurn || busy || state.deckRemaining === 0}
+                aria-label={`Mazo: ${state.deckRemaining} cartas. Sacar carta`}
+              >
+                <span className="deck-stack">
+                  <CardBack small />
+                  <CardBack small />
+                  <CardBack small />
+                </span>
+                <span className="deck-count" key={state.deckRemaining}>
+                  {state.deckRemaining} cartas
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {state.players.map((p, i) => {
+            const angle = step * i;
+            const counter = -(angle + ringRot);
+            const active = p.id === meId && !finished;
+            const isRival = p.id !== meId;
+            return (
+              <div key={p.id} className="seat" style={{ ['--a' as string]: `${angle}deg` }}>
+                <div className="seat-inner" style={{ ['--counter' as string]: `${counter}deg` }}>
+                  <article
+                    className={`seat-panel panel${active ? ' active' : ''}${isRival ? ' rival' : ''}`}
+                    data-player={p.id}
+                  >
+                    <header className="player-head">
+                      <h2>
+                        {p.name}
+                        {active && <span className="turn-dot" role="img" aria-label="en turno" />}
+                      </h2>
+                      <span className="points">{state.stashed[p.id]?.sum ?? 0} pts</span>
+                    </header>
+                    <div className="front-zone" data-front={p.id}>
+                      <FrontCards
+                        values={state.fronts[p.id] ?? []}
+                        steal={robbing && myTurn && isRival ? stealValue : undefined}
+                        onPick={doSteal}
+                      />
+                    </div>
+                  </article>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {!finished && (
         <>
-          <label className="identity">
-            Jugar como
-            <select value={meId} onChange={(e) => setMe(e.target.value)}>
-              <option value="">— elegir —</option>
-              {state.players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="actions">
-            <button className="primary" disabled={busy} onClick={() => id && meId && act(() => api.draw(id, meId))}>
+          <div className="actions table-actions">
+            <button className="primary" disabled={busy || !myTurn} onClick={draw}>
               Sacar carta
             </button>
-            <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.stand(id, meId))}>
-              Plantarse
+            <button
+              className={stealing ? 'primary' : 'ghost'}
+              disabled={busy || !myTurn || stealValue == null || !hasStealTarget}
+              onClick={() => setRobbing((r) => !r)}
+              aria-pressed={stealing}
+              title={
+                stealValue == null
+                  ? 'Primero sacá una carta'
+                  : !hasStealTarget
+                    ? `Nadie tiene un ${stealValue} boca arriba`
+                    : `Robar los ${stealValue} ajenos`
+              }
+            >
+              {stealing ? 'Cancelar robo' : `Robar ${stealValue ?? ''}`}
             </button>
-            <button className="ghost" disabled={busy} onClick={() => id && meId && act(() => api.stash(id, meId))}>
+            <button className="ghost" disabled={busy || !myTurn} onClick={() => id && act(() => api.stash(id, meId))}>
               Guardar pelusas
             </button>
-            <button
-              className={robbing ? 'primary' : 'ghost'}
-              disabled={busy}
-              onClick={() => setRobbing((r) => !r)}
-              aria-pressed={robbing}
-            >
-              {robbing ? 'Tocá una carta rival…' : 'Robar'}
+            <button className="ghost" disabled={busy || !myTurn} onClick={() => id && act(() => api.stand(id, meId))}>
+              Plantarse
             </button>
           </div>
-          {robbing && myTurn && <p className="hint">Las cartas que brillan se pueden robar. Tocá una.</p>}
+          {stealing && (
+            <p className="hint">
+              Tocá una carta resaltada: solo se roban los {stealValue}s de la última carta que sacaste.
+            </p>
+          )}
           {error && (
             <p className="error" role="alert">
               {friendlyMessage(error)}
@@ -91,32 +217,9 @@ export function Board() {
         </>
       )}
 
-      <section className="fronts">
-        {state.players.map((p) => {
-          const active = p.id === state.currentPlayerId && !finished;
-          const rival = p.id !== meId;
-          const highlight = robbing && myTurn && rival;
-          return (
-            <article key={p.id} className={active ? 'panel active' : 'panel'}>
-              <div className="player-head">
-                <h2>
-                  {p.name} {active && <span className="turn-dot" aria-label="en turno" />}
-                </h2>
-                <span className="points">{state.stashed[p.id]?.sum ?? 0} pts</span>
-              </div>
-              <CardGroup
-                values={state.fronts[p.id] ?? []}
-                stealable={highlight}
-                onPick={highlight ? stealValue : undefined}
-              />
-            </article>
-          );
-        })}
-      </section>
-
       {finished && state.result && (
         <section className="panel result">
-          <h2>{state.result.tie ? 'Empate en la mesa.' : `${nameOf(state, state.result.winnerId)} se lleva la noche.`}</h2>
+          <h2>{state.result.tie ? 'Empate en la mesa.' : `${nameOf(state.players, state.result.winnerId)} se lleva la noche.`}</h2>
           <ol>
             {state.result.scores.map((s) => (
               <li key={s.playerId}>
@@ -126,10 +229,45 @@ export function Board() {
           </ol>
         </section>
       )}
+
+      <FlightLayer flights={flights} onDone={removeFlight} />
     </main>
   );
 }
 
-function nameOf(state: { players: { id: string; name: string }[] }, id: string | null): string {
-  return state.players.find((p) => p.id === id)?.name ?? '—';
+// Cartas del frente, desplegadas (nunca apiladas). Si `steal` trae valor,
+// SOLO las cartas de ese valor (R-01: el de la última sacada) se resaltan y
+// son clickeables; el resto se atenúa.
+function FrontCards({
+  values,
+  steal,
+  onPick,
+}: {
+  values: number[];
+  steal?: number | null;
+  onPick: (v: number) => void;
+}) {
+  if (values.length === 0) return <span className="empty-front">Sin cartas a la vista</span>;
+  const robbing = steal != null;
+  return (
+    <div className="card-group spread">
+      {values.map((v, i) => {
+        const match = robbing && v === steal;
+        const dim = robbing && v !== steal;
+        return (
+          <div
+            key={`${v}-${i}`}
+            className={`card-slot pop-in${dim ? ' dimmed' : ''}`}
+            style={{ ['--d' as string]: `${i * 45}ms` }}
+          >
+            <CardView value={v} small stealable={match} onPick={match ? () => onPick(v) : undefined} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function nameOf(players: { id: string; name: string }[], id: string | null): string {
+  return players.find((p) => p.id === id)?.name ?? '—';
 }

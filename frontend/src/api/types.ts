@@ -31,6 +31,8 @@ export interface GameState {
   status: 'CREATED' | 'IN_PROGRESS' | 'FINISHED';
   currentPlayerId: string | null;
   deckRemaining: number;
+  /** R-01/ADR-014: valor robable este turno (última carta sacada); null si no sacó. */
+  lastDrawnValue: number | null;
   players: PlayerView[];
   fronts: Record<string, number[]>;
   stashed: Record<string, StashView>;
@@ -69,6 +71,8 @@ export function friendlyMessage(code: string): string {
       return 'No tenés cartas para guardar ahora.';
     case 'NO_STEALABLE_CARDS':
       return 'Nadie tiene ese valor boca arriba.';
+    case 'STEAL_VALUE_MISMATCH':
+      return 'Solo puedes robar el valor de la última carta que sacaste.';
     case 'ALREADY_STARTED':
       return 'La partida ya empezó.';
     case 'ALREADY_STASHED_THIS_TURN':
