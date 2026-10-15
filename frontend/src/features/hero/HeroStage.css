@@ -125,7 +125,8 @@
   align-content: center;
   justify-items: center;
   gap: var(--s6);
-  padding: var(--s8) var(--s6) var(--s16);
+  /* Aire compacto: nav + copy + carrusel deben entrar en 100vh al revelar. */
+  padding: var(--s6) var(--s6) var(--s8);
   text-align: center;
 }
 .hero-badge {
