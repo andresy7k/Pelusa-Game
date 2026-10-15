@@ -1,0 +1,79 @@
+/* frontend/src/features/hero/SmokeBackground.css */
+/* Humo: base near-black + capas de gradientes suaves (sin blur: la suavidad
+   viene de los stops; el blur filtra caro en capas de este tamaño). Cada
+   layer aplica el parallax (--px/--py × --depth) y su blob hijo deriva por
+   CSS. Viñeta final para fundir los bordes a negro. */
+.hero-smoke {
+  position: fixed;
+  inset: -12%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #07050f;
+}
+
+.hero-smoke__layer {
+  position: absolute;
+  inset: -18%;
+  will-change: transform;
+  transform: translate3d(
+    calc(var(--px, 0) * var(--depth) * 1px),
+    calc(var(--py, 0) * var(--depth) * 1px),
+    0
+  );
+}
+.hero-smoke__layer--a { --depth: 10; }
+.hero-smoke__layer--b { --depth: 16; }
+.hero-smoke__layer--c { --depth: 24; }
+.hero-smoke__layer--d { --depth: 20; }
+
+.hero-smoke__blob {
+  position: absolute;
+  inset: -8%;
+  will-change: transform;
+}
+.hero-smoke__blob--a {
+  background: radial-gradient(60vmax 50vmax at 32% 38%, oklch(0.5 0.24 295 / 62%), transparent 68%);
+  animation: hero-smoke-a 52s ease-in-out infinite alternate;
+}
+.hero-smoke__blob--b {
+  background: radial-gradient(50vmax 44vmax at 74% 72%, oklch(0.55 0.26 330 / 40%), transparent 70%);
+  animation: hero-smoke-b 68s ease-in-out infinite alternate;
+}
+.hero-smoke__blob--c {
+  background: radial-gradient(72vmax 60vmax at 50% 55%, oklch(0.35 0.18 280 / 55%), transparent 74%);
+  animation: hero-smoke-c 84s ease-in-out infinite alternate;
+}
+.hero-smoke__blob--d {
+  background: radial-gradient(38vmax 32vmax at 50% 88%, color-mix(in oklab, var(--hero-accent) 45%, transparent), transparent 70%);
+  animation: hero-smoke-d 46s ease-in-out infinite alternate;
+}
+
+@keyframes hero-smoke-a {
+  from { transform: translate3d(-5%, -4%, 0) rotate(-3deg) scale(1.04); }
+  to { transform: translate3d(6%, 5%, 0) rotate(4deg) scale(1.22); }
+}
+@keyframes hero-smoke-b {
+  from { transform: translate3d(5%, 3%, 0) rotate(3deg) scale(1.1); }
+  to { transform: translate3d(-6%, -4%, 0) rotate(-4deg) scale(1.24); }
+}
+@keyframes hero-smoke-c {
+  from { transform: translate3d(-3%, 2%, 0) scale(1.02); }
+  to { transform: translate3d(4%, -3%, 0) scale(1.16); }
+}
+@keyframes hero-smoke-d {
+  from { transform: translate3d(0, 2%, 0) scale(0.96); }
+  to { transform: translate3d(0, -4%, 0) scale(1.1); }
+}
+
+/* Viñeta: funde los bordes a negro (cohesión con la referencia). */
+.hero-smoke::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 95% at 50% 40%, transparent 38%, rgb(2 2 6 / 90%) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-smoke__blob { animation: none; }
+}

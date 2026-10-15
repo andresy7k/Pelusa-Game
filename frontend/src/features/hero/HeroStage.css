@@ -6,40 +6,6 @@
   --py: 0;
 }
 
-/* Capa 0: vórtice */
-.hero-vortex {
-  position: fixed;
-  inset: -25%;
-  z-index: 0;
-  background: #07050f;
-  overflow: hidden;
-  pointer-events: none;
-}
-.hero-vortex__layer {
-  position: absolute;
-  inset: -30%;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.75;
-  will-change: transform;
-  transform: translate3d(calc(var(--px) * 14px), calc(var(--py) * 14px), 0);
-}
-.hero-vortex__layer--a {
-  background: radial-gradient(closest-side, oklch(0.5 0.24 295 / 85%), transparent 70%);
-  animation: hero-spin 75s linear infinite;
-}
-.hero-vortex__layer--b {
-  background: radial-gradient(closest-side, oklch(0.55 0.26 330 / 55%), transparent 68%);
-  animation: hero-spin 95s linear infinite reverse;
-}
-.hero-vortex__layer--c {
-  background: radial-gradient(closest-side, #3b1d8f99, transparent 72%);
-  animation: hero-spin 120s linear infinite;
-}
-@keyframes hero-spin {
-  to { transform: rotate(360deg); }
-}
-
 /* Capa 1: grano */
 .hero-grain {
   position: fixed;
@@ -71,7 +37,7 @@
 }
 
 /* Navbar: misma gramática que .topbar (sticky + blur) pero transparente,
-   flotando sobre el vórtice. El toggle de sonido real llega en T8. */
+   flotando sobre el humo. El toggle de sonido real llega en T8. */
 .hero-nav {
   position: sticky;
   top: 0;

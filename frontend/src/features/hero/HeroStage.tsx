@@ -4,7 +4,7 @@ import { envFromWindow, hasWebGL, heroMode } from './mode'
 import { Preloader } from './Preloader'
 import { HeroCopy } from './HeroCopy'
 import { HeroNav } from './HeroNav'
-import { VortexBackground } from './VortexBackground'
+import { SmokeBackground } from './SmokeBackground'
 import './HeroStage.css'
 
 export function HeroStage() {
@@ -19,7 +19,7 @@ export function HeroStage() {
 
   return (
     <section className={`hero-stage${entered ? ' hero-stage--entered' : ''}`} data-hero-mode={mode} data-webgl={webgl}>
-      <VortexBackground />
+      <SmokeBackground />
       <div className="hero-grain" aria-hidden="true" />
       <div className="hero-content">
         <HeroNav />
