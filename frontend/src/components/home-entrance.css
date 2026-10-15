@@ -21,33 +21,46 @@
   gap: var(--s6);
 }
 
-/* Mazo: cartas absolutas superpuestas en el centro de la mesa. */
+/* Mazo: cartas absolutas superpuestas en el centro de la mesa. El
+   contenedor mide lo mismo que una carta real (76×104, CardView) para que
+   el apilado quede centrado con los offsets del final. */
 .home-entrance-stack {
   position: relative;
-  width: 90px;
-  height: 126px;
+  width: 76px;
+  height: 104px;
 }
 
+/* Contenedor de caída: mide lo que la carta real y no pinta nada (fondo,
+   borde, costura y sombra los trae la propia CardView). GSAP anima este
+   elemento, no la carta. */
 .fall-card {
   position: absolute;
   inset: 0;
-  width: 90px;
-  height: 126px;
-  background: var(--ivory);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 76px;
+  height: 104px;
   will-change: transform;
 }
 
-.fall-card-value {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 3rem;
-  line-height: 1;
-  color: var(--ink);
+/* Dentro de la entrada la carta es decorativa: sin hover ni transición CSS
+   (el click lo captura el overlay para acelerar la secuencia). */
+.fall-card .card {
+  transition: none;
+  pointer-events: none;
+}
+
+/* Puff de polvo de fieltro en la base de la carta: nace sobre la línea de
+   impacto y GSAP lo expande y desvanece al aterrizar. */
+.fall-puff {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 76px;
+  height: 22px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, oklch(0.85 0.05 150 / 50%), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .home-entrance-title {

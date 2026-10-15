@@ -31,6 +31,9 @@
 .btn-primary {
   background: var(--amber);
   color: var(--amber-ink);
+  box-shadow:
+    0 6px 24px oklch(0.78 0.15 75 / 35%),
+    0 0 0 1px oklch(1 0 0 / 12%) inset;
 }
 
 .btn-primary:hover {
@@ -42,10 +45,20 @@
   color: var(--parchment);
 }
 
-/* Home: mazo-objeto decorativo (aria-hidden, el real llega en Phase 8) */
+/* Home: portada con carrusel de pelusas 1→10 (decorativo). */
 .home {
   position: relative;
   padding-top: var(--s16);
+}
+
+/* Título de portada: gradiente blanco→lavanda con glow de neón. */
+.home h1 {
+  font-size: clamp(3.2rem, 10vw, 6.5rem);
+  background: linear-gradient(180deg, oklch(0.99 0.005 300), oklch(0.76 0.1 300));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 42px oklch(0.6 0.22 305 / 40%));
 }
 
 .deck-teaser {
@@ -128,15 +141,36 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(52%, 460px);
+  width: min(58%, 520px);
   aspect-ratio: 1;
   translate: -50% -50%;
   border-radius: 50%;
+  border: 14px solid transparent;
   background:
-    radial-gradient(circle at 40% 34%, oklch(0.32 0.055 160 / 90%), transparent 60%),
-    radial-gradient(circle at 50% 50%, var(--felt-800), var(--felt-950) 80%);
-  border: 1px solid oklch(1 0 0 / 8%);
-  box-shadow: inset 0 0 70px oklch(0 0 0 / 45%), var(--shadow-deck);
+    radial-gradient(circle at 42% 36%, oklch(0.32 0.07 295 / 95%), transparent 58%),
+    radial-gradient(circle at 50% 50%, oklch(0.23 0.06 290), oklch(0.15 0.045 288) 82%) padding-box,
+    linear-gradient(155deg, #3a2752, #241636 40%, #4a3068 72%, #180d28) border-box;
+  box-shadow:
+    inset 0 0 90px oklch(0 0 0 / 50%),
+    0 24px 60px oklch(0 0 0 / 55%);
+}
+
+.felt-disc::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed oklch(1 0 0 / 14%);
+  pointer-events: none;
+}
+
+.felt-disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 112%, oklch(0 0 0 / 32%), transparent 55%);
+  pointer-events: none;
 }
 
 .deck-area {
@@ -174,6 +208,7 @@
   display: block;
   width: 48px;
   height: 66px;
+  filter: drop-shadow(0 12px 16px oklch(0 0 0 / 45%));
   transition: transform var(--t-fast) var(--ease-out);
 }
 
@@ -219,16 +254,19 @@
 
 .seat-inner {
   translate: -50% -50%;
-  transform: rotateZ(var(--counter));
+  transform: rotateZ(var(--counter)) scale(var(--scale, 1));
   transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
 }
 
+/* Sin caja: las cartas viven SOBRE el fieltro; solo el cartel del nombre
+   es un objeto de la mesa (como la placa con el nombre en un casino). */
 .seat-panel {
   width: clamp(216px, 27vmin, 292px);
   margin: 0;
-  padding: var(--s3);
-  background: oklch(0.2 0.025 160 / 82%);
-  backdrop-filter: blur(6px);
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: center;
 }
 
 .seat-panel .player-head h2 {
@@ -236,10 +274,14 @@
   margin: 0;
 }
 
-.seat-panel.active {
-  border-color: oklch(0.78 0.15 75 / 55%);
-  background: oklch(0.78 0.15 75 / 8%);
-  box-shadow: 0 0 26px oklch(0.78 0.15 75 / 18%);
+.seat-panel.active .player-head {
+  background: oklch(0.3 0.06 75 / 60%);
+  border-color: oklch(0.78 0.15 75 / 70%);
+  box-shadow: 0 0 18px oklch(0.78 0.15 75 / 30%), 0 4px 14px oklch(0 0 0 / 40%);
+}
+
+.seat-panel .card-group {
+  justify-content: center;
 }
 
 .front-zone {
@@ -255,14 +297,19 @@
   transition: opacity var(--t-med) var(--ease-out), filter var(--t-med) var(--ease-out);
 }
 
-/* Acciones sticky: siempre a mano en la mesa larga. */
+/* Cartas recién llegadas: ocultas hasta que su vuelo aterrice encima. */
+.card-slot.incoming .card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Acciones: en flujo normal (nunca tapan al jugador en turno). */
 .table-actions {
-  position: sticky;
-  bottom: var(--s2);
-  z-index: 30;
-  background: oklch(0.16 0.02 160 / 88%);
+  max-width: 720px;
+  margin: var(--s4) auto var(--s2);
+  background: oklch(0.11 0.035 290 / 88%);
   backdrop-filter: blur(8px);
-  border: 1px solid oklch(1 0 0 / 10%);
+  border: 1px solid oklch(0.7 0.12 300 / 18%);
   border-radius: var(--r-panel);
   padding: var(--s2) var(--s3);
   justify-content: center;
@@ -284,7 +331,7 @@
 
 @media (max-width: 640px) {
   .table-felt {
-    --t-radius: 118px;
+    --t-radius: 112px;
   }
 
   .table-stage {
@@ -292,8 +339,7 @@
   }
 
   .seat-panel {
-    width: 168px;
-    padding: var(--s2) var(--s3);
+    width: 156px;
   }
 
   .seat-panel .player-head h2 {
@@ -302,10 +348,15 @@
 }
 
 .player-head {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s4);
+  gap: var(--s2);
+  background: oklch(0.1 0.035 290 / 85%);
+  border: 1px solid oklch(0.7 0.12 300 / 22%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 40%);
 }
 
 .player-head h2 {
@@ -383,10 +434,22 @@
   }
 }
 
+/* Brillo extra: cada paso es una tarjeta con luz violeta propia. */
+.howto > div {
+  background: oklch(0.5 0.1 300 / 8%);
+  border: 1px solid oklch(0.7 0.12 300 / 16%);
+  border-radius: var(--r-panel);
+  padding: var(--s4);
+  box-shadow:
+    0 10px 30px oklch(0.55 0.2 300 / 12%),
+    0 2px 8px oklch(0 0 0 / 30%);
+}
+
 .howto strong {
   display: block;
   color: var(--amber);
   margin-bottom: var(--s1);
+  text-shadow: 0 0 18px oklch(0.78 0.15 75 / 45%);
 }
 
 .howto p {
