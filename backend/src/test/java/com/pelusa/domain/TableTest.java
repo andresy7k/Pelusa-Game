@@ -103,9 +103,9 @@ class TableTest {
 
   @Test
   void stealOfValueOtherThanLastDrawnFails() {
-    // Regresión del bug reportado: Ana sacó 7 y Beto tiene un 4 boca arriba.
-    // Antes se robaba el 4 igual; ahora solo vale el valor de la última sacada.
-    Table t = twoPlayers(0, 4, 4, 4, 9, 7, 7);
+    // Regresión del bug reportado: Ana sacó 7 y Beto tiene 4 y 9 boca arriba.
+    // Antes se robaba cualquiera de ellos; ahora solo vale la última sacada.
+    Table t = twoPlayers(0, 4, 4, 9, 7, 9, 7);
     t.drawCurrent(); // Ana 4 (turno 1)
     t.standCurrent();
     t.drawCurrent(); // Beto 4
