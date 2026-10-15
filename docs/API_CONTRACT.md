@@ -8,15 +8,15 @@
 ```json
 {
   "id": "uuid", "status": "IN_PROGRESS",
-  "currentPlayerId": "uuid", "deckRemaining": 87,
-  "players": [{"id":"uuid","name":"Ana","position":0}],
-  "fronts": {"<playerId>": [{"value":4},{"value":4}]},
+  "currentPlayerId": "uuid", "deckRemaining": 87, "lastDrawnValue": 4,
+  "players": [{"id":"uuid","name":"Ana","seat":0}],
+  "fronts": {"<playerId>": [4, 4]},
   "stashed": {"<playerId>": {"sum": 12, "countsByValue": {"1":2,"4":1}}},
   "lastEvent": {"type":"DRAW","playerId":"uuid","value":4,"bust":false},
   "result": null
 }
 ```
-`result` solo si `FINISHED`: `{ "winnerId":"uuid", "tiebreak":"ONES_THEN_TWOS...", "scores":[{"playerId":"uuid","sum":34,"countsByValue":{...}}], "reason":"DECK_EMPTY" }`.
+`result` solo si `FINISHED`: `{ "winnerId":"uuid", "tie":false, "reason":"DECK_EMPTY", "scores":[{"playerId":"uuid","name":"Ana","sum":34,"countsByValue":{...}}] }`.
 
 **Error canónico (RFC7807):**
 ```json
@@ -48,9 +48,9 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 
 ## 3. `GET /api/games/{id}` — estado
 **Propósito:** única fuente para render (turno, mazo, frentes, puntos).
-**Response 200:** estado canónico.
+**Response 200:** estado canónico + `lastDrawnValue` (valor robable este turno, ADR-014; `null` si aún no sacó).
 **Errores:** 404. Sin rate-limit estricto (GET cacheable 1s en React Query).
-**Impacto BD:** 3 selects con EntityGraph (sin N+1).
+**Impacto BD:** 4 selects (game, players, cards, turn abierto) con EntityGraph (sin N+1).
 
 ## 4. `POST /api/games/{id}/stash` — guardar pelusas
 **Propósito:** mover mi `FRONT` (de turnos anteriores) a `STASHED`. Solo inicio de mi turno, una vez por turno.
@@ -65,7 +65,7 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 **Request:** `{ "playerId":"uuid" }` + key.
 **Response 200:** estado + `lastEvent: {type:DRAW, value, bust, gameFinished}`. Si agota el mazo, `status:FINISHED` + `result` incluido.
 **Errores:** 404, 409 `NOT_YOUR_TURN` / `GAME_FINISHED` / `CONCURRENT_TURN`, 422 `DECK_EMPTY`.
-**Reglas:** I-02/03/04. Evaluación bust post-colocación. Si `deckRemaining` llega a 0 → auto-stash global + scoring + finish en la MISMA transacción.
+**Reglas:** I-02/03/04. Evaluación bust post-colocación. Si `deckRemaining` llega a 0 → auto-stash global + scoring + finish en la MISMA transacción. Persiste `turns.last_drawn_value` (ADR-014): habilita robar exactamente ese valor.
 **Impacto BD:** 1 card `DECK→FRONT` (+ posible cascada finish: N updates FRONT→STASHED + update games).
 
 ## 6. `POST /api/games/{id}/stand` — continuar/finalizar voluntario
@@ -75,12 +75,12 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 **Errores:** 404, 409 `NOT_YOUR_TURN` / `GAME_FINISHED`.
 **Impacto BD:** cierra turn, rota `current_player_id`, abre siguiente turn.
 
-## 7. `POST /api/games/{id}/steal` — robar (R-01: solo en tu turno)
-**Propósito:** tomar del frente ajeno todas las del valor X a mi frente.
-**Request:** `{ "playerId":"uuid", "value":4 }` + key. `value` 1–10.
+## 7. `POST /api/games/{id}/steal` — robar (R-01/ADR-014: solo el valor de tu última carta sacada)
+**Propósito:** tomar del frente ajeno todas las del valor X a mi frente. X debe ser la última carta sacada este turno.
+**Request:** `{ "playerId":"uuid", "value":4 }` + key. `value` 1–10 (= `lastDrawnValue` del turno).
 **Response 200:** estado + `lastEvent:{type:STEAL, value, count, fromPlayerIds}`.
-**Errores:** 404, 400 `value` fuera de rango, 409 `NOT_YOUR_TURN` / `GAME_FINISHED`, 422 `NO_STEALABLE_CARDS` (nadie tiene ese valor boca arriba) / `CANNOT_STEAL_FROM_SELF`.
-**Reglas:** ADR-011. No va a puntos directo; queda en mi frente (y por tanto me expone a bust si repito).
+**Errores:** 404, 400 `value` fuera de rango, 409 `NOT_YOUR_TURN` / `GAME_FINISHED`, 422 `STEAL_VALUE_MISMATCH` (sin draw en el turno o valor ≠ última sacada) / `NO_STEALABLE_CARDS` (nadie tiene ese valor boca arriba).
+**Reglas:** ADR-011 refinado por ADR-014. No va a puntos directo; queda en mi frente (y por tanto me expone a bust si repito).
 **Impacto BD:** `UPDATE cards SET owner=yo WHERE game+value+FRONT+owner!=yo`.
 
 ## 8. `GET /api/games/history` + `GET /api/games/{id}/result` — histórico
@@ -108,6 +108,8 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 | Draw sin mazo | 422 `DECK_EMPTY` (o auto-finish si fue la última) |
 | Doble draw concurrente | uno 200, otro 409 `CONCURRENT_TURN` |
 | Stash sin cartas | 422 `NO_STASHABLE_CARDS` |
+| Steal sin haber sacado en el turno | 422 `STEAL_VALUE_MISMATCH` |
+| Steal con valor ≠ última carta sacada | 422 `STEAL_VALUE_MISMATCH` |
 | Steal sin ese valor afuera | 422 `NO_STEALABLE_CARDS` |
 | Acción en `FINISHED` | 409 `GAME_FINISHED` |
 | Juego inexistente | 404 `GAME_NOT_FOUND` |

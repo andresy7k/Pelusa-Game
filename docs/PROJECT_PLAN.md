@@ -26,7 +26,7 @@ El autor debe poder defender, modificar y explicar arquitectura, reglas, persist
 - **RF-05 Buscar pelusas (draw):** sacar carta superior del mazo, queda visible delante del jugador. Backend valida: es su turno, partida en curso, quedan cartas.
 - **RF-06 Agrupación visual:** cartas del mismo valor identificables/agrupadas (responsabilidad UI, dato provisto por API).
 - **RF-07 Continuar / finalizar voluntario:** después de cada draw sin pérdida, el jugador puede seguir sacando o plantarse y pasar turno.
-- **RF-08 Robar (steal) — CERRADO 2026-10-06:** solo en tu turno. El jugador en turno puede tomar cartas del mismo valor que estén boca arriba delante de otros jugadores. Backend valida: es tu turno + valor presente en frente ajeno. Efecto: esas cartas pasan a tu frente (no directo a puntos).
+- **RF-08 Robar (steal) — CERRADO 2026-10-06:** solo en tu turno. El jugador en turno puede tomar cartas del mismo valor que estén boca arriba delante de otros jugadores. Backend valida: es tu turno + valor presente en frente ajeno. Efecto: esas cartas pasan a tu frente (no directo a puntos). **Refinado 2026-10-15 (ADR-014):** el valor debe ser el de la última carta sacada en el turno; sin draw o valor distinto → `STEAL_VALUE_MISMATCH` 422.
 - **RF-09 Pérdida de turno — CERRADA 2026-10-06:** `bust = frenteContiene(valorRecienSacado) && frente.size() >= 3` evaluado DESPUÉS de colocar la carta. Si repite con <3, SIGUE jugando. Efecto atómico: frente → descarte (no puntúa), turno rota.
 - **RF-10 Finalización:** cuando se agota el mazo. Auto-stash de frentes restantes → calcular puntuaciones → ganador + desempate → persistir histórico.
 - **RF-11 Resultado + ranking:** puntos por jugador, cartas acumuladas, ganador, motivo de fin.
@@ -63,7 +63,7 @@ Turno dentro de IN_PROGRESS: `START_TURN [stash opcional] → DRAW* → {STAND |
 ### Riesgos
 | ID | Riesgo | Impacto | Mitigación Phase 1 |
 |----|--------|---------|--------------------|
-| R-01 | Disparador exacto de "robar" ambiguo en enunciado | Lógica y tests bloqueados | ✅ CERRADO 2026-10-06: solo en tu turno (ver RF-08) |
+| R-01 | Disparador exacto de "robar" ambiguo en enunciado | Lógica y tests bloqueados | ✅ CERRADO 2026-10-06: solo en tu turno (ver RF-08) · refinado 2026-10-15 (ADR-014): valor de la última carta sacada |
 | R-02 | Repetición con <3 cartas: ¿pierde o sigue? | Bug crítico de reglas | ✅ CERRADO 2026-10-06: sigue; bust solo si ≥3 + repetido post-colocación |
 | R-03 | Cálculo puntuación/desempate no especificado | Resultado indefendible | ✅ CERRADO 2026-10-06: suma guardadas; desempate lexicográfico 1→10 |
 | R-04 | Aleatoriedad no testeable | Tests flaky | `ShufflePort` inyectable + seed fijo en tests |

@@ -69,6 +69,7 @@ CREATE TABLE turns (
   ended_at   TIMESTAMP WITH TIME ZONE NULL,
   outcome    VARCHAR(16) NULL CHECK (outcome IN ('STAND','BUST','STEAL','AUTO_FINISH')),
   detail     TEXT NULL,                           -- JSON serializado (portable: H2 no tiene JSONB)
+  last_drawn_value INTEGER NULL,                  -- V5/ADR-014: valor robable del turno (NULL = sin draw)
   CONSTRAINT chk_turn_end CHECK (ended_at IS NULL OR outcome IS NOT NULL)
 );
 
@@ -109,7 +110,7 @@ DECK(owner NULL, pile_order=N)
   --draw--> FRONT(owner=yo)
   --stash (inicio de mi próximo turno)--> STASHED(owner=yo)
   --bust--> DISCARDED(owner=yo, conservado para auditoría)
-  --steal (solo en mi turno, valor X en frente ajeno)--> FRONT(owner=yo)
+  --steal (solo en mi turno, valor X = última carta sacada)--> FRONT(owner=yo)
   --auto-finish--> STASHED(owner=quien la tenía en frente)
 ```
 
@@ -120,5 +121,7 @@ Nunca se hace `DELETE` de cartas; el histórico es la tabla misma filtrada por `
 - Flyway `resources/db/migration/V1__init.sql` única fuente. Nada de `ddl-auto=update` en prod (solo `validate`).
 - **V2** añade `turns.acted/stashed` + tabla `action_keys` (idempotencia).
 - **V3** renombra `DUST_PILE→DECK` (valores, constraint, índice). Lección: las migraciones aplicadas no se editan; el rename es una migración más.
+- **V4** (Java) dropea el check inline autogenerado por H2 que bloqueaba `DECK` tras V3 — se corrige con otra migración, nunca editando V3 ya aplicada.
+- **V5** añade `turns.last_drawn_value` (ADR-014: el robo solo acepta el valor de la última carta sacada; NULL al rotar turno).
 - Estrategia expand/contract si Phase 11 añade columnas (ej: `steal_from`): V2 añade nullable → código escribe ambos → V3 backfill + NOT NULL. No se elimina columna y código en el mismo deploy.
 - Seeds: `V999__demo.sql` solo perfil `demo`, nunca prod.

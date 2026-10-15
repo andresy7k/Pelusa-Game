@@ -81,3 +81,10 @@
 **Decisión:** Puntos = Σ valores guardados (`STASHED`). Gana mayor suma. Desempate: comparar conteo de 1s guardados; si empate, 2s; … hasta 10s. Si empate total, empate declarado (Phase 1 definirá si se usa orden de turno como último criterio).
 **Alternativas:** "Más cartas totales" o "menor max robado" — descartadas por el autor por ser menos fieles al espíritu de Pelusas.
 **Consecuencias:** + `ScoringService.compare(a,b)` puro y testeable con tests de oro (ej: [3×1 vs 1×3], cadenas de empates hasta el 10). − Requiere guardar conteo por valor en el resultado/histórico, no solo la suma.
+
+## ADR-014 — Robo refinado: solo el valor de la última carta sacada (2026-10-15, CERRADO por el autor)
+**Contexto:** ADR-011 dejó el robo como "cualquier valor presente en frente ajeno". Probando la partida real, el autor corrigió la regla: el robo debe estar atado al draw del turno (sacaste un 2 → solo se roban 2s). Reproducido por API antes de tocar código: Ana sacó 5 y el backend aceptó robar el 3 de Beto.
+**Decisión:** Además de las precondiciones de ADR-011, `steal` exige `value == last_drawn_value` del turno en curso (la última carta sacada ESTE turno). Sin draw previo también rechaza. Nuevo `errorCode STEAL_VALUE_MISMATCH` → 422. El valor vive en `turns.last_drawn_value` (migración V5) y arranca NULL al rotar el turno.
+**Alternativas:** (a) robar cualquier valor (estado previo) — permite robar sin relación con tu draw; (b) robar solo "inmediatamente después del draw" — más rígido que la regla del autor ("la última que saqué").
+**Consecuencias:** + Regla fiel al juego físico; la UI resalta SOLO las cartas robables. − 1 columna + V5; los tests de robo deben amañar el mazo para sacar el valor correcto primero.
+**Defensa:** "El riesgo estaba previsto en ADR-011; el cambio fue quirúrgico: 1 método de dominio, 1 columna, 1 errorCode, tests de tabla (sin draw / valor distinto / valor igual)."

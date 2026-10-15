@@ -82,6 +82,15 @@
 **Por qué:** Cada bug enseña una capa: (1) reconstruir≠persistir, (2) el contrato manda, (3) JPA tiene caché de primer nivel y los bulks lo ignoran.
 **Cómo defenderlo:** "¿Doble request? `@Version`→409 más clave de idempotencia→200. ¿Bulk updates? Los prohibimos tras ver datos fantasma en el CI."
 
+### 2026-10-15 — El bug que era una decisión: regla de robo refinada en vivo
+**Concepto:** No todo reporte de bug es un bug: a veces el código cumple un ADR viejo y la regla cambió. Primero se reproduce por API, luego se distingue "implementación incorrecta" de "contrato desactualizado" — y se actualiza el ADR, no solo el código.
+**Problema:** Jugando la partida real, el autor reportó que podía robar cualquier carta ajena (sacó 2 y robó una 4). Reproducido contra el backend local antes de tocar nada: Ana sacó 5 y el steal del 3 de Beto devolvió 200. El código cumplía ADR-011 al pie de la letra; el riesgo ya estaba anotado en este log: "si el profe interpreta robar solo el valor recién sacado, se ajusta `StealPolicy`".
+**Solución:** `lastDrawnValue` en el motor (se setea en `drawCurrent`, se limpia en `nextTurn`, `steal` valida igualdad), persistido en `turns.last_drawn_value` (V5, NULL al rotar), expuesto como `lastDrawnValue` en la vista, error `STEAL_VALUE_MISMATCH` → 422, y la UI resalta solo las cartas robables. Tests de dominio (sin draw / valor distinto / valor igual+presente / valor igual+ausente) y de API (regresión del valor cruzado).
+**Por qué:** La regla aislada en 1 método más los flags de turno ya persistidos hicieron el cambio quirúrgico: 1 columna, 1 validación, 1 errorCode. El diseño "predicho" en Phase 3 pagó.
+**Alternativas:** robar solo "inmediatamente después del draw" (más rígido); dejar como estaba y documentarlo (el autor ya lo había pedido dos veces).
+**Riesgos:** El estado transitorio del turno se reconstruye en cada request; si no se persiste, el valor se pierde entre acciones — cubierto por `turns.last_drawn_value` y el test `viewExposesLastDrawnValue`. (Nota: el tope del mazo se probó visible y se revirtió — filtra estrategia; §11 del contrato sigue en pie.)
+**Cómo defenderlo:** "Tabla de verdad del robo: sin draw → 422; valor distinto → 422; valor igual y presente → roba todas. El cambio tocó 1 clase de dominio + V5; los tests viejos fallaron exactamente donde debían y se reescribieron con la regla nueva."
+
 ---
 <!-- Plantilla para próximas entradas:
 ### Fecha — Título

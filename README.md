@@ -37,11 +37,13 @@ npm run dev            # http://localhost:5173 (proxy /api → :8080)
 npm run build          # typecheck + build prod (lo corre el CI)
 ```
 
-Flujo: home → setup (nombres) → board (`/game/:id`: elegir "jugar como",
-sacar/plantarse/guardar/robar, ver frentes y resultado) → history.
+Flujo: home → setup (nombres) → board (`/game/:id`: hotseat, siempre juega
+quien tiene el turno — sacar/plantarse/guardar/robar, ver frentes y resultado)
+→ history.
 
 ## Reglas cerradas
 
-- Robo: solo en tu turno, roba **todas** las del valor del frente ajeno → tu frente.
+- Robo: solo en tu turno y solo el **valor de la última carta que sacaste**;
+  esas cartas (todas, de todos los frentes ajenos) van a tu frente.
 - Pérdida: `repetido && frente>=3` post-colocación; si no, sigue.
 - Puntos: Σ guardadas; desempate lexicográfico 1→10.

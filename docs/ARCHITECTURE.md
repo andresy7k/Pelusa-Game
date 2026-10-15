@@ -54,7 +54,7 @@ domain ← application ← infrastructure
 | `DeckFactory` | Construir las 110 exactas (13×1–5, 9×6–10) y ordenar vía `ShufflePort`. | No baraja con `new Random()` directo (inyecta puerto para seed fijo en tests). |
 | `TurnPolicy` / `BustPolicy` | `bust = front.contains(v) && front.size()>=3` post-colocación. | No toca DB ni turnos, solo listas en memoria. |
 | `StashPolicy` | Solo al inicio de tu turno, solo cartas de turnos anteriores. | No decide puntos, solo mueve `FRONT→STASHED` en memoria. |
-| `StealPolicy` (R-01 cerrado) | Solo en tu turno: `valor X existe en frente ajeno → esas cartas a tu frente`. | No roba fuera de turno, no manda a puntos directo. |
+| `StealPolicy` (R-01/ADR-014) | Solo en tu turno y solo el valor de la última carta sacada: esas cartas de frentes ajenos → tu frente. | No roba fuera de turno, sin draw o con otro valor (422 `STEAL_VALUE_MISMATCH`), no manda a puntos. |
 | `GameEngine` | Orquesta un turno: `stash? → draw → {bust? | steal? | stand} → next`. Devuelve eventos, no persiste. | No abre transacciones, no llama repos. |
 | `ScoringService` | `Σ guardadas`, ganador = mayor suma; desempate lexicográfico 1→10 (ADR-013). | No decide fin de partida, solo compara. |
 | `GameService` | Carga `GameEntity` + cartas con `EntityGraph`, llama `GameEngine`, guarda en 1 transacción, publica resultado. Maneja `@Version` → 409. | No contiene `if (value==...)` de reglas; delega. |
@@ -78,7 +78,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 - **Turno típico:** `stash?` (inicio) → N×`draw` (cada draw: saca `MIN(pile_order)` de `DECK` → `FRONT` dueño actual; evalúa bust post-colocación) → `stand` o `bust` o `steal` → rota `currentPlayerId`. Cada acción = 1 transacción + incremento `@Version`.
 - **Bust:** `FRONT(activo)→DISCARDED` (mismo `game_id`, `owner` se conserva para auditoría, `location` cambia), `Turn.outcome=BUST`, rota. Nada a puntos.
 - **Finish:** trigger = `COUNT(DECK)==0` después de un draw/steal/stand. Efecto atómico: todos los `FRONT→STASHED`, `ScoringService` calcula, `status=FINISHED, winnerId, finishedAt` se fijan. Irreversible: cualquier acción posterior → 409/422 `GAME_FINISHED`.
-- **Steal (solo tu turno):** `POST .../steal {value}` → todas las `FRONT` ajenas con ese valor → `FRONT` del ladrón (mismo `game_id`, cambia `owner_player_id`). Si no hay → 422.
+- **Steal (solo tu turno, ADR-014):** `POST .../steal {value}` con `value = lastDrawnValue` del turno → todas las `FRONT` ajenas con ese valor → `FRONT` del ladrón (mismo `game_id`, cambia `owner_player_id`). Sin draw o valor distinto → 422 `STEAL_VALUE_MISMATCH`; sin cartas de ese valor afuera → 422 `NO_STEALABLE_CARDS`.
 
 ## 6. Transacciones, concurrencia, idempotencia
 
@@ -88,7 +88,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 
 ## 7. Errores, logs, observabilidad
 
-- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS`.
+- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS, STEAL_VALUE_MISMATCH`.
 - `OncePerRequestFilter` genera `X-Request-Id` (o respeta el entrante), lo pone en MDC; logs estructurados (timestamp, level, requestId, gameId, playerId, action) sin PII ni secretos.
 - `GET /actuator/health` verifica `DataSource` con `SELECT 1` (health real, no "UP" hardcodeado). `GET /api/health` público ligero para la UI.
 - Rate-limit (Bucket4j o filtro simple, Phase 11): `POST /api/games` 10/min por IP; acciones 60/min por IP. Excedido → 429 con `Retry-After`.
