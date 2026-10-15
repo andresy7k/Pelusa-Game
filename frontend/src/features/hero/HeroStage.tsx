@@ -9,16 +9,18 @@ import './HeroStage.css'
 
 export function HeroStage() {
   const [entered, setEntered] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   // Lazy: se detectan una sola vez. Ojo: hasWebGL() crea un canvas —
   // nunca llamarlo en cada render (HeroStage re-renderiza al cambiar de carta).
   const [mode] = useState(() => heroMode(window.location.search, envFromWindow()))
   const [webgl] = useState(() => hasWebGL())
   const showPreloader = !entered
 
+  const onReveal = useCallback(() => setRevealed(true), [])
   const onDone = useCallback(() => setEntered(true), [])
 
   return (
-    <section className={`hero-stage${entered ? ' hero-stage--entered' : ''}`} data-hero-mode={mode} data-webgl={webgl}>
+    <section className={`hero-stage${revealed ? ' hero-stage--entered' : ''}`} data-hero-mode={mode} data-webgl={webgl}>
       <SmokeBackground />
       <div className="hero-grain" aria-hidden="true" />
       <div className="hero-content">
@@ -26,8 +28,8 @@ export function HeroStage() {
         <HeroCopy />
         {/* T3 monta aquí <HeroCarousel />; T4, el portal del canvas */}
       </div>
-      {/* T4 conecta el `done` real del canvas (hoy: solo timeout/skip del Preloader) */}
-      {showPreloader && <Preloader done={false} onDone={onDone} />}
+      {/* T4 conecta el `done` real del canvas; T7 usa el beat del wordmark */}
+      {showPreloader && <Preloader done={false} onReveal={onReveal} onDone={onDone} />}
     </section>
   )
 }
