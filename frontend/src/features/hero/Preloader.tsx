@@ -180,6 +180,23 @@ export function Preloader({
       waitRef.current = window.setTimeout(maybeExit, 120)
     }
 
+    // Cada letra pinta su slice del gradiente continuo: ancho total de la
+    // palabra en --wm-size y offset real de cada letra en background-position.
+    // Se mide al montar y de nuevo cuando terminan de cargar las fuentes.
+    const cortarGradiente = (): void => {
+      const p = scopeRef.current?.querySelector<HTMLElement>('.pl-wordmark') ?? null
+      if (p === null) return
+      const ancho = p.offsetWidth
+      if (ancho === 0) return
+      const spans = gsap.utils.toArray<HTMLElement>('.pl-wordmark__l')
+      p.style.setProperty('--wm-size', `${ancho}px`)
+      spans.forEach((span) => {
+        span.style.backgroundPosition = `${-span.offsetLeft}px 0`
+      })
+    }
+    requestAnimationFrame(cortarGradiente)
+    void document.fonts.ready.then(cortarGradiente).catch(() => {})
+
     const ctx = gsap.context(() => {
       const overlay = scopeRef.current
       const cartas = gsap.utils.toArray<HTMLElement>('.pl-card')

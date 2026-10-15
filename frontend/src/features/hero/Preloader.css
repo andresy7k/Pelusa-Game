@@ -164,30 +164,36 @@
 .pl-mascot__eye--l > i { position: absolute; left: 8px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: #221a33; }
 .pl-mascot__eye--r > i { position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #221a33; }
 
-/* Wordmark "Pelusas": gradiente violeta en el texto, letras que se abren
-   desde el centro (GSAP). Anclado debajo del mazo (absoluto, fuera del
-   flujo): el scale no agranda la caja de layout del .pl-scene, así que la
-   separación se calcula con media carta (52px × --pl-scale) + aire. */
+/* Wordmark "Pelusas": anclado debajo del mazo (absoluto, fuera del flujo).
+   El gradiente y el glow viven en CADA LETRA (no en el padre): Chromium
+   rompe background-clip:text del padre cuando los hijos son capas
+   compuestas (GSAP anima transform/opacity de cada letra). Cada letra
+   pinta su "slice" del gradiente continuo con background-size/position
+   (offsets medidos en TSX). */
 .pl-wordmark {
   position: absolute;
   top: 50%;
   left: 50%;
   translate: -50% 0;
   margin-top: calc(52px * var(--pl-scale) + clamp(1.25rem, 3vh, 2rem));
+  --wm-gradient: linear-gradient(100deg, #fff 5%, #ded1ff 32%, #9f7bf0 55%, #fff 92%);
   font-family: var(--font-hero);
   font-weight: 400;
   font-size: clamp(58px, 9.5vw, 148px);
   line-height: 1;
   letter-spacing: 0.02em;
-  background: linear-gradient(100deg, #fff 5%, #ded1ff 32%, #9f7bf0 55%, #fff 92%);
+}
+
+.pl-wordmark__l {
+  display: inline-block;
+  background-image: var(--wm-gradient);
+  background-size: var(--wm-size, 100%) 100%;
+  background-repeat: no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 14px 44px oklch(0.6 0.22 320 / 45%));
-}
-.pl-wordmark__l {
-  display: inline-block;
   will-change: transform, opacity;
 }
 
