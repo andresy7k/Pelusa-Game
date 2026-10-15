@@ -162,9 +162,12 @@
 
 /* Wordmark "Pelusas": gradiente violeta en el texto, letras que se abren
    desde el centro (GSAP). Segundo hijo del grid: el mazo queda algo arriba
-   del centro y el nombre respira abajo. */
+   del centro y el nombre respira abajo. El margen es grande a propósito: el
+   scale de .pl-scene no agranda su caja de layout, así que el mazo desborda
+   ~42–78 px según --pl-scale y sin este hueco pisaría el borde superior del
+   nombre. */
 .pl-wordmark {
-  margin: clamp(1rem, 3.5vh, 2.5rem) 0 0;
+  margin: clamp(5.5rem, 10vh, 7rem) 0 0;
   font-family: var(--font-hero);
   font-weight: 400;
   font-size: clamp(58px, 9.5vw, 148px);
