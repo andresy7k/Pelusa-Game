@@ -39,7 +39,7 @@ export interface HeroConfig {
   copy: {
     badgeGold: string
     badgeWhite: string
-    h1: [string, string]
+    h1: string[]
     sub: string
     ctaPrimary: string
     ctaGhost: string
@@ -81,7 +81,7 @@ export const HERO: HeroConfig = {
   copy: {
     badgeGold: 'UN JUEGO DE MESA',
     badgeWhite: 'VERSIÓN DIGITAL',
-    h1: ['Pelusas,', 'bajo la lámpara.'],
+    h1: ['Pelusas'],
     sub: 'Sacá cartas del mazo, guardá tus pelusas y robale al resto. Vos jugás; las reglas las decide el servidor.',
     ctaPrimary: 'Nueva partida',
     ctaGhost: 'Historial',
