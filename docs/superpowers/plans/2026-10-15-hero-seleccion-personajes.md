@@ -496,7 +496,6 @@ import { VortexBackground } from './VortexBackground'
 import './HeroStage.css'
 
 export function HeroStage() {
-  const [loaded, setLoaded] = useState(false)
   const [entered, setEntered] = useState(false)
   // Lazy: se detectan una sola vez. Ojo: hasWebGL() crea un canvas —
   // nunca llamarlo en cada render (HeroStage re-renderiza al cambiar de carta).
@@ -504,7 +503,6 @@ export function HeroStage() {
   const [webgl] = useState(() => hasWebGL())
   const showPreloader = !entered
 
-  const onReady = useCallback(() => setLoaded(true), [])
   const onDone = useCallback(() => setEntered(true), [])
 
   return (
@@ -516,7 +514,8 @@ export function HeroStage() {
         <HeroCopy />
         {/* T3 monta aquí <HeroCarousel />; T4, el portal del canvas */}
       </div>
-      {showPreloader && <Preloader done={loaded} onDone={onDone} />}
+      {/* T4 conecta el `done` real del canvas (hoy: solo timeout/skip del Preloader) */}
+      {showPreloader && <Preloader done={false} onDone={onDone} />}
     </section>
   )
 }
