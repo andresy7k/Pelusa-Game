@@ -214,3 +214,12 @@ Errores de audio: se tragan (el sonido nunca bloquea ni loguea ruido). `webglcon
 | Jank en la sincronizaciÃ³n rect/canvas | Rects solo durante transiciones; transform-only; pruebas con slides rÃ¡pidos |
 | Fidelidad de color al calibrar sin herramientas | ComparaciÃ³n lado a lado carta 3D vs foto en el dev server (fase de aceptaciÃ³n) |
 | Scope creep (features fuera del hero) | Follow-ups explÃ­citos en Â§3; cualquier extra se pide como trabajo nuevo |
+
+## Enmienda — feedback de aceptación T2 (2026-10-15)
+
+Tras revisar el hero en el navegador, el usuario pidió dos cambios sobre lo aprobado:
+
+1. **Fondo.** El vórtice cónico se reemplaza por un fondo de **humo violeta** en deriva lenta, más oscuro y cohesivo con el negro (como la imagen de referencia). Capas suaves (gradientes sin \ilter: blur\), parallax de mouse lerpeado y viñeta que funde a negro en los bordes. El acento (\--hero-accent\) tiñe una capa.
+2. **Carga/entrada.** La carga (y la entrada) vuelven a ser la **baraja cayendo** de la vieja HomeEntrance, mejorada: 10 cartas (valores 1?10) con tumble 3D, squash & stretch al aterrizar, sombra del mazo que crece, puffs de polvo, screen shake final; después aterriza la **mascota pelusa** (pompón violeta con ojos locos) sobre el mazo y se roba la carta 10 (glow ámbar, mismo lenguaje que "robar" en el tablero) antes de que el overlay se retire con fade. Sin logo ni barra de progreso (el \done\ real se reconecta en T7).
+
+Los estilos ya aceptados (navbar, copy, tipografía, grano, CTAs) no cambian.

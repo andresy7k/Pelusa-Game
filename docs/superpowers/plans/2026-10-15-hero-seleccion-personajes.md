@@ -217,6 +217,8 @@ git commit -m "feat(hero): feature skeleton, config unico, modos full/lite/off"
 
 ### Task 2: Atmósfera, navbar, textos y preloader básico
 
+> **Revisión de aceptación T2b (2026-10-15):** tras la aceptación visual del usuario, este paso cambió: el vórtice se reemplaza por un fondo de **humo violeta** (`SmokeBackground`) y el preloader por la **baraja cayendo** recuperada de HomeEntrance y mejorada, con mascota pelusa encima del mazo y robo final de la carta 10. Los pasos 5–6 de esta tarea quedan superseded por el brief `.superpowers/sdd/2026-10-15-hero-seleccion-personajes/task-2b-brief.md`; el resto (navbar, copy, fuentes, Home, grano) sigue vigente.
+
 **Files:**
 - Create: `frontend/src/features/hero/HeroStage.tsx`
 - Create: `frontend/src/features/hero/HeroStage.css`
@@ -1134,6 +1136,8 @@ git commit -m "feat(hero): estados por personalidad, particulas, tinte al color 
 ---
 
 ### Task 7: Intro completa
+
+> **Nota T2b (2026-10-15):** el preloader ya muestra la baraja cayendo con la mascota (T2b) y `done={false}` hasta T4. Acá se le conecta el progreso real (`done`) y la intro coordina la salida del mazo con el stagger del copy; no re-introducir logo/barra.
 
 **Files:**
 - Create: `frontend/src/features/hero/intro.ts`
