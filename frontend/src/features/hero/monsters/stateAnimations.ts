@@ -63,7 +63,14 @@ export function killState(handle: StateAnimHandle): void {
   gsap.killTweensOf([inner.position, inner.scale, inner.rotation])
   if (!face) return
   for (const p of face.pupils) gsap.killTweensOf([p.position, p.scale])
-  for (const l of face.lids) gsap.killTweensOf(l.scale)
+  // Un blink matado a mitad deja el párpado visible y a medio abrir: se
+  // devuelve a reposo acá (vale para todos los estados destino).
+  for (const l of face.lids) {
+    gsap.killTweensOf(l.scale)
+    const rest = restLid(l)
+    l.scale.y = rest
+    l.visible = rest > 0.021
+  }
   gsap.killTweensOf(face.mouth.scale)
 }
 
