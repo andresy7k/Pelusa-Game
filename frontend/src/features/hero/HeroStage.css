@@ -208,6 +208,16 @@
   }
 }
 
+/* --- Canvas 3D (T4) ---
+   Con el canvas montado y listo, el monstruo PINTADO se apaga: el 3D (capa
+   fija z-index 20) queda por encima de la carta y debajo del nav (30) y del
+   preloader (40). Sin WebGL o con ?hero=off la clase no se aplica y el
+   pintado queda como fallback. */
+.hero-stage--has-3d .card-face__monster {
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-out);
+}
+
 /* Ventanas bajas (~1024×720): el carrusel terminaba bajo el fold y los dots
    quedaban cortados; con menos aire bajo el copy vuelve a entrar completo. */
 @media (max-height: 780px) {

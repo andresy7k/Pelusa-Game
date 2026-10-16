@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { HERO, type HeroValue } from './config'
 import { CardFace } from './CardFace'
+import { attachAnchor, measureAllAnchors, trackAnchorsFor } from './monsters/anchors'
 import './HeroCarousel.css'
 
 // Offset circular del anillo: rango -n/2 < off <= n/2 (con n=10: -4..5).
@@ -94,10 +95,30 @@ export function HeroCarousel({
     return () => window.clearInterval(id)
   }, [reduced, autoPaused, paused, n])
 
-  // Publica el valor activo hacia arriba (T4/T6 lo consumen).
+  // Publica el valor activo hacia arriba (T4/T6 lo consumen) y re-mide las
+  // anclas durante el slide: el canvas sigue a su carta con rect fresco.
   useEffect(() => {
     onActiveChange(HERO.order[center])
+    trackAnchorsFor(HERO.timings.slideMs + 120)
   }, [center, onActiveChange])
+
+  // Anclas del canvas 3D: medida inicial, en cada resize (zoom incluido), al
+  // scrollear (el carrusel se mueve con la página y el canvas es fijo) y
+  // cuando terminan de cargar las fuentes (el copy de arriba puede reflowear
+  // y correr el carrusel). Nunca se mide en idle.
+  useEffect(() => {
+    measureAllAnchors()
+    const ro = new ResizeObserver(() => measureAllAnchors())
+    if (stageRef.current) ro.observe(stageRef.current)
+    window.addEventListener('resize', measureAllAnchors)
+    window.addEventListener('scroll', measureAllAnchors, { passive: true })
+    void document.fonts.ready.then(() => measureAllAnchors()).catch(() => {})
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', measureAllAnchors)
+      window.removeEventListener('scroll', measureAllAnchors)
+    }
+  }, [])
 
   const step = useCallback((dir: 1 | -1) => {
     setCenter((c) => (c + dir + n) % n)
@@ -260,7 +281,7 @@ export function HeroCarousel({
               }}
               onClick={() => onCardClick(i, active)}
             >
-              <CardFace value={v} active={active} />
+              <CardFace ref={(el) => attachAnchor(v, el)} value={v} active={active} />
             </div>
           )
         })}

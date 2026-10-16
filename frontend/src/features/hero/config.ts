@@ -1,7 +1,8 @@
 // frontend/src/features/hero/config.ts
 // Fuente única de verdad del hero: colores de cartas (calibrados contra la
 // foto real), orden del carrusel, tiempos, easings, copy y sonido.
-// Los monstruos 3D agregan su bloque `monsters` en la Task 5.
+// T4 agrega FaceSpec (caras), el rig de luces y la escala del personaje;
+// los monstruos 3D agregan su bloque `monsters` en la Task 5.
 
 export type HeroValue = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
 
@@ -16,6 +17,19 @@ export interface CardDesign {
   monster: string
   /** Rotación juguetona del número en grados */
   numTilt: number
+}
+
+/** Cara paramétrica de un monstruo (la construye faces.ts; T5 la embebe en
+ *  MonsterDesign). Medidas en unidades del cuerpo (radio 1, frente z≈0.86):
+ *  `size` = radio del ojo; `lookUp` = cuánto mira arriba la pupila, como
+ *  fracción del radio del ojo; `sleepy` = párpado superior (0..1); `sides` =
+ *  ojos afuera del cuerpo (monstruos anchos); `ring` = color del ojo (por
+ *  defecto blanco); `white` = fuerza el blanco. */
+export interface FaceSpec {
+  eyes: { count: 1 | 2; size: number; lookUp?: number; sides?: boolean; sleepy?: number; ring?: string; white?: boolean }
+  mouth: 'o' | 'tinySmile' | 'tinyOpen' | 'wideSmile' | 'bigSmile' | 'crookedTooth' | 'grinTeeth2' | 'fangs' | 'openTeeth' | 'neutral'
+  tongue?: string
+  mouthInner?: string
 }
 
 export interface HeroConfig {
@@ -36,6 +50,17 @@ export interface HeroConfig {
   easings: { slide: string; slideCss: string; pop: string }
   fur: { shells: number; rootDarken: number; tipLighten: number; thickness: number }
   camera: { fov: number; y: number }
+  /** Rig de luces del canvas (T4): solo lo usa el LOD `lite`; el pelaje
+   *  `full` es un shader sin luces. */
+  lights: {
+    ambient: number
+    key: { position: [number, number, number]; intensity: number }
+    rim: { position: [number, number, number]; color: string; intensity: number }
+  }
+  /** Escala global del personaje 3D respecto del blob de radio 1 (T4): la
+   *  calibra el encaje carta↔monstruo; T5 suma las proporciones por monstruo
+   *  en MonsterDesign.scale. */
+  character: { scale: number }
   copy: {
     badgeGold: string
     badgeWhite: string
@@ -79,6 +104,12 @@ export const HERO: HeroConfig = {
   easings: { slide: 'expo.out', slideCss: 'cubic-bezier(0.16, 1, 0.3, 1)', pop: 'back.out(1.7)' },
   fur: { shells: 20, rootDarken: 0.12, tipLighten: 0.18, thickness: 0.06 },
   camera: { fov: 32, y: 0.4 },
+  lights: {
+    ambient: 0.6,
+    key: { position: [-3, 6, 6], intensity: 1.2 },
+    rim: { position: [4, 2, -4], color: '#C026D3', intensity: 1.4 },
+  },
+  character: { scale: 0.35 },
   copy: {
     badgeGold: 'UN JUEGO DE MESA',
     badgeWhite: 'VERSIÓN DIGITAL',
@@ -90,3 +121,12 @@ export const HERO: HeroConfig = {
   },
   sound: { enabledByDefault: false },
 }
+
+// Cara final de la Pelusa 1 (T4), espejo de la biblia de cartas §5: bola
+// esponjosa, UN ojo grande mirando arriba y boca "o". T5 la mueve dentro de
+// `monsters` junto con las otras nueve.
+export const FACE_1: FaceSpec = { eyes: { count: 1, size: 0.34, lookUp: 0.35 }, mouth: 'o' }
+
+// Cara provisoria de las vecinas visibles (|off| <= 2) hasta que T5 defina
+// cada monstruo contra la foto.
+export const FACE_DEFAULT: FaceSpec = { eyes: { count: 2, size: 0.2 }, mouth: 'tinySmile' }
