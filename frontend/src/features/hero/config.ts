@@ -59,8 +59,11 @@ export interface HeroConfig {
   }
   /** Escala global del personaje 3D respecto del blob de radio 1 (T4): la
    *  calibra el encaje carta↔monstruo; T5 suma las proporciones por monstruo
-   *  en MonsterDesign.scale. */
-  character: { scale: number }
+   *  en MonsterDesign.scale. `refHeight` = alto de viewport donde se calibró
+   *  `scale`: el canvas compensa (refHeight/alto) para que el monstruo
+   *  mantenga su tamaño CSS pegado a la carta con cualquier zoom o ventana
+   *  (la proyección perspectiva escala con el alto del viewport). */
+  character: { scale: number; refHeight: number }
   copy: {
     badgeGold: string
     badgeWhite: string
@@ -109,7 +112,7 @@ export const HERO: HeroConfig = {
     key: { position: [-3, 6, 6], intensity: 1.2 },
     rim: { position: [4, 2, -4], color: '#C026D3', intensity: 1.4 },
   },
-  character: { scale: 0.35 },
+  character: { scale: 0.35, refHeight: 768 },
   copy: {
     badgeGold: 'UN JUEGO DE MESA',
     badgeWhite: 'VERSIÓN DIGITAL',

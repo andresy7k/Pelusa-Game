@@ -131,8 +131,13 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
 
       const base = rect.w / 76 // 76px = ancho de diseño; el rect YA incluye
       // el scale CSS (la activa mide 76*1.15) — no reescalar
+      // Compensación de zoom: la proyección perspectiva escala con el alto
+      // del viewport (px por unidad = alto / (2·tan(fov/2)·dist)), así que a
+      // 50 % o 200 % de zoom el monstruo no acompañaba a su carta (ancho CSS
+      // fijo): refHeight/alto lo mantiene a tamaño CSS constante.
+      const zoomFix = HERO.character.refHeight / Math.max(size.height, 1)
       g.position.set(world.x, world.y, 0)
-      g.scale.setScalar(base * (POP_SCALE + (1 - POP_SCALE) * next))
+      g.scale.setScalar(base * zoomFix * (POP_SCALE + (1 - POP_SCALE) * next))
       const op = PRESENCE_OP[Math.min(Math.abs(off), PRESENCE_OP.length - 1)] * next
       setGroupOpacity(g, op)
     }
