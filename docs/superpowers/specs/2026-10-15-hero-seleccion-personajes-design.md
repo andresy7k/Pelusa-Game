@@ -241,3 +241,9 @@ Gate de aceptacion del carrusel 1-10; cambios pedidos por el usuario y aprobados
 2. **Titulo.** El h1 pasa de ['Pelusas,', 'bajo la lampara.'] a ['Pelusas']. (066b008)
 3. **Hero en una pantalla.** Copy con padding compacto y piso del carrusel en 240px: nav + copy + carrusel entran en 100vh al revelar (verificado a 1920x1080, 1600x900, 1366x768 y 1366x640). (066b008)
 4. **Como se juega.** Cuatro tarjetas (Saca/Guarda/Roba/Gana) en una linea con wrap centrado; palabras destacadas (rojo: Cuidado/perdiste; ambar: Guarda/Podes robarla; verde: gana) y luz al hover por tarjeta (azul/ambar/rojo/verde); en reposo quedan igual que antes. (8d33dd9)
+
+
+## Enmienda - feedback de aceptacion T3, ronda 2 (2026-10-15)
+
+1. **Cartas del carrusel.** Veredicto del usuario: 'horribles'. Se avanza a T4 igualmente; el rework visual de las cartas queda como follow-up (redisenarlas con el lenguaje final de los monstruos en T4/T5).
+2. **Preloader.** Se elimina el 'click para saltar' (se veia feo): la secuencia corre completa, no se sale sola, y al cerrar el wordmark aparece el boton 'Jugar' (estilo CTA primario) cuyo clic hace el crossfade al hero. (04e2455)
