@@ -92,15 +92,15 @@ export interface HeroConfig {
   sound: { enabledByDefault: boolean }
 }
 
-// Colores calibrados a ojo sobre la foto de las 10 cartas (2026-10-15).
-// Se afinan en la Task 3 con comparación lado a lado.
+// Colores calibrados contra las fotos reales de las cartas; la transcripción
+// manda: docs/superpowers/specs/2026-10-16-monstruos-referencia.md.
 export const HERO: HeroConfig = {
   order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   cards: {
     1: { bg: '#5E8BD8', num: '#E8F4FF', monster: '#56B7F0', numTilt: -4 },
     2: { bg: '#8A63C9', num: '#3B2A8C', monster: '#38335F', numTilt: 3 },
     3: { bg: '#E08A5C', num: '#D9332F', monster: '#D93A30', numTilt: -2 },
-    4: { bg: '#C96FB5', num: '#A044A8', monster: '#C93E9F', numTilt: 4 },
+    4: { bg: '#C96FB5', num: '#A044A8', monster: '#A83B90', numTilt: 4 },
     5: { bg: '#9ACB5A', num: '#43B02A', monster: '#58BE3A', numTilt: -5 },
     6: { bg: '#EFA23F', num: '#E87830', monster: '#F08A2E', numTilt: 3 },
     7: { bg: '#F2E36B', num: '#F7E96F', monster: '#F6E34A', numTilt: -3 },

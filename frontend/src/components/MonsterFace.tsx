@@ -1,162 +1,242 @@
 // Monstruos de acuarela: un SVG inline por valor (1..10), sin dependencias.
-// Look sticker: cuerpo var(--c-monster) con contorno blanco grueso; ojos
-// blancos con pupila tinta y brillito; bocas, cejas y rasgos en tinta.
-const TINTA = '#26303A';
-const LENGUA = '#E9819C';
+// Siluetas y caras calibradas contra las fotos reales de las cartas
+// (docs/superpowers/specs/2026-10-16-monstruos-referencia.md): cuerpos
+// esponjosos o con picos, brillo arriba a la izquierda, sombra inferior y
+// contorno blanco grueso (sticker). El dorso de carta reusa el valor 1 en
+// blanco: sobreescribe el stroke de `.monster-body` y `.monster-eye` desde
+// card.css.
+import { useId, type ReactNode } from 'react'
+
+const TINTA = '#26303A'
+const LENGUA = '#E9819C'
 
 // Atributos comunes del cuerpo (el dorso sobrescribe el stroke desde card.css).
 const cuerpo = {
   fill: 'var(--c-monster)',
   stroke: '#fff',
-  strokeWidth: 5,
+  strokeWidth: 6,
   strokeLinejoin: 'round',
-} as const;
+} as const
+
+// Silueta esponjosa: óvalo con lóbulos redondeados (la "pelusa" del cuerpo).
+// `ondas` = cantidad de lóbulos; `amp` = cuánto sobresale cada lóbulo.
+function pelusa(cx: number, cy: number, rx: number, ry: number, ondas: number, amp: number): string {
+  const pt = (i: number): [number, number] => {
+    const a = (i / ondas) * Math.PI * 2 - Math.PI / 2
+    return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]
+  }
+  const [x0, y0] = pt(0)
+  let d = `M ${x0.toFixed(1)} ${y0.toFixed(1)}`
+  for (let i = 0; i < ondas; i++) {
+    const a = pt(i)
+    const b = pt(i + 1)
+    const mx = (a[0] + b[0]) / 2
+    const my = (a[1] + b[1]) / 2
+    const dx = mx - cx
+    const dy = my - cy
+    const len = Math.hypot(dx, dy) || 1
+    d += ` Q ${(mx + (dx / len) * amp).toFixed(1)} ${(my + (dy / len) * amp).toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`
+  }
+  return `${d} Z`
+}
+
+// Silueta con picos (mango del 5, erizo del 9): radios alternados; el
+// `stroke-linejoin: round` del cuerpo redondea las puntas.
+function picos(cx: number, cy: number, rx: number, ry: number, puntas: number, base: number): string {
+  const pt = (i: number): [number, number] => {
+    const a = (i / (puntas * 2)) * Math.PI * 2 - Math.PI / 2
+    const f = i % 2 === 0 ? 1 : base
+    return [cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f]
+  }
+  const [x0, y0] = pt(0)
+  let d = `M ${x0.toFixed(1)} ${y0.toFixed(1)}`
+  for (let i = 1; i <= puntas * 2; i++) {
+    const p = pt(i)
+    d += ` L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`
+  }
+  return `${d} Z`
+}
+
+// Ojo clásico: esclerótica blanca, pupila tinta y chispa.
+function Ojo({ cx, cy, r, dx = 0, dy = 0 }: { cx: number; cy: number; r: number; dx?: number; dy?: number }) {
+  return (
+    <>
+      <circle className="monster-eye" cx={cx} cy={cy} r={r} fill="#fff" />
+      <circle cx={cx + dx} cy={cy + dy} r={r * 0.44} fill={TINTA} />
+      <circle cx={cx + dx + r * 0.2} cy={cy + dy - r * 0.24} r={r * 0.16} fill="#fff" />
+    </>
+  )
+}
+
+// Ojo somnoliento: media luna inferior (el párpado tapa la mitad de arriba).
+function OjoDormido({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  return (
+    <>
+      <path
+        className="monster-eye"
+        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy} Z`}
+        fill="#fff"
+      />
+      <circle cx={cx + r * 0.1} cy={cy + r * 0.34} r={r * 0.38} fill={TINTA} />
+    </>
+  )
+}
+
+// Lienzo común: clip del propio cuerpo para brillo/sombra, contorno sticker y
+// los rasgos encima. `gloss`/`shade` van en unidades del viewBox (cx, cy, rx, ry).
+function Lienzo({
+  d,
+  uid,
+  className,
+  gloss,
+  shade,
+  children,
+}: {
+  d: string
+  uid: string
+  className?: string
+  gloss?: [number, number, number, number]
+  shade?: [number, number, number, number]
+  children: ReactNode
+}) {
+  const id = `mf-${uid}`
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <defs>
+        <clipPath id={id}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <path className="monster-body" d={d} {...cuerpo} />
+      <g clipPath={`url(#${id})`}>
+        {shade && (
+          <ellipse cx={shade[0]} cy={shade[1]} rx={shade[2]} ry={shade[3]} fill="#000" opacity="0.06" />
+        )}
+        {gloss && (
+          <ellipse
+            cx={gloss[0]}
+            cy={gloss[1]}
+            rx={gloss[2]}
+            ry={gloss[3]}
+            fill="#fff"
+            opacity="0.3"
+            transform={`rotate(-24 ${gloss[0]} ${gloss[1]})`}
+          />
+        )}
+      </g>
+      {children}
+    </svg>
+  )
+}
 
 export function MonsterFace({ value, className }: { value: number; className?: string }) {
+  // Id estable y único por instancia para el clipPath (varios monstruitos del
+  // mismo valor conviven en la página: hero + tablero + dorso).
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   switch (value) {
     case 1:
-      // Blob regordete, un ojo grande y sonrisita.
+      // Pelota azul esponjosa, un ojo grande y sonrisita.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="56" rx="40" ry="37" {...cuerpo} />
-          <circle className="monster-eye" cx="50" cy="46" r="15" fill="#fff" />
-          <circle cx="53" cy="48" r="7" fill={TINTA} />
-          <circle cx="56" cy="44" r="2.6" fill="#fff" />
-          <path d="M 36 66 Q 50 78 64 66" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 55, 38, 36, 9, 12)} gloss={[35, 26, 15, 5]} shade={[50, 87, 30, 9]}>
+          <Ojo cx={50} cy={47} r={16} dx={2.5} dy={2} />
+          <path d="M 41 68 Q 50 76 59 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
+        </Lienzo>
+      )
     case 2:
-      // Ancho y bajito, ceño fruncido, dos ojos y dos dientes: gruñón.
+      // Blob morado ancho y bajito: dos ojos juntos somnolientos y bocota.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="62" rx="45" ry="31" {...cuerpo} />
-          <path d="M 24 38 L 43 45" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-          <path d="M 76 38 L 57 45" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-          <circle className="monster-eye" cx="36" cy="54" r="8" fill="#fff" />
-          <circle className="monster-eye" cx="64" cy="54" r="8" fill="#fff" />
-          <circle cx="37.5" cy="55.5" r="3.6" fill={TINTA} />
-          <circle cx="62.5" cy="55.5" r="3.6" fill={TINTA} />
-          <path d="M 34 63 Q 50 71 66 63 Q 64 81 50 81 Q 36 81 34 63 Z" fill={TINTA} />
-          <rect x="43" y="65" width="6" height="7" rx="1.5" fill="#fff" />
-          <rect x="52" y="65" width="6" height="7" rx="1.5" fill="#fff" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 60, 43, 30, 8, 12)} gloss={[31, 35, 14, 4.5]} shade={[50, 84.5, 34, 8]}>
+          <OjoDormido cx={42} cy={52} r={8.5} />
+          <OjoDormido cx={58} cy={52} r={8.5} />
+          <path d="M 32 65 Q 50 61 68 65 Q 66 79 50 79 Q 34 79 32 65 Z" fill={TINTA} />
+          <ellipse cx="50" cy="75.5" rx="8" ry="4" fill="#F4D420" />
+        </Lienzo>
+      )
     case 3:
-      // Alto, dos ojos redondos y boca abierta sonriente.
+      // Montículo rojo esponjoso: dos ojos grandes y sonrisita.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="52" rx="33" ry="43" {...cuerpo} />
-          <circle className="monster-eye" cx="38" cy="40" r="9.5" fill="#fff" />
-          <circle className="monster-eye" cx="62" cy="40" r="9.5" fill="#fff" />
-          <circle cx="39.5" cy="41.5" r="4.4" fill={TINTA} />
-          <circle cx="60.5" cy="41.5" r="4.4" fill={TINTA} />
-          <circle cx="41" cy="39" r="1.7" fill="#fff" />
-          <circle cx="62" cy="39" r="1.7" fill="#fff" />
-          <path d="M 36 58 Q 50 68 64 58 Q 61 78 50 78 Q 39 78 36 58 Z" fill={TINTA} />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 56, 36, 34, 10, 11)} gloss={[33, 28, 14, 4.5]} shade={[50, 85, 30, 9]}>
+          <Ojo cx={38} cy={47} r={11} dx={1.5} dy={1.5} />
+          <Ojo cx={62} cy={47} r={11} dx={-1.5} dy={1.5} />
+          <path d="M 42 68 Q 50 75 58 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
+        </Lienzo>
+      )
     case 4:
-      // Peludo (borde superior ondulado tipo nube), un ojo cíclope y boquita "w".
+      // Bola ciruela MUY peluda: un ojo cíclope y sonrisa pícara.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <path
-            className="monster-body"
-            d="M 12 62 Q 8 44 22 37 Q 24 22 38 27 Q 50 13 62 27 Q 76 22 78 37 Q 92 44 88 62 Q 88 88 50 88 Q 12 88 12 62 Z"
-            {...cuerpo}
-          />
-          <circle className="monster-eye" cx="50" cy="48" r="14" fill="#fff" />
-          <circle cx="53" cy="50" r="6.5" fill={TINTA} />
-          <circle cx="56" cy="46" r="2.4" fill="#fff" />
-          <path d="M 39 68 Q 44.5 75 50 68 Q 55.5 75 61 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 54, 37, 38, 13, 10)} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 28, 9]}>
+          <Ojo cx={50} cy={46} r={15.5} dx={2} dy={1} />
+          <path d="M 40 66 Q 52 75 63 63" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
+        </Lienzo>
+      )
     case 5:
-      // Blob con un ojo grande y boca riendo con lengua.
+      // Mango verde con picos: un ojo grande y boca abierta con lengua roja.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="56" rx="41" ry="38" {...cuerpo} />
-          <circle className="monster-eye" cx="47" cy="43" r="16" fill="#fff" />
-          <circle cx="50" cy="46" r="7.5" fill={TINTA} />
-          <circle cx="54" cy="41" r="2.8" fill="#fff" />
-          <path d="M 30 62 Q 50 74 70 62 Q 68 84 50 84 Q 32 84 30 62 Z" fill={TINTA} />
-          <ellipse cx="50" cy="79" rx="9" ry="5" fill={LENGUA} />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={picos(50, 55, 40, 39, 9, 0.78)} gloss={[33, 26, 12, 4]} shade={[50, 86, 27, 8]}>
+          <Ojo cx={47} cy={43} r={15} dx={2} dy={2} />
+          <path d="M 33 61 Q 50 56 67 61 Q 65 80 50 80 Q 35 80 33 61 Z" fill={TINTA} />
+          <ellipse cx="50" cy="76" rx="9" ry="4.5" fill={LENGUA} />
+        </Lienzo>
+      )
     case 6:
-      // Aplastado, dos ojos pequeños juntos y sonrisota ancha.
+      // Montículo anaranjado ancho: ojos caídos de sueño y boca con 2 colmillos.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="62" rx="45" ry="32" {...cuerpo} />
-          <circle className="monster-eye" cx="43" cy="52" r="6.5" fill="#fff" />
-          <circle className="monster-eye" cx="57" cy="52" r="6.5" fill="#fff" />
-          <circle cx="44" cy="53.5" r="3" fill={TINTA} />
-          <circle cx="56" cy="53.5" r="3" fill={TINTA} />
-          <path d="M 22 63 Q 50 88 78 63" fill="none" stroke={TINTA} strokeWidth="5" strokeLinecap="round" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 60, 43, 31, 9, 13)} gloss={[31, 34, 14, 4.5]} shade={[50, 85, 34, 8]}>
+          <OjoDormido cx={40} cy={51} r={9} />
+          <OjoDormido cx={60} cy={51} r={9} />
+          <path d="M 27 64 Q 50 59 73 64 Q 71 81 50 81 Q 29 81 27 64 Z" fill={TINTA} />
+          <path d="M 40 62.5 L 46 62.5 L 43 71 Z" fill="#fff" />
+          <path d="M 54 62.5 L 60 62.5 L 57 71 Z" fill="#fff" />
+        </Lienzo>
+      )
     case 7:
-      // Fantasma: base inferior ondulada, ojos ovalados y boca abierta feliz.
+      // Babosa amarilla lisa (base ondulada): dos ojos chicos y bocota feliz.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <path
-            className="monster-body"
-            d="M 14 80 L 14 52 Q 14 20 50 20 Q 86 20 86 52 L 86 80 Q 74 68 62 80 Q 50 92 38 80 Q 26 68 14 80 Z"
-            {...cuerpo}
-          />
-          <ellipse className="monster-eye" cx="38" cy="45" rx="6.5" ry="9.5" fill="#fff" />
-          <ellipse className="monster-eye" cx="62" cy="45" rx="6.5" ry="9.5" fill="#fff" />
-          <ellipse cx="39" cy="46.5" rx="3.2" ry="4.6" fill={TINTA} />
-          <ellipse cx="61" cy="46.5" rx="3.2" ry="4.6" fill={TINTA} />
-          <path d="M 43 60 Q 50 56 57 60 Q 57 71 50 71 Q 43 71 43 60 Z" fill={TINTA} />
-        </svg>
-      );
+        <Lienzo
+          uid={uid}
+          className={className}
+          d="M 15 79 L 15 50 Q 15 18 50 18 Q 85 18 85 50 L 85 79 Q 73 71 61.5 79 Q 50 87 38.5 79 Q 27 71 15 79 Z"
+          gloss={[36, 29, 14, 4.5]}
+          shade={[50, 80, 30, 7]}
+        >
+          <Ojo cx={40} cy={43} r={6.5} dx={1} dy={1} />
+          <Ojo cx={60} cy={43} r={6.5} dx={-1} dy={1} />
+          <path d="M 37 56 Q 50 51 63 56 Q 61 75 50 75 Q 39 75 37 56 Z" fill={TINTA} />
+          <ellipse cx="50" cy="71" rx="8" ry="4" fill={LENGUA} />
+        </Lienzo>
+      )
     case 8:
-      // Tres pelitos, un ojo y sonrisa pícara sesgada.
+      // Torre azul marino peluda: un ojo grande y boca plana.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <path
-            className="monster-body"
-            d="M 13 64 Q 10 38 30 31 Q 29 16 40 23 Q 47 9 56 22 Q 68 14 69 30 Q 90 36 87 64 Q 87 89 50 89 Q 13 89 13 64 Z"
-            {...cuerpo}
-          />
-          <circle className="monster-eye" cx="51" cy="51" r="13.5" fill="#fff" />
-          <circle cx="54" cy="53" r="6.2" fill={TINTA} />
-          <circle cx="57" cy="49" r="2.4" fill="#fff" />
-          <path d="M 37 71 Q 51 79 65 67" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 52, 29, 40, 10, 11)} gloss={[40, 24, 10, 4]} shade={[50, 88, 22, 7]}>
+          <Ojo cx={50} cy={44} r={14} dy={1} />
+          <path d="M 39 68 Q 50 71 61 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
+        </Lienzo>
+      )
     case 9:
-      // Dos ojos de distinto tamaño y boca ondulada.
+      // Erizo turquesa: dos ojos (el derecho con anillo) y sonrisa con colmillo.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="56" rx="41" ry="38" {...cuerpo} />
-          <circle className="monster-eye" cx="37" cy="45" r="12" fill="#fff" />
-          <circle className="monster-eye" cx="64" cy="47" r="8" fill="#fff" />
-          <circle cx="38.5" cy="46.5" r="5.4" fill={TINTA} />
-          <circle cx="65" cy="48.5" r="3.6" fill={TINTA} />
-          <circle cx="41" cy="43" r="2.2" fill="#fff" />
-          <circle cx="66.5" cy="46" r="1.6" fill="#fff" />
-          <path d="M 30 70 Q 37 63 44 70 Q 51 77 58 70 Q 65 63 72 70" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={picos(50, 56, 41, 38, 10, 0.8)} gloss={[32, 27, 12, 4]} shade={[50, 87, 27, 8]}>
+          <Ojo cx={38} cy={47} r={10.5} dx={1.5} dy={1.5} />
+          <circle className="monster-eye" cx={63} cy={49} r={8} fill="#fff" />
+          <circle cx="64" cy="50" r="3.4" fill={TINTA} />
+          <circle cx="64" cy="50" r="5.2" fill="none" stroke="#F2D33C" strokeWidth="2.6" />
+          <circle cx="65.5" cy="48" r="1.3" fill="#fff" />
+          <path d="M 35 67 Q 50 76 65 67" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
+          <path d="M 44 70 L 50 70 L 47 79 Z" fill="#fff" />
+        </Lienzo>
+      )
     case 10:
-      // Dos ojos juntos arriba y bocaza con lengua y dos dientes.
+      // Pelusa rosa MUY peluda: dos ojos y bocaza enorme gritando.
       return (
-        <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-          <ellipse className="monster-body" cx="50" cy="56" rx="43" ry="40" {...cuerpo} />
-          <circle className="monster-eye" cx="40" cy="34" r="8.5" fill="#fff" />
-          <circle className="monster-eye" cx="60" cy="34" r="8.5" fill="#fff" />
-          <circle cx="41" cy="35.5" r="3.8" fill={TINTA} />
-          <circle cx="59" cy="35.5" r="3.8" fill={TINTA} />
-          <circle cx="42.5" cy="33" r="1.6" fill="#fff" />
-          <circle cx="60.5" cy="33" r="1.6" fill="#fff" />
-          <path d="M 21 53 Q 50 47 79 53 Q 77 88 50 88 Q 23 88 21 53 Z" fill={TINTA} />
-          <rect x="35" y="52" width="7" height="9" rx="2" fill="#fff" />
-          <rect x="58" y="52" width="7" height="9" rx="2" fill="#fff" />
-          <ellipse cx="50" cy="75" rx="12" ry="5" fill={LENGUA} />
-        </svg>
-      );
+        <Lienzo uid={uid} className={className} d={pelusa(50, 55, 39, 38, 13, 10)} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 30, 9]}>
+          <Ojo cx={39} cy={35} r={9} dx={1.5} dy={2} />
+          <Ojo cx={61} cy={35} r={9} dx={-1.5} dy={2} />
+          <path d="M 26 53 Q 50 45 74 53 Q 78 73 50 87 Q 22 73 26 53 Z" fill={TINTA} />
+          <ellipse cx="50" cy="80" rx="11" ry="4.5" fill={LENGUA} />
+        </Lienzo>
+      )
     default:
-      return null;
+      return null
   }
 }
