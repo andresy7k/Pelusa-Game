@@ -7,21 +7,35 @@
   position: relative;
   width: 76px;
   height: 104px;
-  border-radius: 14px;
+  border-radius: 16px;
   background-color: var(--c-bg);
   background-image:
     radial-gradient(80% 60% at 22% 12%, color-mix(in oklab, var(--c-bg), white 18%), transparent 72%),
+    radial-gradient(60% 45% at 80% 68%, color-mix(in oklab, var(--c-bg), black 10%), transparent 70%),
     radial-gradient(90% 65% at 88% 102%, color-mix(in oklab, var(--c-bg), black 14%), transparent 75%);
   background-blend-mode: multiply;
-  box-shadow: inset 0 0 18px rgb(0 0 30 / 25%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 14%),
+    inset 0 0 18px rgb(0 0 30 / 25%);
   overflow: hidden;
   user-select: none;
   transition: box-shadow var(--t-med) var(--ease-out);
 }
 
+/* Brillo de objeto: un reflejo suave cruzando la esquina superior. */
+.card-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: linear-gradient(118deg, rgb(255 255 255 / 22%), transparent 42%);
+  pointer-events: none;
+}
+
 /* Activa: glow externo con el color del monstruo (mantiene la viñeta). */
 .card-face--active {
   box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 14%),
     inset 0 0 18px rgb(0 0 30 / 25%),
     0 0 0 1px rgb(255 255 255 / 25%),
     0 24px 70px -18px var(--c-monster);
@@ -29,7 +43,8 @@
 
 /* Número sticker en dos capas: la base dibuja SOLO el contorno blanco
    (-webkit-text-stroke) y el ::after pinta encima el relleno en gradiente
-   con background-clip: text. Sin hijos dentro del elemento clipeado. */
+   con background-clip: text; el ::before agrega el brillo superior del
+   glifo. Sin hijos dentro del elemento clipeado. */
 .card-face__num {
   position: absolute;
   top: 2px;
@@ -44,12 +59,14 @@
   color: transparent;
   -webkit-text-stroke: 6px #fff;
   transform: rotate(var(--c-tilt));
+  filter: drop-shadow(0 2px 0 rgb(12 16 40 / 18%));
 }
 
 .card-face__num::after {
   content: attr(data-v);
   position: absolute;
   inset: 0;
+  z-index: 0;
   -webkit-text-stroke-width: 0;
   background: linear-gradient(180deg, color-mix(in oklab, var(--c-num), white 35%), var(--c-num));
   background-clip: text;
@@ -57,13 +74,26 @@
   color: transparent;
 }
 
+/* Brillo del sticker: luz blanca sobre la parte alta del glifo. */
+.card-face__num::before {
+  content: attr(data-v);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  -webkit-text-stroke-width: 0;
+  background: radial-gradient(65% 50% at 50% 18%, rgb(255 255 255 / 90%), transparent 62%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
 /* Monstruo pintado: halo sticker (dos drop-shadow) y anclado al borde
-   inferior, como las cartas del juego. */
+   inferior, casi todo el ancho de la carta. */
 .card-face__monster {
   position: absolute;
-  inset: auto 6px 4px;
+  inset: auto 4px 2px;
   z-index: 1;
-  height: 60%;
+  height: 64%;
   pointer-events: none;
   filter: drop-shadow(0 2px 0 rgb(255 255 255 / 90%)) drop-shadow(0 0 1px rgb(255 255 255));
 }
