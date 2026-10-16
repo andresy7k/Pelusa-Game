@@ -7,7 +7,8 @@ export function Home() {
     <main>
       <HeroStage />
       <div className="page home">
-        <section className="howto" id="como-se-juega" aria-label="Cómo se juega">
+        <section className="howto" id="como-se-juega">
+          <h2 className="howto-title">Cómo se juega</h2>
           <div>
             <strong>1 · Sacá</strong>
             <p>Sacá una carta del mazo. <span className="howto-hl howto-hl--red">Cuidado</span>, si tenes 2 o más y la siguiente es repetida, <span className="howto-hl howto-hl--red">perdiste</span>, te ganó la avaricia.</p>
