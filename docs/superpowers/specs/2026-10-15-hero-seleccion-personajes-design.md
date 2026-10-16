@@ -231,3 +231,13 @@ Los estilos ya aceptados (navbar, copy, tipografía, grano, CTAs) no cambian.
 1. **Escala y ritmo.** La baraja es ~2× más grande (escala responsiva en \.pl-scene\) y la secuencia ~30-35% más lenta. Se suman **chispas** en el aterrizaje final, **rayos ámbar** en el robo y un pulso de anticipación del glow.
 2. **Cierre con el nombre.** Tras el robo aparece el **wordmark "Pelusas"** (Bowlby One, degradado violeta, letras que se abren desde el centro) y el overlay se retira en **crossfade simultáneo con el reveal del hero** (\onReveal\ nuevo en el Preloader; el copy entra con fade+rise escalonado vía \.hero-stage--entered\, que antes no tenía estilos). Se acabó el corte seco al home.
 3. **Humo.** El color es el correcto, pero el movimiento no se percibía: se sube la amplitud/velocidad de la deriva de los blobs y se agrega una **capa de turbulencia** (SVG fractalNoise, desaturada, soft-light) que se traslada lento — el humo ahora "hierve" visiblemente. Sigue todo en transform/opacity.
+
+
+## Enmienda - feedback de aceptacion T3 (2026-10-15)
+
+Gate de aceptacion del carrusel 1-10; cambios pedidos por el usuario y aprobados en el gate:
+
+1. **Navbar.** El blur no se habia quitado: un bug de apilado (el reveal del copy deja transform: translateY(0) y el titular pasaba por encima del navbar al scrollear, tapando los links). Fix: z-index 30 en .hero-nav. (52e5d96)
+2. **Titulo.** El h1 pasa de ['Pelusas,', 'bajo la lampara.'] a ['Pelusas']. (066b008)
+3. **Hero en una pantalla.** Copy con padding compacto y piso del carrusel en 240px: nav + copy + carrusel entran en 100vh al revelar (verificado a 1920x1080, 1600x900, 1366x768 y 1366x640). (066b008)
+4. **Como se juega.** Cuatro tarjetas (Saca/Guarda/Roba/Gana) en una linea con wrap centrado; palabras destacadas (rojo: Cuidado/perdiste; ambar: Guarda/Podes robarla; verde: gana) y luz al hover por tarjeta (azul/ambar/rojo/verde); en reposo quedan igual que antes. (8d33dd9)
