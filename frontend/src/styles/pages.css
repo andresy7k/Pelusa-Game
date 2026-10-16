@@ -435,6 +435,18 @@
   margin-top: var(--s8);
 }
 
+/* Título de la sección: fila propia centrada sobre las 4 tarjetas. */
+.howto-title {
+  flex: 0 0 100%;
+  margin: 0 0 var(--s5);
+  text-align: center;
+  font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--parchment);
+  text-shadow: 0 0 26px oklch(0.6 0.22 305 / 35%);
+}
+
 /* Cada paso es una tarjeta con luz violeta propia. Línea de 4 en desktop;
    en ventanas angostas envuelven centradas (la 4ª queda bajo la 2ª). */
 .howto > div {
@@ -455,7 +467,7 @@
 
 /* Lucecita tras cada tarjeta: solo al hover, con el color de su paso
    (1 azul, 2 ámbar, 3 rojo, 4 verde). En reposo quedan igual que antes. */
-.howto > div:nth-child(1):hover {
+.howto > div:nth-of-type(1):hover {
   border-color: oklch(0.68 0.15 250 / 45%);
   box-shadow:
     0 0 34px -4px oklch(0.68 0.15 250 / 55%),
@@ -463,7 +475,7 @@
     0 2px 8px oklch(0 0 0 / 30%);
 }
 
-.howto > div:nth-child(2):hover {
+.howto > div:nth-of-type(2):hover {
   border-color: oklch(0.78 0.15 75 / 45%);
   box-shadow:
     0 0 34px -4px oklch(0.78 0.15 75 / 55%),
@@ -471,15 +483,15 @@
     0 2px 8px oklch(0 0 0 / 30%);
 }
 
-.howto > div:nth-child(3):hover {
-  border-color: oklch(0.65 0.18 22 / 45%);
+.howto > div:nth-of-type(3):hover {
+  border-color: oklch(0.62 0.24 27 / 45%);
   box-shadow:
-    0 0 34px -4px oklch(0.65 0.18 22 / 55%),
-    0 0 70px -18px oklch(0.65 0.18 22 / 45%),
+    0 0 34px -4px oklch(0.62 0.24 27 / 55%),
+    0 0 70px -18px oklch(0.62 0.24 27 / 45%),
     0 2px 8px oklch(0 0 0 / 30%);
 }
 
-.howto > div:nth-child(4):hover {
+.howto > div:nth-of-type(4):hover {
   border-color: oklch(0.75 0.16 150 / 45%);
   box-shadow:
     0 0 34px -4px oklch(0.75 0.16 150 / 55%),
@@ -493,8 +505,8 @@
 }
 
 .howto-hl--red {
-  color: oklch(0.72 0.17 25);
-  text-shadow: 0 0 14px oklch(0.72 0.17 25 / 45%);
+  color: oklch(0.7 0.2 27);
+  text-shadow: 0 0 14px oklch(0.7 0.2 27 / 50%);
 }
 
 .howto-hl--amber {
