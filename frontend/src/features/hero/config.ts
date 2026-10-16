@@ -43,6 +43,7 @@ export interface HeroConfig {
     sub: string
     ctaPrimary: string
     ctaGhost: string
+    ctaPlay: string
   }
   sound: { enabledByDefault: boolean }
 }
@@ -85,6 +86,7 @@ export const HERO: HeroConfig = {
     sub: 'Sacá cartas del mazo, guardá tus pelusas y robale al resto. Vos jugás; las reglas las decide el servidor.',
     ctaPrimary: 'Nueva partida',
     ctaGhost: 'Historial',
+    ctaPlay: 'Jugar',
   },
   sound: { enabledByDefault: false },
 }
