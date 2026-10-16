@@ -6,14 +6,14 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import gsap from 'gsap'
 import { HERO, type HeroValue } from '../config'
 import { makeBlobGeometry } from './geometry'
 import { FurMesh, type FurQuality } from './furMaterial'
 import { StickerOutline } from './outline'
 import { disposeFace, makeFace, type FaceHandle } from './faces'
+import { animateTo, killState, type MonsterState } from './stateAnimations'
 
-export type MonsterState = 'idle' | 'hover' | 'active' | 'special'
+export type { MonsterState }
 export interface CharacterHandle { setState(s: MonsterState): void }
 
 // Bob de reposo (unidades de mundo): asignación, nunca += (se acumularía).
@@ -32,8 +32,6 @@ const HORNS: Array<{ position: [number, number, number] }> = [
   { position: [-0.42, 0.82, 0] },
   { position: [0.42, 0.82, 0] },
 ]
-// Balanceo de reposo (radianes): la Pelusa 1 "rueda" suave al flotar.
-const IDLE_YAW = 0.08
 
 export interface CharacterProps {
   value: HeroValue
@@ -48,7 +46,9 @@ export const Character = forwardRef<CharacterHandle, CharacterProps>(function Ch
 ) {
   const innerRef = useRef<THREE.Group>(null)
   const faceRef = useRef<FaceHandle | null>(null)
-  const swayRef = useRef<gsap.core.Tween | null>(null)
+  // Estado lógico actual: el bob de reposo solo corre en idle (en el resto
+  // los tweens son dueños de position.y y pelearían por asignación).
+  const stateRef = useRef<MonsterState>('idle')
   const reduced = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
 
   // Diseño del monstruo de este valor (T5): semilla, proporciones, cara,
@@ -95,54 +95,37 @@ export const Character = forwardRef<CharacterHandle, CharacterProps>(function Ch
     disposeFace(face)
   }, [geo, tailGeo, tuftGeo, hornGeo, face])
 
+  // Máquina de estados (T6): delega en stateAnimations (mata los tweens
+  // vivos y arranca el nuevo; con reduced-motion resuelve a la pose final).
   const setState = useCallback(
     (s: MonsterState) => {
-      const inner = innerRef.current
-      if (!inner) return
-      // T4: 'idle' y 'active' comparten el gesto base (mirada arriba +
-      // balanceo suave); hover/special plenos llegan en T6.
-      if (s !== 'idle' && s !== 'active') return
-      const pupils = (faceRef.current?.pupils ?? []).map((p) => p.position)
-      const lookUp = (spec.face.eyes.lookUp ?? 0) * spec.face.eyes.size
-      swayRef.current?.kill()
-      swayRef.current = null
-      gsap.killTweensOf(pupils)
-      if (reduced) {
-        inner.rotation.y = 0
-        for (const p of pupils) p.y = lookUp
-        return
-      }
-      gsap.to(pupils, { y: lookUp, duration: 0.7, ease: HERO.easings.pop, overwrite: 'auto' })
-      swayRef.current = gsap.to(inner.rotation, {
-        y: IDLE_YAW,
-        duration: 2.6,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1,
-      })
+      stateRef.current = s
+      animateTo({ inner: innerRef.current, face: faceRef.current }, s, value, quality)
     },
-    [reduced, spec],
+    [value, quality],
   )
 
   useImperativeHandle(ref, () => ({ setState }), [setState])
 
-  // La selección manda el estado (T6 completa hover/active/special).
+  // La selección manda el estado: activa al centro, hover en laterales con
+  // el cursor encima (la activa gana si coinciden), idle el resto.
   const state: MonsterState = active ? 'active' : hovered ? 'hover' : 'idle'
   useEffect(() => {
     setState(state)
   }, [setState, state])
 
+  // Al desmontar no quedan loops vivos (sway/parpadeo de idle).
   useEffect(
     () => () => {
-      swayRef.current?.kill()
+      killState({ inner: innerRef.current, face: faceRef.current })
     },
     [],
   )
 
-  // Bob de reposo: solo asignación; en reduced-motion no corre.
+  // Bob de reposo: solo asignación y solo en idle; en reduced-motion no corre.
   useFrame((root) => {
     const inner = innerRef.current
-    if (!inner || reduced) return
+    if (!inner || reduced || stateRef.current !== 'idle') return
     inner.position.y = Math.sin(root.clock.elapsedTime * 1.6) * BOB_Y
   })
 

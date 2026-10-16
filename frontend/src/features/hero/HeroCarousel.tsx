@@ -32,9 +32,12 @@ const DRAG_STEP_PX = 40
 
 export function HeroCarousel({
   onActiveChange,
+  onHoverChange,
   paused: autoPaused = false,
 }: {
   onActiveChange: (v: HeroValue) => void
+  /** T6: avisa qué carta tiene el cursor encima (hover 3D por carta). */
+  onHoverChange?: (v: HeroValue | null) => void
   /** Pausa externa: con el preloader arriba, HeroStage la activa. */
   paused?: boolean
 }) {
@@ -280,6 +283,8 @@ export function HeroCarousel({
                 ['--hc-z' as string]: 100 - abs,
               }}
               onClick={() => onCardClick(i, active)}
+              onPointerEnter={() => onHoverChange?.(v)}
+              onPointerLeave={() => onHoverChange?.(null)}
             >
               <CardFace ref={(el) => attachAnchor(v, el)} value={v} active={active} />
             </div>

@@ -152,14 +152,18 @@ export function makeFace(spec: FaceSpec): FaceHandle {
     eye.add(pupila)
     pupils.push(pupila)
 
-    if (e.sleepy !== undefined) {
-      // Semiesfera superior: el párpado se escala en Y (T6 lo anima).
-      const parpado = piece(new THREE.SphereGeometry(e.size * 1.05, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), INK)
-      parpado.material.side = THREE.DoubleSide
-      parpado.scale.y = Math.max(0.02, e.sleepy)
-      eye.add(parpado)
-      lids.push(parpado)
-    }
+    // Párpado superior: semiesfera que se escala en Y (T6 lo anima: parpadeo
+    // en idle y gestos por personalidad). TODOS los ojos traen uno: sin
+    // `sleepy` nace invisible en 0.02 y solo se muestra al parpadear (así el
+    // blink corre para los 10); con `sleepy` descansa en su valor.
+    const parpado = piece(new THREE.SphereGeometry(e.size * 1.05, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), INK)
+    parpado.material.side = THREE.DoubleSide
+    const rest = e.sleepy === undefined ? 0.02 : Math.max(0.02, e.sleepy)
+    parpado.scale.y = rest
+    parpado.visible = e.sleepy !== undefined
+    parpado.userData.rest = rest
+    eye.add(parpado)
+    lids.push(parpado)
     group.add(eye)
   }
 
