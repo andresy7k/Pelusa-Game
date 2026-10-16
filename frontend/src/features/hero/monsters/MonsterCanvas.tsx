@@ -62,6 +62,9 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
   const groups = useRef(new Map<HeroValue, THREE.Group>())
   const chars = useRef(new Map<HeroValue, CharacterHandle | null>()) // T6 los anima
   const presence = useRef(new Map<HeroValue, number>())
+  // Última opacidad aplicada por valor: la actualización recorre ~100
+  // materiales y solo se hace si cambió de verdad (ver useFrame).
+  const lastOp = useRef(new Map<HeroValue, number>())
 
   // Rectángulos frescos al montar y en cada resize (zoom incluido).
   useEffect(() => {
@@ -122,11 +125,15 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
       const dir = ndc.sub(cam.position).normalize()
       world.copy(cam.position).addScaledVector(dir, -cam.position.z / dir.z)
 
-      // Presencia: 1 en el anillo cercano, 0 al salir (suavizado exponencial).
+      // Presencia: 1 en el anillo cercano, 0 al salir (suavizado exponencial
+      // con snap: sin esto `next` nunca llega exacto y la activa queda para
+      // siempre en el pase transparente, pagando ordenamiento por nada).
       const off = ringOffset(HERO.order.indexOf(v), idx, HERO.order.length)
       const target = Math.abs(off) <= 2 ? 1 : 0
       const p = presence.current.get(v) ?? 0
-      const next = p + (target - p) * (1 - Math.exp(-delta * PRESENCE_RATE))
+      let next = p + (target - p) * (1 - Math.exp(-delta * PRESENCE_RATE))
+      if (target === 1 && next > 0.995) next = 1
+      else if (target === 0 && next < 0.005) next = 0
       presence.current.set(v, next)
 
       const base = rect.w / 76 // 76px = ancho de diseño; el rect YA incluye
@@ -139,7 +146,13 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
       g.position.set(world.x, world.y, 0)
       g.scale.setScalar(base * zoomFix * (POP_SCALE + (1 - POP_SCALE) * next))
       const op = PRESENCE_OP[Math.min(Math.abs(off), PRESENCE_OP.length - 1)] * next
-      setGroupOpacity(g, op)
+      // setGroupOpacity recorre todo el subárbol (~100 materiales): solo si
+      // el valor cambió de verdad. En régimen queda fijo y no se toca más.
+      const prev = lastOp.current.get(v)
+      if (prev === undefined || Math.abs(op - prev) > 0.004) {
+        lastOp.current.set(v, op)
+        setGroupOpacity(g, op)
+      }
     }
   })
 
