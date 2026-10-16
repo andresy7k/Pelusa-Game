@@ -190,6 +190,24 @@
   transition: opacity 0.4s var(--ease-out);
 }
 
+/* T9: la base también transiciona, así la vuelta (pintados de regreso al
+   perder el contexto o degradar) hace fade en vez de aparecido brusco. */
+.hero-stage .card-face__monster {
+  transition: opacity 0.4s var(--ease-out);
+}
+
+/* T9: foco visible del hero (el global ya cubre links/botones; aquí lo que
+   faltaba: el escenario del carrusel y los dots). */
+.hero-stage .hc-stage:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+.hero-stage .hc-dot:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+
 /* Ventanas bajas (~1024×720): el carrusel terminaba bajo el fold y los dots
    quedaban cortados; con menos aire bajo el copy vuelve a entrar completo. */
 @media (max-height: 780px) {

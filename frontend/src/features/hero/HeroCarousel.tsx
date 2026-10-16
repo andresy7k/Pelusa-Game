@@ -60,6 +60,9 @@ export function HeroCarousel({
   const navigate = useNavigate()
 
   const stageRef = useRef<HTMLDivElement | null>(null)
+  // T9: la rueda no pasiva vive en la raíz (incluye la franja de dots bajo
+  // el escenario, que antes la perdía).
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const resumeRef = useRef<number | null>(null)
   const wheelAccRef = useRef(0)
   const hoverRef = useRef(false)
@@ -148,9 +151,11 @@ export function HeroCarousel({
     }
   }, [handleRef, step, n])
 
-  // Rueda no pasiva: acumula deltaY y pasa de carta cada 60px.
+  // Rueda no pasiva: acumula deltaY y pasa de carta cada 60px. Vive en la
+  // raíz del carrusel (no solo en el escenario) para incluir la franja de
+  // dots bajo él.
   useEffect(() => {
-    const el = stageRef.current
+    const el = rootRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
@@ -198,6 +203,7 @@ export function HeroCarousel({
   return (
     <div
       className="hero-carousel"
+      ref={rootRef}
       style={{
         ['--hc-slide' as string]: `${HERO.timings.slideMs}ms`,
         ['--hc-ease' as string]: HERO.easings.slideCss,
@@ -236,6 +242,7 @@ export function HeroCarousel({
         className="hc-stage"
         role="listbox"
         aria-label="Pelusas"
+        aria-activedescendant={`hc-slot-${HERO.order[center]}`}
         tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -254,9 +261,11 @@ export function HeroCarousel({
           return (
             <div
               key={v}
+              id={`hc-slot-${v}`}
               className={`hc-slot${abs >= 3 ? ' hc-slot--far' : ''}`}
               role="option"
               aria-selected={active}
+              aria-label={`Pelusa ${v}`}
               tabIndex={-1}
               style={{
                 ['--hc-tx' as string]: off,
