@@ -35,6 +35,10 @@ export function HeroStage() {
   // Canvas montado y con el contexto listo: recién ahí se ocultan los
   // monstruos pintados (clase --has-3d) y el preloader puede cerrar.
   const [canvasReady, setCanvasReady] = useState(false)
+  // T9: contexto WebGL perdido (GPU): se desmonta el canvas y vuelven los
+  // pintados (una sola vía, sin restauración).
+  const [webglLost, setWebglLost] = useState(false)
+  const webglWarned = useRef(false)
   // Fuentes listas: el `done` del preloader las espera (con tope de 2.5 s
   // para no colgar con fuentes bloqueadas; el hold del preloader es el otro
   // resguardo).
@@ -53,13 +57,24 @@ export function HeroStage() {
   // estados finales son los defaults del CSS.
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const showPreloader = !entered
-  const showCanvas = mode !== 'off' && webgl
+  const showCanvas = mode !== 'off' && webgl && !webglLost
+  const has3d = canvasReady && !webglLost
 
   const onReveal = useCallback(() => setRevealed(true), [])
   const onDone = useCallback(() => setEntered(true), [])
   const onActiveCard = useCallback((v: HeroValue) => setActiveCard(v), [])
   const onHoverCard = useCallback((v: HeroValue | null) => setHoveredCard(v), [])
   const onCanvasReady = useCallback(() => setCanvasReady(true), [])
+  // T9: al perder el contexto se degrada a pintados (aviso único en consola).
+  const onContextLost = useCallback(() => {
+    if (webglWarned.current) {
+      setWebglLost(true)
+      return
+    }
+    webglWarned.current = true
+    console.warn('[hero] WebGL perdido: modo sin 3D')
+    setWebglLost(true)
+  }, [])
   // T8: el sonido sigue a cada special (al llegar la carta y al celebrar con
   // Enter). Estable para no reiniciar el timer de llegada de MonsterCanvas.
   const onSpecialSound = useCallback(() => play('special'), [])
@@ -229,7 +244,7 @@ export function HeroStage() {
   return (
     <section
       ref={stageRef}
-      className={`hero-stage${canvasReady ? ' hero-stage--has-3d' : ''}`}
+      className={`hero-stage${has3d ? ' hero-stage--has-3d' : ''}`}
       data-hero-mode={mode}
       data-webgl={webgl}
       style={{ ['--hero-accent' as string]: HERO.cards[1].monster }}
@@ -244,7 +259,7 @@ export function HeroStage() {
         {/* Canvas R3F fijo (pointer-events:none) sobre el DOM; sin WebGL o
             con `off` no se monta y quedan los monstruos pintados. */}
         {showCanvas && (
-          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} onSpecial={onSpecialSound} celebrateRef={celebrateRef} onReady={onCanvasReady} />
+          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} onSpecial={onSpecialSound} celebrateRef={celebrateRef} onReady={onCanvasReady} onContextLost={onContextLost} />
         )}
       </div>
       {/* El preloader cierra con el canvas listo (o de una si no hay 3D) y las

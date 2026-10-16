@@ -30,6 +30,8 @@ export interface MonsterCanvasProps {
    *  posee `chars` (CardMonsters) la asigna en un efecto. */
   celebrateRef?: { current: ((v: HeroValue) => void) | null }
   onReady: () => void
+  /** T9: el canvas avisa que perdió el contexto WebGL (degradación a pintados). */
+  onContextLost?: () => void
 }
 
 // Presencia por anillo: opacidad objetivo según |off| (0 = la activa).
@@ -69,6 +71,7 @@ function CardMonsters({
   onSpecial,
   celebrateRef,
   quality,
+  onSlowFps,
 }: {
   activeValue: HeroValue
   hoveredValue: HeroValue | null
@@ -76,6 +79,8 @@ function CardMonsters({
   onSpecial?: (v: HeroValue) => void
   celebrateRef?: { current: ((v: HeroValue) => void) | null }
   quality: FurQuality
+  /** T9: se llama al degradar por FPS bajo sostenido. */
+  onSlowFps?: () => void
 }) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
@@ -97,6 +102,11 @@ function CardMonsters({
   // Última opacidad aplicada por valor: la actualización recorre ~100
   // materiales y solo se hace si cambió de verdad (ver useFrame).
   const lastOp = useRef(new Map<HeroValue, number>())
+  // T9: muestreador de FPS (ventanas de 60 frames; dos seguidas < 35 fps
+  // degradan en caliente a `lite`).
+  const fpsFrames = useRef(0)
+  const fpsElapsed = useRef(0)
+  const fpsSlow = useRef(0)
 
   // Rectángulos frescos al montar y en cada resize (zoom incluido).
   useEffect(() => {
@@ -197,6 +207,25 @@ function CardMonsters({
   }, [intro])
 
   useFrame((_root, delta) => {
+    // T9: guardia de FPS (solo degrada vía `onSlowFps`; el padre decide si
+    // aplica según `mode === 'full'`).
+    fpsFrames.current += 1
+    fpsElapsed.current += delta
+    if (fpsFrames.current >= 60) {
+      const secs = fpsElapsed.current
+      const avg = secs > 0 ? fpsFrames.current / secs : 60
+      fpsFrames.current = 0
+      fpsElapsed.current = 0
+      if (avg < 35) {
+        fpsSlow.current += 1
+        if (fpsSlow.current >= 2) {
+          fpsSlow.current = 0
+          onSlowFps?.()
+        }
+      } else {
+        fpsSlow.current = 0
+      }
+    }
     const cam = camera
     const ndc = new THREE.Vector3()
     const world = new THREE.Vector3()
@@ -267,14 +296,30 @@ function CardMonsters({
   )
 }
 
-export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, celebrateRef, onReady }: MonsterCanvasProps) {
+export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, celebrateRef, onReady, onContextLost }: MonsterCanvasProps) {
   const readyRef = useRef(false)
   const rimRef = useRef<THREE.PointLight>(null)
-  const quality: FurQuality = mode === 'full' ? 'full' : 'lite'
+  // T9: degradación en caliente por FPS (una sola vía: full → lite).
+  const [degraded, setDegraded] = useState(false)
+  const quality: FurQuality = mode === 'full' && !degraded ? 'full' : 'lite'
+  // T9: el aviso de FPS se emite una sola vez (al degradar).
+  const handleSlowFps = () => {
+    if (mode !== 'full') return
+    setDegraded((prev) => {
+      if (!prev) console.info('[hero] modo lite por FPS')
+      return true
+    })
+  }
   // `onCreated` puede repetirse (StrictMode); el contrato es "una vez".
-  const handleCreated = () => {
+  const handleCreated = (state: { gl: THREE.WebGLRenderer }) => {
     if (readyRef.current) return
     readyRef.current = true
+    // T9: pérdida de contexto WebGL (GPU): se previene el default para que
+    // el canvas no quede muerto y se avisa al stage (degrada a pintados).
+    state.gl.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault()
+      onContextLost?.()
+    })
     onReady()
   }
   // Tinte: la rim vira al color de la carta activa en ~0.8 s (el polvo lo
@@ -310,7 +355,7 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, 
         color={HERO.lights.rim.color}
         intensity={HERO.lights.rim.intensity}
       />
-      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} celebrateRef={celebrateRef} quality={quality} />
+      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} celebrateRef={celebrateRef} quality={quality} onSlowFps={handleSlowFps} />
       <Particles accent={accent} quality={quality} />
       {quality === 'full' && (
         <EffectComposer>
