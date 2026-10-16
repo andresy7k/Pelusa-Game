@@ -4,16 +4,25 @@
 // su carta (medido solo cuando algo se mueve).
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing'
 import * as THREE from 'three'
+import gsap from 'gsap'
 import { HERO, type HeroValue } from '../config'
 import { ringOffset } from '../HeroCarousel'
 import { readAnchor, trackAnchorsFor } from './anchors'
 import { Character, type CharacterHandle } from './Character'
+import { Particles } from './Particles'
 import type { FurQuality } from './furMaterial'
 
 export interface MonsterCanvasProps {
   mode: 'full' | 'lite' | 'off'
   activeValue: HeroValue
+  /** Tinte de la carta activa (HERO.cards[v].monster): tiñe la rim y el polvo. */
+  accent: string
+  /** Valor con el cursor encima (distinto de la activa): recibe el hover. */
+  hoveredValue: HeroValue | null
+  /** Hook de T8 (sonido del special): por defecto noop. */
+  onSpecial?: (v: HeroValue) => void
   onReady: () => void
 }
 
@@ -44,7 +53,20 @@ function setGroupOpacity(root: THREE.Object3D, value: number): void {
   })
 }
 
-function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; quality: FurQuality }) {
+// Retardo entre el pop de entrada y el special (el monstruo ya aterrizó).
+const SPECIAL_DELAY_MS = 200
+
+function CardMonsters({
+  activeValue,
+  hoveredValue,
+  onSpecial,
+  quality,
+}: {
+  activeValue: HeroValue
+  hoveredValue: HeroValue | null
+  onSpecial?: (v: HeroValue) => void
+  quality: FurQuality
+}) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   const idx = HERO.order.indexOf(activeValue)
@@ -110,6 +132,19 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
     [],
   )
 
+  // La recién llegada corre su special una vez (200 ms tras el pop) y
+  // queda en idle (el propio special encadena el idle al terminar). El
+  // timer se limpia al cambiar de carta o desmontar: no pelea con el
+  // efecto [active] de Character (setState mata los tweens previos).
+  useEffect(() => {
+    const v = activeValue
+    const t = window.setTimeout(() => {
+      chars.current.get(v)?.setState('special')
+      onSpecial?.(v)
+    }, SPECIAL_DELAY_MS)
+    return () => window.clearTimeout(t)
+  }, [activeValue, onSpecial])
+
   useFrame((_root, delta) => {
     const cam = camera
     const ndc = new THREE.Vector3()
@@ -172,7 +207,7 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
             }}
             value={v}
             active={v === activeValue}
-            hovered={false} // T6 conecta el hover real
+            hovered={v === hoveredValue && v !== activeValue}
             quality={quality}
           />
         </group>
@@ -181,14 +216,28 @@ function CardMonsters({ activeValue, quality }: { activeValue: HeroValue; qualit
   )
 }
 
-export function MonsterCanvas({ mode, activeValue, onReady }: MonsterCanvasProps) {
+export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, onSpecial, onReady }: MonsterCanvasProps) {
   const readyRef = useRef(false)
+  const rimRef = useRef<THREE.PointLight>(null)
+  const quality: FurQuality = mode === 'full' ? 'full' : 'lite'
   // `onCreated` puede repetirse (StrictMode); el contrato es "una vez".
   const handleCreated = () => {
     if (readyRef.current) return
     readyRef.current = true
     onReady()
   }
+  // Tinte: la rim vira al color de la carta activa en ~0.8 s (el polvo lo
+  // hace en Particles y el humo en HeroStage vía --hero-accent).
+  useEffect(() => {
+    const light = rimRef.current
+    if (!light) return
+    const target = new THREE.Color(accent)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      light.color.copy(target)
+      return
+    }
+    gsap.to(light.color, { r: target.r, g: target.g, b: target.b, duration: 0.8, ease: 'power2.out', overwrite: 'auto' })
+  }, [accent])
   return (
     <Canvas
       flat // colores exactos de config (sin tone mapping)
@@ -205,11 +254,20 @@ export function MonsterCanvas({ mode, activeValue, onReady }: MonsterCanvasProps
       <ambientLight intensity={HERO.lights.ambient} />
       <directionalLight position={HERO.lights.key.position} intensity={HERO.lights.key.intensity} />
       <pointLight
+        ref={rimRef}
         position={HERO.lights.rim.position}
         color={HERO.lights.rim.color}
         intensity={HERO.lights.rim.intensity}
       />
-      <CardMonsters activeValue={activeValue} quality={mode === 'full' ? 'full' : 'lite'} />
+      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} onSpecial={onSpecial} quality={quality} />
+      <Particles accent={accent} quality={quality} />
+      {quality === 'full' && (
+        <EffectComposer>
+          <Bloom intensity={0.35} luminanceThreshold={0.6} mipmapBlur />
+          <Vignette eskil={false} offset={0.25} darkness={0.75} />
+          <Noise opacity={0.035} />
+        </EffectComposer>
+      )}
     </Canvas>
   )
 }
