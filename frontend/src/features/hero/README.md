@@ -2,8 +2,8 @@
 
 Pantalla de selección de personajes del Home: carrusel con las 10 cartas
 reales del juego, cada una con su monstruo 3D procedural parado delante,
-fondo de humo violeta, preloader de baraja cayendo, cursor propio y sonido
-sintetizado. Vive en `frontend/src/features/hero/` y se monta desde
+fondo de humo violeta, preloader de baraja cayendo y sonido sintetizado de
+navegación. Vive en `frontend/src/features/hero/` y se monta desde
 `HeroStage.tsx` (lo usa el Home).
 
 Spec de diseño (fuente de verdad visual y de comportamiento):
@@ -25,7 +25,7 @@ Spec de diseño (fuente de verdad visual y de comportamiento):
   caras (`faces.ts`), geometría (`geometry.ts`), pelaje (`furMaterial.tsx`),
   contorno (`outline.tsx`), partículas (`Particles.tsx`) y máquina de
   estados GSAP (`stateAnimations.ts`: `idle`/`hover`/`active`/`special`).
-- `mode.ts`, `Preloader.tsx`, `intro.ts`, `Cursor.tsx`, `sound.ts`,
+- `mode.ts`, `Preloader.tsx`, `intro.ts`, `sound.ts`,
   `SmokeBackground.tsx`, `HeroNav.tsx`, `HeroCopy.tsx`.
 
 ## 2. Recetario de `config.ts`: orden, colores y copy
@@ -148,9 +148,9 @@ y Enter navega directo a `/setup` sin `special`.
   `preventDefault` para no dejar el canvas muerto), avisa una única vez
   `[hero] WebGL perdido: modo sin 3D` y desmonta el canvas — vuelven los
   pintados DOM, una sola vía sin restauración.
-- Audio (`sound.ts`): WebAudio sintetizado, apagado por defecto; los errores
-  de audio se tragan en silencio (el sonido nunca bloquea ni ensucia la
-  consola).
+- Audio (`sound.ts`): WebAudio sintetizado (hover/clic/selección sobre los
+  interactivos del hero), apagado por defecto; los errores de audio se tragan
+  en silencio (el sonido nunca bloquea ni ensucia la consola).
 
 ## 6. Checklist de verificación visual rápida
 

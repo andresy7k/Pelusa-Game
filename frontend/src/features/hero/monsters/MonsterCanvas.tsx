@@ -24,8 +24,6 @@ export interface MonsterCanvasProps {
   /** Celebración de la intro (T7): HeroStage la pone en true sobre la cola de
    *  las cartas; cada monstruo montado hace su pop de `active` una sola vez. */
   intro: boolean
-  /** Hook de T8 (sonido del special): por defecto noop. */
-  onSpecial?: (v: HeroValue) => void
   /** T8: celebración bajo demanda (Enter) — HeroStage la dispara; quien
    *  posee `chars` (CardMonsters) la asigna en un efecto. */
   celebrateRef?: { current: ((v: HeroValue) => void) | null }
@@ -68,7 +66,6 @@ function CardMonsters({
   activeValue,
   hoveredValue,
   intro,
-  onSpecial,
   celebrateRef,
   quality,
   onSlowFps,
@@ -76,7 +73,6 @@ function CardMonsters({
   activeValue: HeroValue
   hoveredValue: HeroValue | null
   intro: boolean
-  onSpecial?: (v: HeroValue) => void
   celebrateRef?: { current: ((v: HeroValue) => void) | null }
   quality: FurQuality
   /** T9: se llama al degradar por FPS bajo sostenido. */
@@ -160,23 +156,21 @@ function CardMonsters({
     const v = activeValue
     const t = window.setTimeout(() => {
       chars.current.get(v)?.setState('special')
-      onSpecial?.(v)
     }, SPECIAL_DELAY_MS)
     return () => window.clearTimeout(t)
-  }, [activeValue, onSpecial])
+  }, [activeValue])
 
-  // Celebración bajo demanda (T8, Enter): corre el special del valor pedido
-  // y avisa por `onSpecial` (el sonido). La posee quien tiene `chars`.
+  // Celebración bajo demanda (T8, Enter): corre el special del valor pedido.
+  // La posee quien tiene `chars`.
   useEffect(() => {
     if (!celebrateRef) return
     celebrateRef.current = (v: HeroValue) => {
       chars.current.get(v)?.setState('special')
-      onSpecial?.(v)
     }
     return () => {
       celebrateRef.current = null
     }
-  }, [celebrateRef, onSpecial])
+  }, [celebrateRef])
 
   // Celebración de la intro (T7): un pop de `active` por personaje montado,
   // una sola vez y todos a la vez (el timer de 200 ms del mount ya disparó
@@ -296,7 +290,7 @@ function CardMonsters({
   )
 }
 
-export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, celebrateRef, onReady, onContextLost }: MonsterCanvasProps) {
+export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, celebrateRef, onReady, onContextLost }: MonsterCanvasProps) {
   const readyRef = useRef(false)
   const rimRef = useRef<THREE.PointLight>(null)
   // T9: degradación en caliente por FPS (una sola vía: full → lite).
@@ -363,7 +357,7 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, 
         color={HERO.lights.rim.color}
         intensity={HERO.lights.rim.intensity}
       />
-      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} celebrateRef={celebrateRef} quality={quality} onSlowFps={handleSlowFps} />
+      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} celebrateRef={celebrateRef} quality={quality} onSlowFps={handleSlowFps} />
       <Particles accent={accent} quality={quality} />
       {quality === 'full' && (
         <EffectComposer>

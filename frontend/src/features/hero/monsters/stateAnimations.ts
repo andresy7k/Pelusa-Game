@@ -1,8 +1,7 @@
 // frontend/src/features/hero/monsters/stateAnimations.ts
 // Máquina de estados por personalidad (T6): idle / hover / active / special.
-// `Character.setState` delega acá; T7 reusa `animateTo` para el intro y T8
-// cuelga su sonido del callback `onSpecial` (el punto de llamada vive en
-// MonsterCanvas, no acá). Los especiales pueden soltar una ráfaga efímera vía
+// `Character.setState` delega acá; T7 reusa `animateTo` para el intro. Los
+// especiales pueden soltar una ráfaga efímera vía
 // el registry `registerBurstSpawner` (lo instala Particles al montarse:
 // `animateTo` tiene firma fija de 4 params y el spawner no viaja como param).
 import * as THREE from 'three'
