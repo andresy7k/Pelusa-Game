@@ -14,6 +14,7 @@
   justify-items: center;
   overflow: hidden;
   background: #07050f;
+  cursor: pointer;
 }
 
 /* Escena escalada: el mazo se ve grande sin tocar las medidas de CardView.
@@ -25,9 +26,6 @@
 }
 @media (min-width: 1024px) { .pl-overlay { --pl-scale: 2.2; } }
 @media (min-width: 1600px) { .pl-overlay { --pl-scale: 2.5; } }
-/* Ventanas bajas (stress 1366×640): la escena se achica para que el botón
-   "Jugar" entre completo debajo del wordmark. */
-@media (max-height: 690px) { .pl-overlay { --pl-scale: 1.8; } }
 
 /* Escena: el mazo al centro de la mesa (76×104 = carta real). */
 .pl-stack {
@@ -199,20 +197,4 @@
   will-change: transform, opacity;
 }
 
-/* Botón "Jugar": única salida del overlay. Aparece al cerrar el wordmark
-   (GSAP anima su opacity; hasta entonces está disabled, así la secuencia no
-   se puede saltear ni por teclado). Queda debajo del nombre con la misma
-   cuenta de posición que el wordmark; el look es el CTA primario del hero
-   (.btn-primary en pages.css). */
-.pl-jugar {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% 0;
-  margin-top: calc(52px * var(--pl-scale) + clamp(1.25rem, 3vh, 2rem) + clamp(58px, 9.5vw, 148px) + clamp(1.5rem, 4vh, 2.75rem));
-  font: inherit;
-  border: 0;
-  cursor: pointer;
-  opacity: 0;
-  will-change: opacity;
-}
+/* Sin textos en el overlay: el salto es clic en cualquier parte. */

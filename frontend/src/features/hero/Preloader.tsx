@@ -3,10 +3,9 @@
 // —grande y lenta— con squash & stretch, polvo y chispas; la mascota pelusa
 // aterriza encima; se roba la carta 10 con destello ámbar y el nombre del
 // juego aparece con entrada degradada antes del crossfade al hero.
-// Solo GSAP anima transform/opacity. La secuencia corre completa (ya no se
-// saltea con clic ni tecla): al final aparece el botón "Jugar" y su clic hace
-// el crossfade al hero. reduced-motion: instantáneo (ni se muestra).
-import { useEffect, useRef, useState } from 'react'
+// Solo GSAP anima transform/opacity. Clic o tecla saltea (acelera x5);
+// reduced-motion: instantáneo (ni se muestra).
+import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { CardView } from '../../components/CardView'
 import { HERO, type HeroValue } from './config'
@@ -60,12 +59,12 @@ export function Preloader({
   onDone: () => void
 }) {
   const scopeRef = useRef<HTMLDivElement>(null)
+  const tlRef = useRef<gsap.core.Timeline | null>(null)
   const finTlRef = useRef<gsap.core.Timeline | null>(null)
   const donePropRef = useRef(done)
   const onRevealRef = useRef(onReveal)
   const onDoneRef = useRef(onDone)
-  const jugarRef = useRef<HTMLButtonElement>(null)
-  const [listo, setListo] = useState(false)
+  const skipRef = useRef(false)
   const salidoRef = useRef(false)
   const waitRef = useRef(0)
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -86,6 +85,11 @@ export function Preloader({
       avisarFin()
       return
     }
+
+    // Pantalla fija durante la entrada: el overlay ya es fixed, pero la
+    // página de atrás es más alta y se veía la barrita de scroll.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
 
     const t0 = Date.now()
     let revelado = false
@@ -113,7 +117,7 @@ export function Preloader({
       const letras = gsap.utils.toArray<HTMLElement>('.pl-wordmark__l')
       const chispasRobo = gsap.utils.toArray<HTMLElement>('.pl-sparks--draw .pl-spark')
 
-      const fin = gsap.timeline()
+      const fin = gsap.timeline({ onComplete: avisarFin })
       finTlRef.current = fin
 
       // 1) Robo: la carta 10 se desliza y estalla en ámbar.
@@ -151,9 +155,11 @@ export function Preloader({
         const centro = (letras.length - 1) / 2
         fin.fromTo(
           letras,
-          { x: (i) => (centro - i) * 16, opacity: 0 },
+          { x: (i) => (centro - i) * 16, y: 16, scale: 0.9, opacity: 0 },
           {
             x: 0,
+            y: 0,
+            scale: 1,
             opacity: 1,
             duration: dur,
             ease: 'power3.out',
@@ -165,23 +171,22 @@ export function Preloader({
         finNombre = tNombre + dur
       }
 
-      // 3) Beat con el nombre y aparición del botón "Jugar": la secuencia ya
-      // no se sale sola — el crossfade al hero lo dispara el clic (entrar()).
+      // 3) Beat con el nombre y salida: fade del overlay y reveal del hero
+      // arrancan juntos (crossfade real). El wordmark entra con rise+bloom y
+      // remata con un pulso para que el nombre quede bien presente al salir.
       const tSalida = finNombre + 0.45
-      const jugar = overlay.querySelector<HTMLElement>('.pl-jugar')
-      if (jugar !== null) {
-        fin.fromTo(
-          jugar,
-          { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out', onStart: () => setListo(true) },
-          tSalida,
-        )
+      const nombre = overlay.querySelector<HTMLElement>('.pl-wordmark')
+      if (nombre !== null) {
+        fin.to(nombre, { scale: 1.035, duration: 0.18, ease: 'power2.out' }, finNombre + 0.1)
+          .to(nombre, { scale: 1, duration: 0.32, ease: 'power2.inOut' }, finNombre + 0.28)
       }
+      fin.to(overlay, { opacity: 0, scale: 0.98, duration: HERO.timings.exitFadeMs / 1000, ease: 'power2.inOut' }, tSalida)
+      fin.call(revelar, undefined, tSalida)
     }
 
     // La secuencia marca el ritmo; done/hold solo deciden CUÁNDO sale el final.
     const maybeExit = (): void => {
-      if (donePropRef.current || Date.now() - t0 >= HERO.timings.preloaderHoldMs) {
+      if (donePropRef.current || skipRef.current || Date.now() - t0 >= HERO.timings.preloaderHoldMs) {
         finalizar()
         return
       }
@@ -248,6 +253,7 @@ export function Preloader({
       }
 
       const tl = gsap.timeline({ onComplete: maybeExit })
+      tlRef.current = tl
 
       if (shadow !== null) {
         tl.fromTo(
@@ -374,7 +380,9 @@ export function Preloader({
     }, scopeRef)
 
     return () => {
+      document.body.style.overflow = prevOverflow
       window.clearTimeout(waitRef.current)
+      tlRef.current = null
       finTlRef.current = null
       ctx.revert()
     }
@@ -383,29 +391,26 @@ export function Preloader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Única salida del overlay: clic en "Jugar" (aparece al cerrar el wordmark).
-  // Fade del overlay y reveal del hero arrancan juntos (crossfade real).
-  const entrar = (): void => {
+  // Clic/tecla: acelera secuencia y final; si ya está esperando, sale ya.
+  const saltar = (): void => {
     if (salidoRef.current) return
-    salidoRef.current = true
-    setListo(false)
-    jugarRef.current?.blur()
-    const overlay = scopeRef.current
-    if (overlay === null) {
-      onRevealRef.current()
-      onDoneRef.current()
-      return
-    }
-    gsap
-      .timeline({ onComplete: onDoneRef.current })
-      .call(onRevealRef.current, undefined, 0)
-      .to(overlay, { opacity: 0, scale: 0.98, duration: HERO.timings.exitFadeMs / 1000, ease: 'power2.inOut' }, 0)
+    skipRef.current = true
+    tlRef.current?.timeScale(5)
+    finTlRef.current?.timeScale(5)
   }
 
   if (reduced) return null
 
   return (
-    <div ref={scopeRef} className="pl-overlay" role="status" aria-label="Cargando">
+    <div
+      ref={scopeRef}
+      className="pl-overlay"
+      role="status"
+      aria-label="Cargando"
+      tabIndex={0}
+      onClick={saltar}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') saltar() }}
+    >
       <div className="pl-scene">
         <div className="pl-stack">
           <span className="pl-shadow" aria-hidden="true" />
@@ -434,9 +439,6 @@ export function Preloader({
           <span key={`${letra}-${i}`} className="pl-wordmark__l">{letra}</span>
         ))}
       </p>
-      <button ref={jugarRef} type="button" className="pl-jugar btn-primary" disabled={!listo} onClick={entrar}>
-        {HERO.copy.ctaPlay}
-      </button>
     </div>
   )
 }
