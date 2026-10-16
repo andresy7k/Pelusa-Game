@@ -1,14 +1,22 @@
 // frontend/src/features/hero/CardFace.tsx
 // Carta del hero: acuarela con manchas, número con contorno sticker y leve
 // rotación, y el monstruo PINTADO (fallback sin WebGL y bajo el 3D).
+// forwardRef: el carrusel publica el rect de esta carta como ancla del canvas.
+import { forwardRef } from 'react'
 import { HERO, type HeroValue } from './config'
 import { MonsterFace } from '../../components/MonsterFace'
 import './CardFace.css'
 
-export function CardFace({ value, active }: { value: HeroValue; active: boolean }) {
+export interface CardFaceProps {
+  value: HeroValue
+  active: boolean
+}
+
+export const CardFace = forwardRef<HTMLDivElement, CardFaceProps>(function CardFace({ value, active }, ref) {
   const d = HERO.cards[value]
   return (
     <div
+      ref={ref}
       className={`card-face${active ? ' card-face--active' : ''}`}
       style={{
         ['--c-bg' as string]: d.bg,
@@ -26,4 +34,4 @@ export function CardFace({ value, active }: { value: HeroValue; active: boolean 
       {active && <span className="card-face__rings" aria-hidden="true" />}
     </div>
   )
-}
+})
