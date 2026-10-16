@@ -9,7 +9,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -30,16 +29,29 @@ export function ringOffset(i: number, center: number, n: number): number {
 const WHEEL_STEP_PX = 60
 const DRAG_STEP_PX = 40
 
+// Teclado remoto del hero (T8): HeroStage es el único dueño del `keydown`
+// de ventana y maneja pasos/extremos a través de este handle. El carrusel ya
+// no escucha teclas por su cuenta (eso duplicaba el Enter/Espacio sobre
+// dots y botones: activación nativa + navegación del stage).
+export interface HeroCarouselHandle {
+  step(dir: 1 | -1): void
+  first(): void
+  last(): void
+}
+
 export function HeroCarousel({
   onActiveChange,
   onHoverChange,
   paused: autoPaused = false,
+  handleRef,
 }: {
   onActiveChange: (v: HeroValue) => void
   /** T6: avisa qué carta tiene el cursor encima (hover 3D por carta). */
   onHoverChange?: (v: HeroValue | null) => void
   /** Pausa externa: con el preloader arriba, HeroStage la activa. */
   paused?: boolean
+  /** T8: HeroStage maneja el teclado de ventana a través de este handle. */
+  handleRef?: { current: HeroCarouselHandle | null }
 }) {
   const n = HERO.order.length
   const [center, setCenter] = useState(0) // índice 0..n-1 dentro de HERO.order
@@ -127,41 +139,14 @@ export function HeroCarousel({
     setCenter((c) => (c + dir + n) % n)
   }, [n])
 
-  // Teclado: flechas / A-D cambian de carta; Home/End van a 1/10; Enter y
-  // Espacio en la carta activa abren /setup (como el CTA primario).
-  const onKeyDown = useCallback(
-    (e: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          e.preventDefault()
-          step(-1)
-          break
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          e.preventDefault()
-          step(1)
-          break
-        case 'Home':
-          e.preventDefault()
-          setCenter(0)
-          break
-        case 'End':
-          e.preventDefault()
-          setCenter(n - 1)
-          break
-        case 'Enter':
-        case ' ':
-          e.preventDefault()
-          navigate('/setup')
-          break
-      }
-    },
-    [n, navigate, step],
-  )
+  // Publica el control por teclado hacia HeroStage (dueño único del keydown).
+  useEffect(() => {
+    if (!handleRef) return
+    handleRef.current = { step, first: () => setCenter(0), last: () => setCenter(n - 1) }
+    return () => {
+      handleRef.current = null
+    }
+  }, [handleRef, step, n])
 
   // Rueda no pasiva: acumula deltaY y pasa de carta cada 60px.
   useEffect(() => {
@@ -252,7 +237,6 @@ export function HeroCarousel({
         role="listbox"
         aria-label="Pelusas"
         tabIndex={0}
-        onKeyDown={onKeyDown}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

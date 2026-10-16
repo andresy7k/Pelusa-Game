@@ -1,0 +1,50 @@
+/* frontend/src/features/hero/Cursor.css
+   Cursor custom del hero: halo con estela + punto. Solo se pinta dentro del
+   hero (los nodos se ocultan al salir) y el `cursor: none` vive únicamente
+   bajo `.hero-stage--has-cursor` (la clase la pone <Cursor/> al montar, que a
+   su vez solo monta con puntero fino y sin reduced-motion). Nunca global. */
+
+.hero-cursor,
+.hero-cursor__dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s var(--ease-out);
+  will-change: transform;
+}
+
+.hero-cursor {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid oklch(1 0 0 / 55%);
+  border-radius: 50%;
+  box-shadow: 0 0 18px oklch(0.6 0.22 320 / 35%);
+}
+
+.hero-cursor__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--parchment);
+  box-shadow: 0 0 10px oklch(1 0 0 / 80%);
+}
+
+.hero-cursor--visible {
+  opacity: 1;
+}
+
+/* Adentro del hero manda el custom: el nativo se apaga solo en este subárbol
+   (nunca global). La media query espeja la puerta de montaje de <Cursor/>
+   (puntero fino y sin reduced-motion): con táctil o movimiento reducido no hay
+   cursor custom montado, así que el nativo debe seguir visible. Se declara en
+   CSS —y no con una clase desde JS— porque React re-aplica el `className` del
+   section en cada render y borraría una clase manual. */
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero-stage,
+  .hero-stage * {
+    cursor: none;
+  }
+}

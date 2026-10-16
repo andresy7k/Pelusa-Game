@@ -26,6 +26,9 @@ export interface MonsterCanvasProps {
   intro: boolean
   /** Hook de T8 (sonido del special): por defecto noop. */
   onSpecial?: (v: HeroValue) => void
+  /** T8: celebración bajo demanda (Enter) — HeroStage la dispara; quien
+   *  posee `chars` (CardMonsters) la asigna en un efecto. */
+  celebrateRef?: { current: ((v: HeroValue) => void) | null }
   onReady: () => void
 }
 
@@ -64,12 +67,14 @@ function CardMonsters({
   hoveredValue,
   intro,
   onSpecial,
+  celebrateRef,
   quality,
 }: {
   activeValue: HeroValue
   hoveredValue: HeroValue | null
   intro: boolean
   onSpecial?: (v: HeroValue) => void
+  celebrateRef?: { current: ((v: HeroValue) => void) | null }
   quality: FurQuality
 }) {
   const camera = useThree((s) => s.camera)
@@ -149,6 +154,19 @@ function CardMonsters({
     }, SPECIAL_DELAY_MS)
     return () => window.clearTimeout(t)
   }, [activeValue, onSpecial])
+
+  // Celebración bajo demanda (T8, Enter): corre el special del valor pedido
+  // y avisa por `onSpecial` (el sonido). La posee quien tiene `chars`.
+  useEffect(() => {
+    if (!celebrateRef) return
+    celebrateRef.current = (v: HeroValue) => {
+      chars.current.get(v)?.setState('special')
+      onSpecial?.(v)
+    }
+    return () => {
+      celebrateRef.current = null
+    }
+  }, [celebrateRef, onSpecial])
 
   // Celebración de la intro (T7): un pop de `active` por personaje montado,
   // una sola vez y todos a la vez (el timer de 200 ms del mount ya disparó
@@ -249,7 +267,7 @@ function CardMonsters({
   )
 }
 
-export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, onReady }: MonsterCanvasProps) {
+export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, celebrateRef, onReady }: MonsterCanvasProps) {
   const readyRef = useRef(false)
   const rimRef = useRef<THREE.PointLight>(null)
   const quality: FurQuality = mode === 'full' ? 'full' : 'lite'
@@ -292,7 +310,7 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, 
         color={HERO.lights.rim.color}
         intensity={HERO.lights.rim.intensity}
       />
-      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} quality={quality} />
+      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} celebrateRef={celebrateRef} quality={quality} />
       <Particles accent={accent} quality={quality} />
       {quality === 'full' && (
         <EffectComposer>

@@ -1,16 +1,22 @@
 // frontend/src/features/hero/HeroStage.tsx
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { envFromWindow, hasWebGL, heroMode } from './mode'
 import { HERO, type HeroValue } from './config'
 import { Preloader } from './Preloader'
 import { HeroCopy } from './HeroCopy'
 import { HeroNav } from './HeroNav'
-import { HeroCarousel } from './HeroCarousel'
+import { HeroCarousel, type HeroCarouselHandle } from './HeroCarousel'
 import { MonsterCanvas } from './monsters/MonsterCanvas'
 import { SmokeBackground } from './SmokeBackground'
+import { Cursor } from './Cursor'
+import { play } from './sound'
 import { playIntro } from './intro'
 import './HeroStage.css'
+
+// Retardo Enter → /setup: el special de celebración se ve ~600 ms.
+const ENTER_NAV_MS = 600
 
 // Hex (#rrggbb) a canales 0-255 para interpolar el acento en JS.
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -54,6 +60,10 @@ export function HeroStage() {
   const onActiveCard = useCallback((v: HeroValue) => setActiveCard(v), [])
   const onHoverCard = useCallback((v: HeroValue | null) => setHoveredCard(v), [])
   const onCanvasReady = useCallback(() => setCanvasReady(true), [])
+  // T8: el sonido sigue a cada special (al llegar la carta y al celebrar con
+  // Enter). Estable para no reiniciar el timer de llegada de MonsterCanvas.
+  const onSpecialSound = useCallback(() => play('special'), [])
+  const navigate = useNavigate()
 
   useEffect(() => {
     let vivo = true
@@ -143,6 +153,79 @@ export function HeroStage() {
     })
   }, [accent])
 
+  // Teclado final (T8): HeroStage es el ÚNICO dueño del `keydown` (el
+  // carrusel ya no escucha teclas). Activo solo con foco dentro del hero:
+  // afuera, las teclas hacen lo nativo (las flechas siguen scrolleando la
+  // página, p. ej. sobre "cómo se juega").
+  const carouselRef = useRef<HeroCarouselHandle | null>(null)
+  // Celebración del Enter: la asigna quien posee `chars` (MonsterCanvas).
+  const celebrateRef = useRef<((v: HeroValue) => void) | null>(null)
+  // Espejo de la activa para el listener de ventana (estable entre renders).
+  const activeRef = useRef(activeCard)
+  useEffect(() => {
+    activeRef.current = activeCard
+  }, [activeCard])
+  // Viaje del Enter a /setup (se limpia al desmontar).
+  const enterTimerRef = useRef<number | null>(null)
+  useEffect(() => {
+    const alTecla = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      // Con el preloader o la intro, las teclas son del skip, no del hero.
+      if (!entered || introPlaying) return
+      const stage = stageRef.current
+      if (!stage || !stage.contains(document.activeElement)) return
+      const t = e.target as Element | null
+      const interactivo =
+        !!t && typeof t.closest === 'function' && t.closest('a, button') !== null
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          e.preventDefault()
+          carouselRef.current?.step(-1)
+          break
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          e.preventDefault()
+          carouselRef.current?.step(1)
+          break
+        case 'Home':
+          e.preventDefault()
+          carouselRef.current?.first()
+          break
+        case 'End':
+          e.preventDefault()
+          carouselRef.current?.last()
+          break
+        case 'Enter':
+        case ' ':
+          // Sobre links/botones manda lo nativo: si no, doble acción (la
+          // activación nativa + esta navegación).
+          if (interactivo) return
+          e.preventDefault()
+          play('select')
+          // Con reduced-motion se navega directo: sin delay ni special.
+          if (reduced) {
+            navigate('/setup')
+            return
+          }
+          celebrateRef.current?.(activeRef.current)
+          if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current)
+          enterTimerRef.current = window.setTimeout(() => navigate('/setup'), ENTER_NAV_MS)
+          break
+      }
+    }
+    window.addEventListener('keydown', alTecla)
+    return () => {
+      window.removeEventListener('keydown', alTecla)
+      if (enterTimerRef.current !== null) {
+        window.clearTimeout(enterTimerRef.current)
+        enterTimerRef.current = null
+      }
+    }
+  }, [entered, introPlaying, navigate, reduced])
+
   return (
     <section
       ref={stageRef}
@@ -152,15 +235,16 @@ export function HeroStage() {
       style={{ ['--hero-accent' as string]: HERO.cards[1].monster }}
     >
       <SmokeBackground />
+      <Cursor />
       <div className="hero-grain" aria-hidden="true" />
       <div className="hero-content">
         <HeroNav />
         <HeroCopy />
-        <HeroCarousel onActiveChange={onActiveCard} onHoverChange={onHoverCard} paused={!entered || introPlaying} />
+        <HeroCarousel onActiveChange={onActiveCard} onHoverChange={onHoverCard} paused={!entered || introPlaying} handleRef={carouselRef} />
         {/* Canvas R3F fijo (pointer-events:none) sobre el DOM; sin WebGL o
             con `off` no se monta y quedan los monstruos pintados. */}
         {showCanvas && (
-          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} onReady={onCanvasReady} />
+          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} onSpecial={onSpecialSound} celebrateRef={celebrateRef} onReady={onCanvasReady} />
         )}
       </div>
       {/* El preloader cierra con el canvas listo (o de una si no hay 3D) y las
