@@ -253,3 +253,9 @@ Gate de aceptacion del carrusel 1-10; cambios pedidos por el usuario y aprobados
 
 1. **Preloader.** Se revierte el boton 'Jugar': vuelve el salto con clic/tecla y la salida automatica al terminar (sin boton ni textos). El wordmark gana presencia (letras con rise+bloom y pulso final) y la entrada es pantalla fija (sin barra de scroll). (4885786)
 2. **'Como se juega'.** La seccion suma titulo y los rojos se intensifican a rojo puro (luz de Roba y palabras Cuidado/perdiste; glows a nth-of-type por el h2 nuevo). (a52418b)
+
+## Enmienda - feedback de aceptacion del hero (2026-10-16)
+
+1. **Cursor propio: ELIMINADO.** Pedido del usuario: 'quita el efecto del mouse, dejalo como estaba'. Se borran Cursor.tsx/Cursor.css (y su cursor: none); el hero usa el cursor nativo. Los sonidos de navegacion (hover/clic/seleccion) se conservan con un listener delegado en HeroStage. El seguimiento de ojos via pointer.ts queda. (4c75335)
+2. **Sonido del special: ELIMINADO.** 'Quita el sonido de los monstruos, el de navegacion esta bien.' El special 3D sigue animando, pero sin audio. (4c75335)
+3. **Monstruos y cartas: redisenados contra las fotos reales** que envio el usuario. Transcripcion vinculante: docs/superpowers/specs/2026-10-16-monstruos-referencia.md (siluetas peludas o con picos, caras por monstruo, paletas 6 naranja / 8 azul marino y ajustes 3/4; carta del hero con numero sticker brillante y monstruo mas grande). (3bc7c0a)
