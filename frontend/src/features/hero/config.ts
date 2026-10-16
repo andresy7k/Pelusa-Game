@@ -2,7 +2,8 @@
 // Fuente única de verdad del hero: colores de cartas (calibrados contra la
 // foto real), orden del carrusel, tiempos, easings, copy y sonido.
 // T4 agrega FaceSpec (caras), el rig de luces y la escala del personaje;
-// los monstruos 3D agregan su bloque `monsters` en la Task 5.
+// T5 agrega el bloque `monsters` (los 10 diseños con silueta, cara,
+// apéndices y special).
 
 export type HeroValue = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
 
@@ -32,9 +33,25 @@ export interface FaceSpec {
   mouthInner?: string
 }
 
+/** Diseño de un monstruo del carrusel (T5): semilla y proporciones del blob
+ *  (van a `makeBlobGeometry`), cara paramétrica (la consume `faces.ts`),
+ *  apéndices con pelaje (los monta `Character.tsx`) y el efecto `special`
+ *  (lo anima T6; en T5 solo se guarda el dato). */
+export interface MonsterDesign {
+  seed: number
+  scale: [number, number, number]
+  /** Cara paramétrica (la misma interfaz FaceSpec que consume faces.ts) */
+  face: FaceSpec
+  appendages: Array<'tailLeft' | 'tufts' | 'horns'>
+  /** Efecto del special (T6) */
+  special: 'bounce' | 'puff' | 'spring' | 'roar' | 'shake' | 'laugh' | 'confetti' | 'pulse' | 'dance' | 'stars'
+}
+
 export interface HeroConfig {
   order: HeroValue[]
   cards: Record<HeroValue, CardDesign>
+  /** Los 10 monstruos con silueta, cara y apéndices (T5; T6 los anima) */
+  monsters: Record<HeroValue, MonsterDesign>
   timings: {
     autoAdvanceMs: number
     resumeAfterMs: number
@@ -112,6 +129,20 @@ export const HERO: HeroConfig = {
     rim: { position: [4, 2, -4], color: '#C026D3', intensity: 1.4 },
   },
   character: { scale: 0.35, refHeight: 768 },
+  // Los 10 monstruos calibrados contra la biblia del spec §5 (T5): semilla y
+  // proporciones del blob, cara paramétrica, apéndices y special (T6).
+  monsters: {
+    1: { seed: 11, scale: [1.0, 1.0, 1.0], face: { eyes: { count: 1, size: 0.34, lookUp: 0.35 }, mouth: 'o' }, appendages: [], special: 'bounce' },
+    2: { seed: 22, scale: [1.18, 0.72, 1.0], face: { eyes: { count: 2, size: 0.24, sleepy: 0.7, ring: '#7BC86C' }, mouth: 'wideSmile', tongue: '#F4D420' }, appendages: [], special: 'puff' },
+    3: { seed: 33, scale: [1.05, 0.6, 1.0], face: { eyes: { count: 2, size: 0.2, lookUp: 0.45 }, mouth: 'tinySmile' }, appendages: ['tailLeft'], special: 'spring' },
+    4: { seed: 44, scale: [0.95, 1.08, 1.0], face: { eyes: { count: 1, size: 0.36, ring: '#E8C84A' }, mouth: 'fangs' }, appendages: [], special: 'roar' },
+    5: { seed: 55, scale: [1.0, 1.0, 1.0], face: { eyes: { count: 1, size: 0.34, ring: '#D7E84A' }, mouth: 'crookedTooth' }, appendages: [], special: 'shake' },
+    6: { seed: 66, scale: [1.22, 0.68, 1.0], face: { eyes: { count: 2, size: 0.16, sleepy: 0.45 }, mouth: 'grinTeeth2' }, appendages: [], special: 'laugh' },
+    7: { seed: 77, scale: [1.0, 1.05, 1.0], face: { eyes: { count: 2, size: 0.15, lookUp: 0.5 }, mouth: 'bigSmile', tongue: '#F06292' }, appendages: ['tufts'], special: 'confetti' },
+    8: { seed: 88, scale: [1.12, 0.8, 1.0], face: { eyes: { count: 1, size: 0.4, white: true }, mouth: 'neutral' }, appendages: [], special: 'pulse' },
+    9: { seed: 99, scale: [1.26, 0.62, 1.0], face: { eyes: { count: 2, size: 0.28, sides: true, ring: '#F2D33C' }, mouth: 'tinyOpen' }, appendages: [], special: 'dance' },
+    10: { seed: 101, scale: [1.0, 0.9, 1.0], face: { eyes: { count: 2, size: 0.18, lookUp: 0.3 }, mouth: 'openTeeth', mouthInner: '#3E7BD6' }, appendages: ['horns'], special: 'stars' },
+  },
   copy: {
     badgeGold: 'UN JUEGO DE MESA',
     badgeWhite: 'VERSIÓN DIGITAL',
@@ -122,12 +153,3 @@ export const HERO: HeroConfig = {
   },
   sound: { enabledByDefault: false },
 }
-
-// Cara final de la Pelusa 1 (T4), espejo de la biblia de cartas §5: bola
-// esponjosa, UN ojo grande mirando arriba y boca "o". T5 la mueve dentro de
-// `monsters` junto con las otras nueve.
-export const FACE_1: FaceSpec = { eyes: { count: 1, size: 0.34, lookUp: 0.35 }, mouth: 'o' }
-
-// Cara provisoria de las vecinas visibles (|off| <= 2) hasta que T5 defina
-// cada monstruo contra la foto.
-export const FACE_DEFAULT: FaceSpec = { eyes: { count: 2, size: 0.2 }, mouth: 'tinySmile' }

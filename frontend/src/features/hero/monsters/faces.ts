@@ -120,8 +120,11 @@ function makeMouth(spec: FaceSpec): THREE.Object3D {
   }
   if (spec.tongue !== undefined) {
     const lengua = piece(new THREE.SphereGeometry(1, 16, 12), spec.tongue)
-    lengua.scale.set(0.055, 0.032, 0.045)
-    lengua.position.set(0, -0.045, 0.06)
+    // Boca ancha (monstruo 2): la lengua es una banda que cruza la sonrisa;
+    // en el resto, un óvalo chico asomando abajo.
+    const banda = spec.mouth === 'wideSmile'
+    lengua.scale.set(banda ? 0.13 : 0.055, 0.032, 0.045)
+    lengua.position.set(0, banda ? -0.06 : -0.045, 0.06)
     mouth.add(lengua)
   }
   mouth.position.set(0, MOUTH_Y, MOUTH_Z)
