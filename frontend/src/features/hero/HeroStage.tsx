@@ -10,13 +10,16 @@ import { HeroNav } from './HeroNav'
 import { HeroCarousel, type HeroCarouselHandle } from './HeroCarousel'
 import { MonsterCanvas } from './monsters/MonsterCanvas'
 import { SmokeBackground } from './SmokeBackground'
-import { Cursor } from './Cursor'
 import { play } from './sound'
 import { playIntro } from './intro'
 import './HeroStage.css'
 
 // Retardo Enter → /setup: el special de celebración se ve ~600 ms.
 const ENTER_NAV_MS = 600
+
+// Interactivos con sonido de navegación (los mismos blancos que cubría el
+// cursor custom): links, botones y las cartas/dots del carrusel.
+const INTERACTIVO = 'a, button, .hc-slot, .hc-dot'
 
 // Hex (#rrggbb) a canales 0-255 para interpolar el acento en JS.
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -75,9 +78,31 @@ export function HeroStage() {
     console.warn('[hero] WebGL perdido: modo sin 3D')
     setWebglLost(true)
   }, [])
-  // T8: el sonido sigue a cada special (al llegar la carta y al celebrar con
-  // Enter). Estable para no reiniciar el timer de llegada de MonsterCanvas.
-  const onSpecialSound = useCallback(() => play('special'), [])
+  // T8: el sonido de navegación (hover/clic) se delega en document y solo
+  // suena dentro del hero; sobrevive a los re-renders del carrusel.
+  useEffect(() => {
+    const busca = (t: EventTarget | null, sel: string): Element | null => {
+      const el = t as Element | null
+      if (!el || typeof el.closest !== 'function') return null
+      return el.closest(sel)
+    }
+    let encima: Element | null = null
+    const alSobre = (e: MouseEvent) => {
+      const dentro = busca(e.target, '.hero-stage') !== null
+      const ahora = dentro ? busca(e.target, INTERACTIVO) : null
+      if (ahora && ahora !== encima) play('hover')
+      encima = ahora
+    }
+    const alClic = (e: MouseEvent) => {
+      if (busca(e.target, '.hero-stage') && busca(e.target, INTERACTIVO)) play('click')
+    }
+    document.addEventListener('mouseover', alSobre, { passive: true })
+    document.addEventListener('click', alClic, { passive: true })
+    return () => {
+      document.removeEventListener('mouseover', alSobre)
+      document.removeEventListener('click', alClic)
+    }
+  }, [])
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -250,7 +275,6 @@ export function HeroStage() {
       style={{ ['--hero-accent' as string]: HERO.cards[1].monster }}
     >
       <SmokeBackground />
-      <Cursor />
       <div className="hero-grain" aria-hidden="true" />
       <div className="hero-content">
         <HeroNav />
@@ -259,7 +283,7 @@ export function HeroStage() {
         {/* Canvas R3F fijo (pointer-events:none) sobre el DOM; sin WebGL o
             con `off` no se monta y quedan los monstruos pintados. */}
         {showCanvas && (
-          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} onSpecial={onSpecialSound} celebrateRef={celebrateRef} onReady={onCanvasReady} onContextLost={onContextLost} />
+          <MonsterCanvas mode={mode} activeValue={activeCard} accent={accent} hoveredValue={hoveredCard} intro={introPop} celebrateRef={celebrateRef} onReady={onCanvasReady} onContextLost={onContextLost} />
         )}
       </div>
       {/* El preloader cierra con el canvas listo (o de una si no hay 3D) y las

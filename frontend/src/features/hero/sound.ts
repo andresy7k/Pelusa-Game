@@ -1,5 +1,5 @@
 // frontend/src/features/hero/sound.ts
-// Sonidos sintetizados (sin archivos): hover, clic, selección y especial.
+// Sonidos de navegación sintetizados (sin archivos): hover, clic y selección.
 // Off por defecto; preferencia persistida. Nunca lanza: el audio jamás
 // bloquea la UI.
 const KEY = 'pelusa.hero.sound'
@@ -33,7 +33,6 @@ const SPECS: Record<string, { f: number; d: number; type: OscillatorType; gain: 
   hover: { f: 880, d: 0.05, type: 'sine', gain: 0.02 },
   click: { f: 520, d: 0.09, type: 'triangle', gain: 0.05 },
   select: { f: 660, d: 0.16, type: 'sine', gain: 0.06 },
-  special: { f: 440, d: 0.3, type: 'sawtooth', gain: 0.03 },
 }
 
 export function play(kind: keyof typeof SPECS): void {
