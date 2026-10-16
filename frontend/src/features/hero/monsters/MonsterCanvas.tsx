@@ -310,16 +310,24 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, 
       return true
     })
   }
-  // `onCreated` puede repetirse (StrictMode); el contrato es "una vez".
+  // `onCreated` puede repetirse (StrictMode): el aviso es una vez, pero el
+  // listener se adjunta a cada gl (el remount crea otro renderer y el canvas
+  // vivo quedaría sin aviso). El callback va por ref para no congelar props.
+  const listenedRef = useRef<THREE.WebGLRenderer | null>(null)
+  const onLostRef = useRef(onContextLost)
+  useEffect(() => { onLostRef.current = onContextLost })
   const handleCreated = (state: { gl: THREE.WebGLRenderer }) => {
+    if (listenedRef.current !== state.gl) {
+      listenedRef.current = state.gl
+      // T9: pérdida de contexto WebGL (GPU): se previene el default para que
+      // el canvas no quede muerto y se avisa al stage (degrada a pintados).
+      state.gl.domElement.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault()
+        onLostRef.current?.()
+      })
+    }
     if (readyRef.current) return
     readyRef.current = true
-    // T9: pérdida de contexto WebGL (GPU): se previene el default para que
-    // el canvas no quede muerto y se avisa al stage (degrada a pintados).
-    state.gl.domElement.addEventListener('webglcontextlost', (e) => {
-      e.preventDefault()
-      onContextLost?.()
-    })
     onReady()
   }
   // Tinte: la rim vira al color de la carta activa en ~0.8 s (el polvo lo
