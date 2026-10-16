@@ -21,6 +21,9 @@ export interface MonsterCanvasProps {
   accent: string
   /** Valor con el cursor encima (distinto de la activa): recibe el hover. */
   hoveredValue: HeroValue | null
+  /** Celebración de la intro (T7): HeroStage la pone en true sobre la cola de
+   *  las cartas; cada monstruo montado hace su pop de `active` una sola vez. */
+  intro: boolean
   /** Hook de T8 (sonido del special): por defecto noop. */
   onSpecial?: (v: HeroValue) => void
   onReady: () => void
@@ -59,11 +62,13 @@ const SPECIAL_DELAY_MS = 200
 function CardMonsters({
   activeValue,
   hoveredValue,
+  intro,
   onSpecial,
   quality,
 }: {
   activeValue: HeroValue
   hoveredValue: HeroValue | null
+  intro: boolean
   onSpecial?: (v: HeroValue) => void
   quality: FurQuality
 }) {
@@ -145,6 +150,34 @@ function CardMonsters({
     return () => window.clearTimeout(t)
   }, [activeValue, onSpecial])
 
+  // Celebración de la intro (T7): un pop de `active` por personaje montado,
+  // una sola vez y todos a la vez (el timer de 200 ms del mount ya disparó
+  // oculto tras el preloader; esto es aparte). Después cada uno vuelve a su
+  // estado lógico: el pop mata los loops de idle (sway/parpadeo) y sin esto
+  // los vecinos quedarían congelados.
+  const celebradoRef = useRef(false)
+  const logicaRef = useRef({ activeValue, hoveredValue })
+  useEffect(() => {
+    logicaRef.current = { activeValue, hoveredValue }
+  })
+  useEffect(() => {
+    if (!intro || celebradoRef.current) return
+    celebradoRef.current = true
+    const foto = logicaRef.current
+    for (const h of chars.current.values()) h?.setState('active')
+    const t = window.setTimeout(() => {
+      const ahora = logicaRef.current
+      // Si la selección cambió en el medio, los efectos ya pusieron el
+      // estado correcto: no se pisa.
+      if (ahora.activeValue !== foto.activeValue || ahora.hoveredValue !== foto.hoveredValue) return
+      for (const [v, h] of chars.current) {
+        if (!h) continue
+        h.setState(v === foto.activeValue ? 'active' : v === foto.hoveredValue ? 'hover' : 'idle')
+      }
+    }, 700)
+    return () => window.clearTimeout(t)
+  }, [intro])
+
   useFrame((_root, delta) => {
     const cam = camera
     const ndc = new THREE.Vector3()
@@ -216,7 +249,7 @@ function CardMonsters({
   )
 }
 
-export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, onSpecial, onReady }: MonsterCanvasProps) {
+export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, onSpecial, onReady }: MonsterCanvasProps) {
   const readyRef = useRef(false)
   const rimRef = useRef<THREE.PointLight>(null)
   const quality: FurQuality = mode === 'full' ? 'full' : 'lite'
@@ -259,7 +292,7 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, onSpeci
         color={HERO.lights.rim.color}
         intensity={HERO.lights.rim.intensity}
       />
-      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} onSpecial={onSpecial} quality={quality} />
+      <CardMonsters activeValue={activeValue} hoveredValue={hoveredValue} intro={intro} onSpecial={onSpecial} quality={quality} />
       <Particles accent={accent} quality={quality} />
       {quality === 'full' && (
         <EffectComposer>
