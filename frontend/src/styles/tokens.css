@@ -38,6 +38,9 @@
   --font-body: 'Inter Tight', -apple-system, system-ui, sans-serif;
   --font-board: 'Space Grotesk', system-ui, sans-serif;
 
+  /* Display del hero: candidata evaluada contra el shot (cae a Baloo 2 800) */
+  --font-hero: 'Bowlby One', 'Baloo 2', system-ui, sans-serif;
+
   /* Escala espacial base 4px: ritmo, no relleno parejo */
   --s1: 0.25rem;
   --s2: 0.5rem;

@@ -189,6 +189,7 @@ Tokens oklch, grano CSS, cartas físicas con elevación, jerarquía primaria/sec
 ## Phase 8 — Advanced animation
 **Objetivo:** hero "baraja que cae y se apila" + motion con propósito.
 **Dependencias:** Phase 7. **Archivos:** `frontend/src/animations/*` (GSAP timelines).
+**Estado 2026-10-16:** hero-selección de personajes completo en `frontend/src/features/hero` (10 cartas + 10 monstruos 3D, modos `?hero=`, guía en su README).
 **Criterio de terminado:** hero cinematográfico (trayectoria/rotación/velocidad/masa/contacto/stack final estable), animaciones carta/jugador/estado con razón UX, reduced-motion, 60fps sin layout thrash, PR con video/GIF.
 - [ ] Hero stack físico (stagger, spring, blur/scale/rotación, parallax)
 - [ ] Carta: draw/reveal/place/group/steal/discard/stash/hover/error
