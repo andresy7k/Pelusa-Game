@@ -6,10 +6,16 @@ import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
 
-// Mesa 3D rotativa: los asientos viven en un anillo alrededor del fieltro y la
-// mesa gira para que el jugador en turno quede SIEMPRE abajo (ringRot). El
-// contenido de cada asiento contra-rota para quedar legible.
-// Hotseat: la UI siempre actúa como el jugador del turno — el backend decide.
+// Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
+// es "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado
+// opuesto, siempre cerca y nítidos (vista fija, sin cámara que girar). El
+// "Turno de X" va en texto plano arriba a la izquierda (sin recuadro). El
+// backend decide; hotseat = la UI actúa como el jugador del turno.
+
+// Arco de rivales: grados sobre la mesa (0 = frente, 180 = tú).
+const ARC_DEG = 150;
+const ARC_HALF = ARC_DEG / 2;
+
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
@@ -21,10 +27,9 @@ export function Board() {
   const [arrivals, setArrivals] = useState(0);
 
   // Al cambiar de turno (stand, bust) el modo robo queda obsoleto: se apaga.
-  const turnKey = state?.currentPlayerId ?? null;
   useEffect(() => {
     setRobbing(false);
-  }, [turnKey]);
+  }, [state?.currentPlayerId ?? null]);
 
   if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Repartiendo…'}</main>;
 
@@ -39,12 +44,14 @@ export function Board() {
   // Modo robo efectivo: activo, mi turno y con algo robable este turno.
   const stealing = robbing && myTurn && stealValue != null;
 
-  // Geometría del anillo: asiento i en (360/n)·i grados; la mesa se gira para
-  // que el ángulo del activo caiga en 180° (abajo). n=1 no ocurre (mín. 2).
-  const n = state.players.length;
-  const step = 360 / n;
-  const activeIdx = Math.max(0, state.players.findIndex((p) => p.id === meId));
-  const ringRot = 180 - step * activeIdx;
+  // Ángulo de cada asiento sobre la mesa: el activo siempre a 180° (abajo,
+  // cerca del jugador); los rivales repartidos en el arco opuesto.
+  function arcAngle(playerId: string): number {
+    if (playerId === meId) return 180;
+    const ri = rivals.findIndex((p) => p.id === playerId);
+    if (rivals.length <= 1) return 0;
+    return -ARC_HALF + (ARC_DEG * ri) / (rivals.length - 1);
+  }
 
   function addFlight(from: FlightPoint, to: FlightPoint, value: number, delay: number) {
     flightSeq.current += 1;
@@ -127,30 +134,6 @@ export function Board() {
 
   return (
     <main className="page table">
-      <div className="table-head">
-        <div>
-          <p className="kicker">{finished ? 'Mesa cerrada' : 'Turno de'}</p>
-          <h1 className="turn-name">{finished ? 'Partida terminada' : nameOf(state.players, meId)}</h1>
-        </div>
-        <div className="event-chip">
-          {ev?.type === 'DRAW' && (
-            <>
-              Sacó <strong>{String(ev.value)}</strong>
-            </>
-          )}
-          {ev?.type === 'STEAL' && (
-            <>
-              Robó <strong>{String(ev.count)}</strong> × {String(ev.value)}
-            </>
-          )}
-          {ev?.type === 'STASH' && (
-            <>
-              Guardó <strong>{String(ev.count)}</strong>
-            </>
-          )}
-        </div>
-      </div>
-
       {bust && (
         <p className="bust-banner" role="alert">
           Carta repetida con 3+ en el frente: todo al descarte. Turno perdido.
@@ -158,45 +141,67 @@ export function Board() {
       )}
 
       <div className="table-stage">
-        <div className="table-felt" style={{ ['--ring-rot' as string]: `${ringRot}deg` }}>
+        {/* Texto del turno: plano, arriba a la izquierda, sobre el fondo
+            (sin recuadro). El estado de turno también vive en cada chapa. */}
+        <p className="felt-turn" role="status">
+          <span className="felt-turn-k">{finished ? 'Mesa cerrada' : 'Turno de'}</span>
+          <strong>{finished ? 'Partida terminada' : nameOf(state.players, meId)}</strong>
+        </p>
+
+        {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH') && (
+          <div className="event-chip">
+            {ev?.type === 'DRAW' && (
+              <>
+                Sacó <strong>{String(ev.value)}</strong>
+              </>
+            )}
+            {ev?.type === 'STEAL' && (
+              <>
+                Robó <strong>{String(ev.count)}</strong> × {String(ev.value)}
+              </>
+            )}
+            {ev?.type === 'STASH' && (
+              <>
+                Guardó <strong>{String(ev.count)}</strong>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="table-felt">
           <div className="felt-disc" aria-hidden="true" />
 
           <div className="deck-area">
-            <div className="deck-inner" style={{ ['--counter' as string]: `${-ringRot}deg` }}>
-              <button
-                type="button"
-                id="deck-pile"
-                className={`deck-pile${myTurn ? ' clickable' : ''}`}
-                onClick={draw}
-                disabled={!myTurn || busy || state.deckRemaining === 0}
-                aria-label={`Mazo: ${state.deckRemaining} cartas. Sacar carta`}
-              >
-                <span className="deck-stack">
-                  <CardBack small />
-                  <CardBack small />
-                  <CardBack small />
-                </span>
-                <span className="deck-count" key={state.deckRemaining}>
-                  {state.deckRemaining} cartas
-                </span>
-              </button>
-            </div>
+            <button
+              type="button"
+              id="deck-pile"
+              className={`deck-pile${myTurn ? ' clickable' : ''}`}
+              onClick={draw}
+              disabled={!myTurn || busy || state.deckRemaining === 0}
+              aria-label={`Mazo: ${state.deckRemaining} cartas. Sacar carta`}
+            >
+              <span className="deck-stack">
+                <CardBack small />
+                <CardBack small />
+                <CardBack small />
+              </span>
+              <span className="deck-count" key={state.deckRemaining}>
+                {state.deckRemaining} cartas
+              </span>
+            </button>
           </div>
 
-          {state.players.map((p, i) => {
-            const angle = step * i;
-            const counter = -(angle + ringRot);
+          {state.players.map((p) => {
+            const angle = arcAngle(p.id);
             const active = p.id === meId && !finished;
             const isRival = p.id !== meId;
             return (
-              <div key={p.id} className="seat" style={{ ['--a' as string]: `${angle}deg` }}>
-                <div
-                  className="seat-inner"
-                  style={{
-                    ['--counter' as string]: `${counter}deg`,
-                    ['--scale' as string]: active ? '1.12' : '1',
-                  }}
-                >
+              <div
+                key={p.id}
+                className={`seat${isRival ? ' seat-rival' : ' seat-mine'}`}
+                style={{ ['--a' as string]: `${angle}deg` }}
+              >
+                <div className="seat-inner" style={{ ['--scale' as string]: active ? '1.06' : '1' }}>
                   <article
                     className={`seat-panel${active ? ' active' : ''}${isRival ? ' rival' : ''}`}
                     data-player={p.id}
@@ -226,15 +231,42 @@ export function Board() {
 
       {!finished && (
         <>
-          <div className="actions table-actions">
-            <button className="primary" disabled={busy || !myTurn} onClick={draw}>
-              Sacar carta
+          <div className="action-bar" role="group" aria-label="Acciones de turno">
+            <button
+              type="button"
+              className="act act-draw"
+              disabled={busy || !myTurn || state.deckRemaining === 0}
+              onClick={draw}
+              title={
+                state.deckRemaining === 0
+                  ? 'Mazo vacío: plantate para pasar el turno'
+                  : 'Sacar una carta del mazo'
+              }
+            >
+              <span className="act-icon" aria-hidden="true">
+                +
+              </span>
+              <span className="act-label">Pedir</span>
             </button>
             <button
-              className={stealing ? 'primary' : 'ghost'}
+              type="button"
+              className="act act-stand"
+              disabled={busy || !myTurn}
+              onClick={() => id && act(() => api.stand(id, meId))}
+              title="Plantarse: pasar el turno"
+            >
+              <span className="act-icon" aria-hidden="true">
+                −
+              </span>
+              <span className="act-label">Plantarse</span>
+            </button>
+            <button
+              type="button"
+              className={`act act-steal${stealing ? ' armed' : ''}`}
               disabled={busy || !myTurn || stealValue == null || !hasStealTarget}
               onClick={() => setRobbing((r) => !r)}
               aria-pressed={stealing}
+              aria-label={stealValue != null ? `Robar los ${stealValue}` : 'Robar'}
               title={
                 stealValue == null
                   ? 'Primero sacá una carta'
@@ -243,17 +275,42 @@ export function Board() {
                     : `Robar los ${stealValue} ajenos`
               }
             >
-              {stealing ? 'Cancelar robo' : `Robar ${stealValue ?? ''}`}
+              <span className="act-icon" aria-hidden="true">
+                {/* SVG en vez de 🥷: U+1F977 no existe en fuentes emoji viejas
+                    (Windows 10) y aparece como cuadrado vacío. */}
+                <svg viewBox="0 0 32 32" className="ninja-svg">
+                  <path
+                    d="M16 4.5c6 0 10 3.9 10 9v4.1c0 5.2-4.4 8.4-10 8.4s-10-3.2-10-8.4V13.5c0-5.1 4-9 10-9Z"
+                    fill="oklch(0.14 0.05 292)"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M7.5 13.8c2.5-1.4 5.2-2.1 8.5-2.1s6 .7 8.5 2.1v3.4c-2.5 1.3-5.2 2-8.5 2s-6-.7-8.5-2Z"
+                    fill="var(--parchment)"
+                  />
+                  <ellipse cx="12.7" cy="15.5" rx="1.55" ry="1.85" fill="oklch(0.14 0.05 292)" />
+                  <ellipse cx="19.3" cy="15.5" rx="1.55" ry="1.85" fill="oklch(0.14 0.05 292)" />
+                </svg>
+              </span>
+              <span className="act-label">{stealing ? 'Cancelar' : 'Robar'}</span>
             </button>
-            <button className="ghost" disabled={busy || !myTurn} onClick={() => id && act(() => api.stash(id, meId))}>
-              Guardar pelusas
-            </button>
-            <button className="ghost" disabled={busy || !myTurn} onClick={() => id && act(() => api.stand(id, meId))}>
-              Plantarse
+            <button
+              type="button"
+              className="act act-stash"
+              disabled={busy || !myTurn}
+              onClick={() => id && act(() => api.stash(id, meId))}
+              title="Guardar tus pelusas en el pote"
+            >
+              <span className="act-icon" aria-hidden="true">
+                ★
+              </span>
+              <span className="act-label">Guardar</span>
             </button>
           </div>
           {stealing && (
-            <p className="hint">
+            <p className="hint" role="status">
               Tocá una carta resaltada: solo se roban los {stealValue}s de la última carta que sacaste.
             </p>
           )}
