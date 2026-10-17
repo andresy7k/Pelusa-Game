@@ -18,17 +18,17 @@
 }
 
 .card[data-v='3'] {
-  --c-bg: #f2a48f;
-  --c-bg2: #e89580;
-  --c-accent: #c0452e;
-  --c-monster: #e0715c;
+  --c-bg: #e08a5c;
+  --c-bg2: #d07a4c;
+  --c-accent: #d9332f;
+  --c-monster: #d93a30;
 }
 
 .card[data-v='4'] {
   --c-bg: #b78fd0;
   --c-bg2: #a97cc4;
   --c-accent: #7a3e9e;
-  --c-monster: #9256b5;
+  --c-monster: #a83b90;
 }
 
 .card[data-v='5'] {
@@ -39,10 +39,10 @@
 }
 
 .card[data-v='6'] {
-  --c-bg: #cbd96a;
-  --c-bg2: #bacb55;
-  --c-accent: #6e8e1e;
-  --c-monster: #a9bc3e;
+  --c-bg: #efa23f;
+  --c-bg2: #df9432;
+  --c-accent: #e87830;
+  --c-monster: #f08a2e;
 }
 
 .card[data-v='7'] {
@@ -53,10 +53,10 @@
 }
 
 .card[data-v='8'] {
-  --c-bg: #f2a45c;
-  --c-bg2: #e9964c;
-  --c-accent: #c96a16;
-  --c-monster: #e8823a;
+  --c-bg: #7a79d0;
+  --c-bg2: #6a69b8;
+  --c-accent: #33368c;
+  --c-monster: #2e2e6e;
 }
 
 .card[data-v='9'] {
