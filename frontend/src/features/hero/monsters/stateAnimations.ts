@@ -135,8 +135,10 @@ function startBlink(key: THREE.Group, face: FaceHandle): void {
   blink()
 }
 
-// Reposo: mirada arriba + balanceo suave + parpadeo. No toca position.y (es
-// del bob de Character) ni rotation.y más que con el sway propio.
+// Reposo: mirada arriba + balanceo suave + parpadeo. Repone y a 0: un special
+// mata la entrada `active()` a mitad del aterrizaje y, como el bob de
+// Character se apaga al salir de idle, nadie más devolvía la figurita a los
+// pies (quedaba flotando ~10-30 px). rotation.y solo lo toca el sway propio.
 function idle(handle: StateAnimHandle, value: HeroValue, quality: FurQuality): void {
   const { inner, face } = handle
   if (!inner || !face) return
@@ -145,7 +147,7 @@ function idle(handle: StateAnimHandle, value: HeroValue, quality: FurQuality): v
   inner.rotation.y = inner.rotation.y % (Math.PI * 2)
   const lookUp = lookUpOf(value)
   const pupils = face.pupils.map((p) => p.position)
-  gsap.to(inner.position, { x: 0, z: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
+  gsap.to(inner.position, { x: 0, y: 0, z: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
   gsap.to(inner.rotation, { x: 0, z: 0, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
   gsap.to(inner.scale, { x: 1, y: 1, z: 1, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
   gsap.to(face.mouth.scale, { x: 1, y: 1, z: 1, duration: 0.4, overwrite: 'auto' })

@@ -252,10 +252,15 @@ export function HeroCarousel({
         {HERO.order.map((v, i) => {
           const off = ringOffset(i, center, n)
           const abs = Math.abs(off)
-          // 1.15 activa · 1 vecinas · 0.82 a ±2 · 0.6 lejanas
-          const scale = off === 0 ? 1.15 : abs === 1 ? 1 : abs === 2 ? 0.82 : 0.6
-          const lift = off === 0 ? -40 : 0 // elevación en px de la activa
+          // 1.42 activa · 1.2 vecinas · 1.0 a ±2 · 0.75 lejanas (cartas más
+          // grandes que el diseño original de 1.15/1/0.82: el rectángulo y su
+          // canto 3D ganan presencia).
+          const scale = off === 0 ? 1.42 : abs === 1 ? 1.2 : abs === 2 ? 1.0 : 0.75
+          const lift = off === 0 ? -36 : 0 // elevación en px de la activa
           const rot = abs === 1 ? Math.sign(off) * 3 : abs === 2 ? Math.sign(off) * 6 : 0
+          // Giro 3D de las laterales: borde interior hacia el frente (las
+          // cartas viven en un anillo; la activa queda plana).
+          const rotY = abs === 1 ? Math.sign(off) * 12 : abs === 2 ? Math.sign(off) * 22 : 0
           const op = off === 0 ? 1 : abs === 1 ? 0.8 : abs === 2 ? 0.38 : 0
           const active = off === 0
           return (
@@ -272,6 +277,7 @@ export function HeroCarousel({
                 ['--hc-scale' as string]: scale,
                 ['--hc-lift' as string]: lift,
                 ['--hc-rot' as string]: rot,
+                ['--hc-rot-y' as string]: rotY,
                 ['--hc-op' as string]: op,
                 ['--hc-z' as string]: 100 - abs,
               }}

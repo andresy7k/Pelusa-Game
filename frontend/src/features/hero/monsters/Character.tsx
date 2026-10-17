@@ -7,7 +7,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { HERO, type HeroValue } from '../config'
-import { makeBlobGeometry } from './geometry'
+import { makeBlobGeometry, surfaceZ } from './geometry'
 import { FurMesh, type FurQuality } from './furMaterial'
 import { StickerOutline } from './outline'
 import { disposeFace, makeFace, type FaceHandle } from './faces'
@@ -55,10 +55,25 @@ export const Character = forwardRef<CharacterHandle, CharacterProps>(function Ch
   // apéndices y special (el special lo anima T6; acá solo se guarda).
   const spec = HERO.monsters[value]
   const color = HERO.cards[value].monster
-  // Geometría por valor (memoizada por valor, como en T4).
-  const geo = useMemo(() => makeBlobGeometry(spec.seed, spec.scale), [value])
-  const face = useMemo(() => makeFace(spec.face), [spec])
+  // Geometría por valor (memoizada por valor, como en T4): una lente cuyo
+  // contorno frontal calca el `d` del monstruo pintado (CAMINOS).
+  const geo = useMemo(() => makeBlobGeometry(value), [value])
+  const face = useMemo(() => makeFace(spec.face, (x, y) => surfaceZ(value, x, y)), [spec, value])
   faceRef.current = face
+
+  // Cuerpo liso (babosa 7, `pelaje: false`): una malla física con brillo, como
+  // el LOD lite; el resto usa el pelaje por shells.
+  const smoothMat = useMemo(() => {
+    if (spec.pelaje !== false) return null
+    return new THREE.MeshPhysicalMaterial({
+      color,
+      roughness: 0.42,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.4,
+      sheen: 0.5,
+      sheenColor: new THREE.Color('#ffffff'),
+    })
+  }, [spec, color])
 
   // Apéndices con pelaje del color del monstruo (T5): solo el 3/7/10 traen.
   const tailGeo = useMemo(() => {
@@ -92,8 +107,9 @@ export const Character = forwardRef<CharacterHandle, CharacterProps>(function Ch
     tailGeo?.dispose()
     tuftGeo?.dispose()
     hornGeo?.dispose()
+    smoothMat?.dispose()
     disposeFace(face)
-  }, [geo, tailGeo, tuftGeo, hornGeo, face])
+  }, [geo, tailGeo, tuftGeo, hornGeo, smoothMat, face])
 
   // Máquina de estados (T6): delega en stateAnimations (mata los tweens
   // vivos y arranca el nuevo; con reduced-motion resuelve a la pose final).
@@ -134,7 +150,11 @@ export const Character = forwardRef<CharacterHandle, CharacterProps>(function Ch
       {/* Escala global del personaje (T4); las proporciones por monstruo
           viven en la geometría (spec.seed/scale). */}
       <group scale={HERO.character.scale}>
-        <FurMesh geometry={geo} color={color} seed={spec.seed} quality={quality} />
+        {smoothMat ? (
+          <mesh geometry={geo} material={smoothMat} castShadow />
+        ) : (
+          <FurMesh geometry={geo} color={color} seed={spec.seed} quality={quality} />
+        )}
         <StickerOutline geometry={geo} />
         <primitive object={face.group} />
         {tailGeo !== null && (

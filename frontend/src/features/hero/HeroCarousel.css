@@ -19,13 +19,14 @@
   position: absolute;
   inset: 0;
   z-index: 0; /* contiene los z de las ranuras: los dots quedan por encima */
+  perspective: 1000px; /* el giro 3D de las laterales (--hc-rot-y) */
   touch-action: pan-y; /* el swipe horizontal lo maneja el carrusel */
 }
 
 /* Ranura de carta: anclada abajo (las cartas "se apoyan" en la base) y con
    origen en el borde inferior para que el escalado crezca hacia arriba. */
 .hc-slot {
-  --hc-step: clamp(120px, 16vw, 190px);
+  --hc-step: clamp(150px, 17vw, 220px);
   position: absolute;
   left: 50%;
   bottom: 44px;
@@ -36,6 +37,7 @@
   transform:
     translateX(calc(var(--hc-tx) * var(--hc-step)))
     translateY(calc(var(--hc-lift, 0) * 1px))
+    rotateY(calc(var(--hc-rot-y, 0) * 1deg))
     scale(var(--hc-scale))
     rotate(calc(var(--hc-rot) * 1deg));
   transition:

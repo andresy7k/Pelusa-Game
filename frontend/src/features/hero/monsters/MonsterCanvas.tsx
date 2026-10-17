@@ -11,6 +11,7 @@ import { HERO, type HeroValue } from '../config'
 import { ringOffset } from '../HeroCarousel'
 import { readAnchor, trackAnchorsFor } from './anchors'
 import { Character, type CharacterHandle } from './Character'
+import { feetRadius } from './geometry'
 import { Particles } from './Particles'
 import type { FurQuality } from './furMaterial'
 
@@ -223,16 +224,16 @@ function CardMonsters({
     const cam = camera
     const ndc = new THREE.Vector3()
     const world = new THREE.Vector3()
+    // px de pantalla por unidad de mundo sobre el plano de las cartas (z=0),
+    // sin el alto del viewport: zoomFix ya lo cancela en g.scale (proyección:
+    // alto / (2·tan(fov/2)·dist)). Lo usa la composición de los pies.
+    const refPxPerUnit =
+      HERO.character.refHeight /
+      (2 * Math.tan((HERO.camera.fov * Math.PI) / 360) * camera.position.z)
     for (const [v, g] of groups.current) {
       const rect = readAnchor(v)
       if (!rect) continue
       const px = rect.x + rect.w / 2
-      const py = rect.y + rect.h * 0.62 // los pies, un poco sobre el borde inferior
-      // NDC → mundo sobre el plano z=0 (cámara mirando al origen).
-      ndc.set((px / size.width) * 2 - 1, -(py / size.height) * 2 + 1, 0.5)
-      ndc.unproject(cam)
-      const dir = ndc.sub(cam.position).normalize()
-      world.copy(cam.position).addScaledVector(dir, -cam.position.z / dir.z)
 
       // Presencia: 1 en el anillo cercano, 0 al salir (suavizado exponencial
       // con snap: sin esto `next` nunca llega exacto y la activa queda para
@@ -246,14 +247,28 @@ function CardMonsters({
       presence.current.set(v, next)
 
       const base = rect.w / 76 // 76px = ancho de diseño; el rect YA incluye
-      // el scale CSS (la activa mide 76*1.15) — no reescalar
+      // el scale CSS de la ranura — no reescalar
       // Compensación de zoom: la proyección perspectiva escala con el alto
       // del viewport (px por unidad = alto / (2·tan(fov/2)·dist)), así que a
       // 50 % o 200 % de zoom el monstruo no acompañaba a su carta (ancho CSS
       // fijo): refHeight/alto lo mantiene a tamaño CSS constante.
       const zoomFix = HERO.character.refHeight / Math.max(size.height, 1)
+      const pop = POP_SCALE + (1 - POP_SCALE) * next
+      // Composición: los pies de la figurita apoyados sobre la parte baja de
+      // la carta (el centro queda un radio por encima). El radio sale de la
+      // geometría real (feetRadius espeja el polo inferior del mesh) y el pop
+      // de entrada también ancla los pies: el centro baja a medida que crece.
+      const spec = HERO.monsters[v]
+      const rYpx = feetRadius(spec.scale, spec.silhouette) * HERO.character.scale * base * refPxPerUnit * pop
+      const py = rect.y + rect.h - 4 - rYpx
+      // NDC → mundo sobre el plano z=0 (cámara mirando al origen).
+      ndc.set((px / size.width) * 2 - 1, -(py / size.height) * 2 + 1, 0.5)
+      ndc.unproject(cam)
+      const dir = ndc.sub(cam.position).normalize()
+      world.copy(cam.position).addScaledVector(dir, -cam.position.z / dir.z)
+
       g.position.set(world.x, world.y, 0)
-      g.scale.setScalar(base * zoomFix * (POP_SCALE + (1 - POP_SCALE) * next))
+      g.scale.setScalar(base * zoomFix * pop)
       const op = PRESENCE_OP[Math.min(Math.abs(off), PRESENCE_OP.length - 1)] * next
       // setGroupOpacity recorre todo el subárbol (~100 materiales): solo si
       // el valor cambió de verdad. En régimen queda fijo y no se toca más.
