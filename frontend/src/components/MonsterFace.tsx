@@ -6,6 +6,7 @@
 // blanco: sobreescribe el stroke de `.monster-body` y `.monster-eye` desde
 // card.css.
 import { useId, type ReactNode } from 'react'
+import { CAMINOS } from './monsterPaths'
 
 const TINTA = '#26303A'
 const LENGUA = '#E9819C'
@@ -18,44 +19,8 @@ const cuerpo = {
   strokeLinejoin: 'round',
 } as const
 
-// Silueta esponjosa: óvalo con lóbulos redondeados (la "pelusa" del cuerpo).
-// `ondas` = cantidad de lóbulos; `amp` = cuánto sobresale cada lóbulo.
-function pelusa(cx: number, cy: number, rx: number, ry: number, ondas: number, amp: number): string {
-  const pt = (i: number): [number, number] => {
-    const a = (i / ondas) * Math.PI * 2 - Math.PI / 2
-    return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]
-  }
-  const [x0, y0] = pt(0)
-  let d = `M ${x0.toFixed(1)} ${y0.toFixed(1)}`
-  for (let i = 0; i < ondas; i++) {
-    const a = pt(i)
-    const b = pt(i + 1)
-    const mx = (a[0] + b[0]) / 2
-    const my = (a[1] + b[1]) / 2
-    const dx = mx - cx
-    const dy = my - cy
-    const len = Math.hypot(dx, dy) || 1
-    d += ` Q ${(mx + (dx / len) * amp).toFixed(1)} ${(my + (dy / len) * amp).toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`
-  }
-  return `${d} Z`
-}
-
-// Silueta con picos (mango del 5, erizo del 9): radios alternados; el
-// `stroke-linejoin: round` del cuerpo redondea las puntas.
-function picos(cx: number, cy: number, rx: number, ry: number, puntas: number, base: number): string {
-  const pt = (i: number): [number, number] => {
-    const a = (i / (puntas * 2)) * Math.PI * 2 - Math.PI / 2
-    const f = i % 2 === 0 ? 1 : base
-    return [cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f]
-  }
-  const [x0, y0] = pt(0)
-  let d = `M ${x0.toFixed(1)} ${y0.toFixed(1)}`
-  for (let i = 1; i <= puntas * 2; i++) {
-    const p = pt(i)
-    d += ` L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`
-  }
-  return `${d} Z`
-}
+// Los contornos de cuerpo viven en CAMINOS (monsterPaths.ts): fuente única
+// compartida con la geometría 3D, para que ambas siluetas sean el mismo `d`.
 
 // Ojo clásico: esclerótica blanca, pupila tinta y chispa.
 function Ojo({ cx, cy, r, dx = 0, dy = 0 }: { cx: number; cy: number; r: number; dx?: number; dy?: number }) {
@@ -137,7 +102,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 1:
       // Pelota azul esponjosa, un ojo grande y sonrisita.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 55, 38, 36, 9, 12)} gloss={[35, 26, 15, 5]} shade={[50, 87, 30, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[1]} gloss={[35, 26, 15, 5]} shade={[50, 87, 30, 9]}>
           <Ojo cx={50} cy={47} r={16} dx={2.5} dy={2} />
           <path d="M 41 68 Q 50 76 59 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
         </Lienzo>
@@ -145,7 +110,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 2:
       // Blob morado ancho y bajito: dos ojos juntos somnolientos y bocota.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 60, 43, 30, 8, 12)} gloss={[31, 35, 14, 4.5]} shade={[50, 84.5, 34, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[2]} gloss={[31, 35, 14, 4.5]} shade={[50, 84.5, 34, 8]}>
           <OjoDormido cx={42} cy={52} r={8.5} />
           <OjoDormido cx={58} cy={52} r={8.5} />
           <path d="M 32 65 Q 50 61 68 65 Q 66 79 50 79 Q 34 79 32 65 Z" fill={TINTA} />
@@ -155,7 +120,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 3:
       // Montículo rojo esponjoso: dos ojos grandes y sonrisita.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 56, 36, 34, 10, 11)} gloss={[33, 28, 14, 4.5]} shade={[50, 85, 30, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[3]} gloss={[33, 28, 14, 4.5]} shade={[50, 85, 30, 9]}>
           <Ojo cx={38} cy={47} r={11} dx={1.5} dy={1.5} />
           <Ojo cx={62} cy={47} r={11} dx={-1.5} dy={1.5} />
           <path d="M 42 68 Q 50 75 58 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
@@ -164,7 +129,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 4:
       // Bola ciruela MUY peluda: un ojo cíclope y sonrisa pícara.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 54, 37, 38, 13, 10)} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 28, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[4]} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 28, 9]}>
           <Ojo cx={50} cy={46} r={15.5} dx={2} dy={1} />
           <path d="M 40 66 Q 52 75 63 63" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
         </Lienzo>
@@ -172,7 +137,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 5:
       // Mango verde con picos: un ojo grande y boca abierta con lengua roja.
       return (
-        <Lienzo uid={uid} className={className} d={picos(50, 55, 40, 39, 9, 0.78)} gloss={[33, 26, 12, 4]} shade={[50, 86, 27, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[5]} gloss={[33, 26, 12, 4]} shade={[50, 86, 27, 8]}>
           <Ojo cx={47} cy={43} r={15} dx={2} dy={2} />
           <path d="M 33 61 Q 50 56 67 61 Q 65 80 50 80 Q 35 80 33 61 Z" fill={TINTA} />
           <ellipse cx="50" cy="76" rx="9" ry="4.5" fill={LENGUA} />
@@ -181,7 +146,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 6:
       // Montículo anaranjado ancho: ojos caídos de sueño y boca con 2 colmillos.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 60, 43, 31, 9, 13)} gloss={[31, 34, 14, 4.5]} shade={[50, 85, 34, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[6]} gloss={[31, 34, 14, 4.5]} shade={[50, 85, 34, 8]}>
           <OjoDormido cx={40} cy={51} r={9} />
           <OjoDormido cx={60} cy={51} r={9} />
           <path d="M 27 64 Q 50 59 73 64 Q 71 81 50 81 Q 29 81 27 64 Z" fill={TINTA} />
@@ -195,7 +160,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
         <Lienzo
           uid={uid}
           className={className}
-          d="M 15 79 L 15 50 Q 15 18 50 18 Q 85 18 85 50 L 85 79 Q 73 71 61.5 79 Q 50 87 38.5 79 Q 27 71 15 79 Z"
+          d={CAMINOS[7]}
           gloss={[36, 29, 14, 4.5]}
           shade={[50, 80, 30, 7]}
         >
@@ -208,7 +173,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 8:
       // Torre azul marino peluda: un ojo grande y boca plana.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 52, 29, 40, 10, 11)} gloss={[40, 24, 10, 4]} shade={[50, 88, 22, 7]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[8]} gloss={[40, 24, 10, 4]} shade={[50, 88, 22, 7]}>
           <Ojo cx={50} cy={44} r={14} dy={1} />
           <path d="M 39 68 Q 50 71 61 68" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
         </Lienzo>
@@ -216,7 +181,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 9:
       // Erizo turquesa: dos ojos (el derecho con anillo) y sonrisa con colmillo.
       return (
-        <Lienzo uid={uid} className={className} d={picos(50, 56, 41, 38, 10, 0.8)} gloss={[32, 27, 12, 4]} shade={[50, 87, 27, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[9]} gloss={[32, 27, 12, 4]} shade={[50, 87, 27, 8]}>
           <Ojo cx={38} cy={47} r={10.5} dx={1.5} dy={1.5} />
           <circle className="monster-eye" cx={63} cy={49} r={8} fill="#fff" />
           <circle cx="64" cy="50" r="3.4" fill={TINTA} />
@@ -229,7 +194,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 10:
       // Pelusa rosa MUY peluda: dos ojos y bocaza enorme gritando.
       return (
-        <Lienzo uid={uid} className={className} d={pelusa(50, 55, 39, 38, 13, 10)} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 30, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[10]} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 30, 9]}>
           <Ojo cx={39} cy={35} r={9} dx={1.5} dy={2} />
           <Ojo cx={61} cy={35} r={9} dx={-1.5} dy={2} />
           <path d="M 26 53 Q 50 45 74 53 Q 78 73 50 87 Q 22 73 26 53 Z" fill={TINTA} />

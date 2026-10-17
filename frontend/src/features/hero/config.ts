@@ -21,25 +21,52 @@ export interface CardDesign {
 }
 
 /** Cara paramétrica de un monstruo (la construye faces.ts; T5 la embebe en
- *  MonsterDesign). Medidas en unidades del cuerpo (radio 1, frente z≈0.86):
- *  `size` = radio del ojo; `lookUp` = cuánto mira arriba la pupila, como
+ *  MonsterDesign). Medidas en unidades del cuerpo (radio 1, frente z≈0.95):
+ *  `size` = radio del ojo; `sizeSecond` = radio del segundo ojo (p. ej. el 9,
+ *  que los tiene dispares); `lookUp` = cuánto mira arriba la pupila, como
  *  fracción del radio del ojo; `sleepy` = párpado superior (0..1); `sides` =
  *  ojos afuera del cuerpo (monstruos anchos); `ring` = color del ojo (por
- *  defecto blanco); `white` = fuerza el blanco. */
+ *  defecto blanco); `ringEye` = limita el anillo a un solo ojo (el 9 lo lleva
+ *  solo en el derecho); `white` = fuerza el blanco. */
 export interface FaceSpec {
-  eyes: { count: 1 | 2; size: number; lookUp?: number; sides?: boolean; sleepy?: number; ring?: string; white?: boolean }
-  mouth: 'o' | 'tinySmile' | 'tinyOpen' | 'wideSmile' | 'bigSmile' | 'crookedTooth' | 'grinTeeth2' | 'fangs' | 'openTeeth' | 'neutral'
+  eyes: {
+    count: 1 | 2
+    size: number
+    sizeSecond?: number
+    lookUp?: number
+    sides?: boolean
+    sleepy?: number
+    ring?: string
+    ringEye?: 'first' | 'second'
+    white?: boolean
+  }
+  mouth: 'o' | 'tinySmile' | 'tinyOpen' | 'wideSmile' | 'bigSmile' | 'crookedTooth' | 'smirk' | 'grinTeeth2' | 'fangs' | 'openTeeth' | 'shout' | 'neutral'
   tongue?: string
   mouthInner?: string
 }
 
+/** Silueta 3D calcada del dibujo pintado (biblia):
+ *  `lobes` = lóbulos redondeados de pelusa alrededor del ecuador (los mismos
+ *  `ondas`/`amp` del SVG); `picos` = dientes alternados (mango del 5, erizo
+ *  del 9; `base` = radio del valle, 0..1); `smooth` = liso con base
+ *  aplastada (la babosa 7, sin pelaje). */
+export type MonsterSilhouette =
+  | { tipo: 'lobes'; ondas: number; amp: number }
+  | { tipo: 'picos'; puntas: number; base: number }
+  | { tipo: 'smooth' }
+
 /** Diseño de un monstruo del carrusel (T5): semilla y proporciones del blob
- *  (van a `makeBlobGeometry`), cara paramétrica (la consume `faces.ts`),
- *  apéndices con pelaje (los monta `Character.tsx`) y el efecto `special`
- *  (lo anima T6; en T5 solo se guarda el dato). */
+ *  (van a `makeBlobGeometry`), silueta (lóbulos/picos/liso, calcada del
+ *  dibujo), cara paramétrica (la consume `faces.ts`), apéndices con pelaje
+ *  (los monta `Character.tsx`) y el efecto `special` (lo anima T6; en T5 solo
+ *  se guarda el dato). */
 export interface MonsterDesign {
   seed: number
   scale: [number, number, number]
+  /** Silueta 3D de la biblia (geometry.ts) */
+  silhouette: MonsterSilhouette
+  /** `false` = cuerpo liso sin pelaje (la babosa 7). Por defecto true. */
+  pelaje?: boolean
   /** Cara paramétrica (la misma interfaz FaceSpec que consume faces.ts) */
   face: FaceSpec
   appendages: Array<'tailLeft' | 'tufts' | 'horns'>
@@ -129,19 +156,21 @@ export const HERO: HeroConfig = {
     rim: { position: [4, 2, -4], color: '#C026D3', intensity: 1.4 },
   },
   character: { scale: 0.35, refHeight: 768 },
-  // Los 10 monstruos calibrados contra la biblia del spec §5 (T5): semilla y
-  // proporciones del blob, cara paramétrica, apéndices y special (T6).
+  // Los 10 monstruos calibrados contra la biblia (docs/superpowers/specs/
+  // 2026-10-16-monstruos-referencia.md): proporciones del blob derivadas de
+  // las siluetas del dibujo (rx/ry del viewBox), silueta 3D (lóbulos/picos/
+  // liso), cara paramétrica 1:1 con la pintada, apéndices y special (T6).
   monsters: {
-    1: { seed: 11, scale: [1.0, 1.0, 1.0], face: { eyes: { count: 1, size: 0.34, lookUp: 0.35 }, mouth: 'o' }, appendages: [], special: 'bounce' },
-    2: { seed: 22, scale: [1.18, 0.72, 1.0], face: { eyes: { count: 2, size: 0.24, sleepy: 0.7, ring: '#7BC86C' }, mouth: 'wideSmile', tongue: '#F4D420' }, appendages: [], special: 'puff' },
-    3: { seed: 33, scale: [1.05, 0.6, 1.0], face: { eyes: { count: 2, size: 0.2, lookUp: 0.45 }, mouth: 'tinySmile' }, appendages: ['tailLeft'], special: 'spring' },
-    4: { seed: 44, scale: [0.95, 1.08, 1.0], face: { eyes: { count: 1, size: 0.36, ring: '#E8C84A' }, mouth: 'fangs' }, appendages: [], special: 'roar' },
-    5: { seed: 55, scale: [1.0, 1.0, 1.0], face: { eyes: { count: 1, size: 0.34, ring: '#D7E84A' }, mouth: 'crookedTooth' }, appendages: [], special: 'shake' },
-    6: { seed: 66, scale: [1.22, 0.68, 1.0], face: { eyes: { count: 2, size: 0.16, sleepy: 0.45 }, mouth: 'grinTeeth2' }, appendages: [], special: 'laugh' },
-    7: { seed: 77, scale: [1.0, 1.05, 1.0], face: { eyes: { count: 2, size: 0.15, lookUp: 0.5 }, mouth: 'bigSmile', tongue: '#F06292' }, appendages: ['tufts'], special: 'confetti' },
-    8: { seed: 88, scale: [1.12, 0.8, 1.0], face: { eyes: { count: 1, size: 0.4, white: true }, mouth: 'neutral' }, appendages: [], special: 'pulse' },
-    9: { seed: 99, scale: [1.26, 0.62, 1.0], face: { eyes: { count: 2, size: 0.28, sides: true, ring: '#F2D33C' }, mouth: 'tinyOpen' }, appendages: [], special: 'dance' },
-    10: { seed: 101, scale: [1.0, 0.9, 1.0], face: { eyes: { count: 2, size: 0.18, lookUp: 0.3 }, mouth: 'openTeeth', mouthInner: '#3E7BD6' }, appendages: ['horns'], special: 'stars' },
+    1: { seed: 11, scale: [0.88, 0.84, 1.0], silhouette: { tipo: 'lobes', ondas: 9, amp: 0.16 }, face: { eyes: { count: 1, size: 0.36, lookUp: 0.15 }, mouth: 'tinySmile' }, appendages: [], special: 'bounce' },
+    2: { seed: 22, scale: [1.0, 0.7, 1.0], silhouette: { tipo: 'lobes', ondas: 8, amp: 0.14 }, face: { eyes: { count: 2, size: 0.22, sleepy: 0.7 }, mouth: 'wideSmile', tongue: '#F4D420' }, appendages: [], special: 'puff' },
+    3: { seed: 33, scale: [0.84, 0.79, 1.0], silhouette: { tipo: 'lobes', ondas: 10, amp: 0.14 }, face: { eyes: { count: 2, size: 0.3, lookUp: 0.15 }, mouth: 'tinySmile' }, appendages: [], special: 'spring' },
+    4: { seed: 44, scale: [0.86, 0.88, 1.0], silhouette: { tipo: 'lobes', ondas: 13, amp: 0.12 }, face: { eyes: { count: 1, size: 0.4, lookUp: 0.1 }, mouth: 'smirk' }, appendages: [], special: 'roar' },
+    5: { seed: 55, scale: [0.93, 0.91, 1.0], silhouette: { tipo: 'picos', puntas: 9, base: 0.72 }, face: { eyes: { count: 1, size: 0.36, lookUp: 0.15 }, mouth: 'bigSmile', tongue: '#E9819C' }, appendages: [], special: 'shake' },
+    6: { seed: 66, scale: [1.0, 0.72, 1.0], silhouette: { tipo: 'lobes', ondas: 9, amp: 0.15 }, face: { eyes: { count: 2, size: 0.2, sleepy: 0.6 }, mouth: 'fangs' }, appendages: [], special: 'laugh' },
+    7: { seed: 77, scale: [0.98, 0.8, 1.0], silhouette: { tipo: 'smooth' }, pelaje: false, face: { eyes: { count: 2, size: 0.18, lookUp: 0.2 }, mouth: 'bigSmile', tongue: '#E9819C' }, appendages: [], special: 'confetti' },
+    8: { seed: 88, scale: [0.67, 0.93, 1.0], silhouette: { tipo: 'lobes', ondas: 10, amp: 0.13 }, face: { eyes: { count: 1, size: 0.42, lookUp: 0.1 }, mouth: 'neutral' }, appendages: [], special: 'pulse' },
+    9: { seed: 99, scale: [0.95, 0.88, 1.0], silhouette: { tipo: 'picos', puntas: 12, base: 0.72 }, face: { eyes: { count: 2, size: 0.24, ring: '#F2D33C', ringEye: 'second' }, mouth: 'crookedTooth' }, appendages: [], special: 'dance' },
+    10: { seed: 101, scale: [0.91, 0.88, 1.0], silhouette: { tipo: 'lobes', ondas: 13, amp: 0.12 }, face: { eyes: { count: 2, size: 0.22, lookUp: 0.15 }, mouth: 'shout', tongue: '#E9819C' }, appendages: [], special: 'stars' },
   },
   copy: {
     badgeGold: 'UN JUEGO DE MESA',
