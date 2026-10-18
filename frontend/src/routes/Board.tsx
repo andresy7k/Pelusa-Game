@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
+import { TableCanvasR3F } from '../features/mesa3d/TableCanvasR3F';
+import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
 
 // Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
 // es "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado
 // opuesto, siempre cerca y nítidos (vista fija, sin cámara que girar). El
 // "Turno de X" va en texto plano arriba a la izquierda (sin recuadro). El
 // backend decide; hotseat = la UI actúa como el jugador del turno.
+// Vista 3D (?vista=3d): canvas R3F con mesa + salón + cámara libre + cartas
+// (paso 5). El estado del juego se pasa como vista RESUMIDA (mazo, frentes,
+// turno, valor robable); las reglas y mutaciones siguen acá igual que en 2D.
 
 // Arco de rivales: grados sobre la mesa (0 = frente, 180 = tú).
 const ARC_DEG = 150;
@@ -19,6 +24,13 @@ const ARC_HALF = ARC_DEG / 2;
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
+  // Vista 3D del paso 2: ?vista=3d la activa y ?cam= elige la vista fija.
+  const [search, setSearch] = useSearchParams();
+  const vista3d = search.get('vista') === '3d';
+  const camRaw = search.get('cam') ?? 'seat';
+  const cam: MesaCameraPreset = MESA_CAMERA_PRESETS.includes(camRaw as MesaCameraPreset)
+    ? (camRaw as MesaCameraPreset)
+    : 'seat';
   const [robbing, setRobbing] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const flightSeq = useRef(0);
@@ -51,6 +63,16 @@ export function Board() {
     const ri = rivals.findIndex((p) => p.id === playerId);
     if (rivals.length <= 1) return 0;
     return -ARC_HALF + (ARC_DEG * ri) / (rivals.length - 1);
+  }
+
+  // Alterna vista clásica (2D) ↔ vista 3D del paso 2. Temporal: el toggle
+  // definitivo vive en el grupo de cámara (pasos 4/8).
+  function toggleVista() {
+    const next = new URLSearchParams(search);
+    if (vista3d) next.delete('vista');
+    else next.set('vista', '3d');
+    next.delete('cam');
+    setSearch(next);
   }
 
   function addFlight(from: FlightPoint, to: FlightPoint, value: number, delay: number) {
@@ -168,6 +190,31 @@ export function Board() {
           </div>
         )}
 
+        {vista3d ? (
+          <TableCanvasR3F
+            seatCount={state.players.length}
+            cam={cam}
+            canAct={myTurn && !busy}
+            onDraw={() => {
+              void draw()
+            }}
+            onSteal={(v) => {
+              void doSteal(v)
+            }}
+            game={{
+              deckCount: state.deckRemaining,
+              lastDrawnValue: state.lastDrawnValue,
+              stealValue: stealing ? stealValue : null,
+              seats: [...state.players]
+                .sort((a, b) => a.seat - b.seat)
+                .map((p) => ({
+                  seat: p.seat,
+                  isTurn: p.id === meId && !finished,
+                  values: state.fronts[p.id] ?? [],
+                })),
+            }}
+          />
+        ) : (
         <div className="table-felt">
           <div className="felt-disc" aria-hidden="true" />
 
@@ -227,6 +274,11 @@ export function Board() {
             );
           })}
         </div>
+        )}
+
+        <button type="button" className="vista-toggle" onClick={toggleVista}>
+          {vista3d ? 'Vista clásica' : 'Vista 3D · WIP'}
+        </button>
       </div>
 
       {!finished && (
