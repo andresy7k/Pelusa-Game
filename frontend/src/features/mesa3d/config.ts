@@ -66,13 +66,16 @@ export const MESA3D = {
     size: { w: 0.15, h: 0.21, t: 0.0085, cornerR: 0.018 },
     baseY: 0.0095, // altura de reposo (fieltro en 0.004 + medio grosor)
     deck: {
-      maxPile: 26, // tope visual de cartas apiladas (la altura sigue al conteo)
+      total: 110, // mazo completo (13× valores 1-5 + 9× valores 6-10, DeckFactory)
+      maxPile: 26, // cartas visibles del montón (la pileza baja con el conteo)
       step: 0.0105, // separación entre cartas del mazo
-      maxStack: 0.3, // altura máxima del montón (mazos largos se comprimen)
       jitterXZ: 0.013,
       rotJitter: 0.09,
+      /** Chip flotante con las cartas restantes (paridad con .deck-count 2D). */
+      countChip: { x: -0.3, y: 0.13, z: 0.16 },
     },
-    lastCard: { x: 0.42, z: 0.4, rot: 0.14 }, // carta sacada, junto al mazo
+    /** Vuelo mazo→jugador en 3D (espejo del FlightLayer 2D: 0.55s inOut). */
+    flight: { dur: 0.55, lift: 0.36 },
     fronts: {
       perRow: 4, // filas de a 4 con leve solape (nunca pila)
       spacing: 0.115,
@@ -102,6 +105,9 @@ export const MESA3D = {
     roster: [1, 2, 3, 4, 5, 6],
     quality: 'lite',
     host: { monster: 10, x: -0.62, z: -0.05, rot: 0.35, scale: 0.5 },
+    /** Chapa de nombre (sprite con canvas) flotando sobre cada sentado;
+     *  lift 0.18 libre para pelos/cuernos de los monstruos. */
+    namePlate: { h: 0.14, lift: 0.18 },
   },
   /** Sala cerrada (paso 3): tapiz, alfombra, friso, columnas, cuadros y
    *  apliques. Ángulos en radianes (0 = +x; el fondo de la escena es -z). */

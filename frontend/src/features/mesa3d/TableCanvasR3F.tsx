@@ -12,10 +12,10 @@ import { buildFeltTexture } from './feltTexture'
 import { Table3D } from './Table3D'
 import { Lamp3D } from './Lamp3D'
 import { Room3D } from './Room3D'
-import { Cards3D, type MesaGameView } from './Cards3D'
+import { Cards3D, type MesaFlight, type MesaGameView } from './Cards3D'
 import { Seats3D } from './Seats3D'
 
-export type { MesaGameView, MesaSeatView } from './Cards3D'
+export type { MesaFlight, MesaGameView, MesaSeatView } from './Cards3D'
 
 const CAMERA = { fov: MESA3D.camera.fov, near: MESA3D.camera.near, far: MESA3D.camera.far }
 
@@ -46,6 +46,8 @@ export interface TableCanvasR3FProps {
   cam?: MesaCameraPreset
   /** Estado resumido del juego (paso 5: cartas); opcional para previews. */
   game?: MesaGameView
+  /** Carta en vuelo mazo→jugador (Board lo dispara y limpia al aterrizar). */
+  flight?: MesaFlight | null
   /** Click en el mazo 3D (solo si `canAct`; Board revalida igual). */
   onDraw?: () => void
   /** Click en una carta rival resaltada en modo robo. */
@@ -54,7 +56,15 @@ export interface TableCanvasR3FProps {
   canAct?: boolean
 }
 
-export function TableCanvasR3F({ seatCount, cam = 'seat', game, onDraw, onSteal, canAct = false }: TableCanvasR3FProps) {
+export function TableCanvasR3F({
+  seatCount,
+  cam = 'seat',
+  game,
+  flight = null,
+  onDraw,
+  onSteal,
+  canAct = false,
+}: TableCanvasR3FProps) {
   const [felt, setFelt] = useState<THREE.Texture | null>(null)
   // Vista inicial = la del URL (?cam=), por defecto "Mi asiento": el default
   // definitivo del brief (los jugadores del paso 6 ya ocupan sus sillas).
@@ -93,7 +103,7 @@ export function TableCanvasR3F({ seatCount, cam = 'seat', game, onDraw, onSteal,
           gl.toneMappingExposure = MESA3D.exposure
         }}
       >
-        <Scene cam={activeCam} felt={felt} game={game} onDraw={onDraw} onSteal={onSteal} canAct={canAct} />
+        <Scene cam={activeCam} felt={felt} game={game} flight={flight} onDraw={onDraw} onSteal={onSteal} canAct={canAct} />
       </Canvas>
       <div className="cam-group" role="group" aria-label="Vista de cámara">
         {CAM_BUTTONS.map(([p, label]) => (
@@ -101,6 +111,7 @@ export function TableCanvasR3F({ seatCount, cam = 'seat', game, onDraw, onSteal,
             key={p}
             type="button"
             className={p === activeCam ? 'cam-btn cam-btn--on' : 'cam-btn'}
+            data-cam={p}
             onClick={() => setActiveCam(p)}
           >
             {label}
@@ -115,6 +126,7 @@ function Scene({
   cam,
   felt,
   game,
+  flight,
   onDraw,
   onSteal,
   canAct,
@@ -122,6 +134,7 @@ function Scene({
   cam: MesaCameraPreset
   felt: THREE.Texture | null
   game?: MesaGameView
+  flight?: MesaFlight | null
   onDraw?: () => void
   onSteal?: (value: number) => void
   canAct?: boolean
@@ -156,7 +169,7 @@ function Scene({
       />
       <Room3D />
       <Table3D felt={felt} />
-      {game && <Cards3D game={game} canAct={canAct} onDraw={onDraw} onSteal={onSteal} />}
+      {game && <Cards3D game={game} flight={flight} canAct={canAct} onDraw={onDraw} onSteal={onSteal} />}
       {game && <Seats3D seats={game.seats} />}
       <Lamp3D />
       <CameraRig cam={cam} />
