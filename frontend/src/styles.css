@@ -82,31 +82,68 @@ a {
   padding: var(--s8) var(--s4) var(--s16);
 }
 
+/* Navbar global: COPIA del navbar del home (.hero-nav) — mismo padding y los
+   MISMOS hijos (clases hero-nav__brand/logo/links/pill) para que el look siga
+   al del home al pie de la letra; el FONDO es totalmente transparente (cristal
+   líquido sin placa: solo el blur 18px desenfoca lo que pasa por detrás).
+   Layout de 3 columnas (1fr auto 1fr): nombre del juego EXACTAMENTE centrado,
+   la vuelta a la izquierda y las links a la derecha. --topbar-h = padding 16×2
+   + botón circular 38 = 70px; la ventana de juego pasa por DEBAJO del navbar
+   (margin negativo) y usa esta variable para bajar su HUD de arriba. */
+:root {
+  --topbar-h: 60px;
+}
+
 header.topbar {
   position: sticky;
   top: 0;
   z-index: 60;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: var(--s4) var(--s6);
-  background: oklch(0.1 0.03 290 / 62%);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid oklch(0.6 0.16 300 / 20%);
-}
-
-header.topbar a.brand {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 1.25rem;
-  color: var(--parchment);
-  text-decoration: none;
-}
-
-header.topbar nav {
-  display: flex;
+  height: var(--topbar-h, 70px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: var(--s4);
-  font-size: 0.9rem;
+  padding: var(--s4) var(--s6);
+  /* Cristal líquido totalmente transparente: sin placa ni filo, solo el
+     desenfoque/saturación del fondo (la sala se ve borrosa al pasar por
+     debajo; el contenido del nav queda nítido). */
+  background: transparent;
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+}
+
+/* Vuelta al inicio: mismo botón circular de vidrio que el de sonido del
+   home (copiado tal cual), con una flecha ← en vez de ♪. */
+.topbar-back {
+  justify-self: start;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid oklch(1 0 0 / 16%);
+  border-radius: 50%;
+  background: oklch(1 0 0 / 4%);
+  color: var(--parchment);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    border-color var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out);
+}
+
+.topbar-back:hover {
+  border-color: oklch(1 0 0 / 32%);
+  background: oklch(1 0 0 / 8%);
+  transform: translateY(-1px);
+}
+
+/* Las pills (Nueva / Historial) van a la derecha; su estilo es el del home. */
+header.topbar .hero-nav__links {
+  justify-self: end;
 }
 
 /* Jerarquía de acciones: una primaria, resto secundarias/terciarias */

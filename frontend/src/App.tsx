@@ -12,15 +12,28 @@ function Shell() {
   return (
     <>
       {pathname !== '/' && (
-        <header className="topbar">
-          <Link to="/" className="brand">
-            Pelusas
-          </Link>
-          <nav>
-            <Link to="/setup">Nueva</Link>
-            <Link to="/history">Historial</Link>
-          </nav>
-        </header>
+        <>
+          {/* Navbar global: mismo liquid glass que el home (hijos con las
+              clases hero-nav__*). El nombre queda centrado, la vuelta al
+              inicio a la izquierda y las links a la derecha. */}
+          <header className="topbar">
+            <Link to="/" className="topbar-back" aria-label="Volver al inicio">
+              <span aria-hidden="true">←</span>
+            </Link>
+            <Link to="/" className="hero-nav__brand">
+              <span className="hero-nav__logo" aria-hidden="true" />
+              Pelusas
+            </Link>
+            <nav className="hero-nav__links" aria-label="Principal">
+              <Link className="hero-nav__pill" to="/setup">
+                Nueva
+              </Link>
+              <Link className="hero-nav__pill" to="/history">
+                Historial
+              </Link>
+            </nav>
+          </header>
+        </>
       )}
       <Routes>
         <Route path="/" element={<Home />} />

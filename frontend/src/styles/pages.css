@@ -91,20 +91,15 @@
   transform: rotate(5deg) translate(8px, 2px);
 }
 
-/* Mesa: cabecera con evento + anillo 3D rotativo de asientos */
-.table-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--s6);
-  margin-bottom: var(--s2);
-}
-
-.turn-name {
-  color: var(--amber);
-}
-
+/* Mesa: el "Turno de X" va pintado sobre el fieltro (.felt-turn dentro del
+   escenario), no en un recuadro de cabecera. El chip del último evento flota
+   arriba a la derecha SOBRE la mesa. */
 .event-chip {
+  position: absolute;
+  right: 16px;
+  top: calc(var(--topbar-h, 70px) + 14px); /* bajo el navbar (flota sobre él) */
+  z-index: 5;
+  margin: 0;
   font-family: var(--font-board);
   font-size: 0.9rem;
   color: var(--parchment-dim);
@@ -119,53 +114,89 @@
   color: var(--amber);
 }
 
-/* Anillo 3D: la mesa gira (--ring-rot) para que el jugador en turno caiga
-   siempre abajo; cada asiento se coloca con rotateZ(--a) + radio desde el
-   centro, y su contenido contra-rota (--counter) para quedar legible. */
+/* Mesa de blackjack cósmica: el activo vive abajo al centro (su asiento es
+   "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado opuesto,
+   siempre cerca y nítidos. Los paneles/cartas son frontales (planos); solo
+   el fieltro se inclina un poco (vista semi-cenital). Sin scroll vertical:
+   la ventana de juego ocupa exactamente la ventana menos el navbar. */
 .table {
-  max-width: 1080px;
+  max-width: none;
+  /* La ventana de juego pasa POR DEBAJO del navbar (margin negativo + altura
+     completa): así el cristal del navbar tiene escena que desenfocar. Sin
+     esto, "transparente" sobre el degradado plano del body se ve IGUAL que
+     una placa opaca. --topbar-h (styles.css) ya no se resta: solo desplaza
+     el HUD de arriba para que no quede bajo el navbar. */
+  height: 100dvh;
+  max-height: 100dvh;
+  margin-top: calc(-1 * var(--topbar-h, 70px));
+  overflow: hidden;
+  position: relative; /* ancla del cartel de bust (flota, no empuja la sala) */
+  display: flex;
+  flex-direction: column;
+  /* La ventana de juego es la SALA completa: sin aire (pega con el navbar,
+     los costados y el borde inferior de la pantalla). El HUD —barra de
+     acciones, chips— flota por encima con position: fixed, así que ya no
+     hace falta reservarles sitio. */
+  padding: 0;
 }
 
+/* El escenario es la SALA: piso alfombra oscuro con un charco de luz donde
+   cae la mesa (la mesa "está en el suelo", no flota en el aire). */
 .table-stage {
   position: relative;
-  height: clamp(440px, 62vmin, 640px);
-  margin: var(--s3) 0;
-  perspective: 1400px;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Sin margen: el escenario llega al navbar, a los costados y al borde
+     inferior de la pantalla. */
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+  background:
+    radial-gradient(58% 42% at 50% 46%, oklch(0.3 0.055 292 / 55%), transparent 72%),
+    radial-gradient(130% 100% at 50% 30%, oklch(0.2 0.05 288) 0%, oklch(0.13 0.04 284) 52%, oklch(0.09 0.03 280) 100%);
 }
 
+/* El fieltro no gira (vista fija): el activo está siempre abajo al centro
+   y los rivales en el arco opuesto, todos cerca y nítidos. */
 .table-felt {
-  --t-radius: clamp(150px, 24vmin, 250px);
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(9deg) rotateZ(var(--ring-rot, 0deg));
-  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
 }
 
+/* Mesa: gran elipse con RAIL acolchado (como las mesas de casino) y sombra
+   pesada sobre el piso (la mesa "está en el suelo"). Sin rotación. */
 .felt-disc {
   position: absolute;
   left: 50%;
-  top: 50%;
-  width: min(58%, 520px);
-  aspect-ratio: 1;
+  top: 48%;
+  width: min(108%, 1120px);
+  height: min(88%, 620px);
   translate: -50% -50%;
   border-radius: 50%;
-  border: 14px solid transparent;
+  border: 18px solid oklch(0.24 0.045 288);
   background:
-    radial-gradient(circle at 42% 36%, oklch(0.32 0.07 295 / 95%), transparent 58%),
-    radial-gradient(circle at 50% 50%, oklch(0.23 0.06 290), oklch(0.15 0.045 288) 82%) padding-box,
-    linear-gradient(155deg, #3a2752, #241636 40%, #4a3068 72%, #180d28) border-box;
+    radial-gradient(1.5px 1.5px at 18% 30%, oklch(1 0 0 / 26%), transparent 60%),
+    radial-gradient(1px 1px at 62% 22%, oklch(1 0 0 / 20%), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 64%, oklch(0.85 0.1 300 / 28%), transparent 60%),
+    radial-gradient(1px 1px at 34% 72%, oklch(1 0 0 / 16%), transparent 60%),
+    radial-gradient(1px 1px at 54% 46%, oklch(1 0 0 / 14%), transparent 60%),
+    radial-gradient(circle at 42% 34%, oklch(0.36 0.09 295 / 90%), transparent 56%),
+    radial-gradient(circle at 50% 50%, #2b1d55, #17102e 85%);
   box-shadow:
-    inset 0 0 90px oklch(0 0 0 / 50%),
-    0 24px 60px oklch(0 0 0 / 55%);
+    inset 0 0 90px oklch(0 0 0 / 55%),
+    inset 0 2px 0 oklch(1 0 0 / 10%),
+    0 0 0 2px oklch(0.1 0.03 288),
+    0 3px 0 oklch(0.32 0.05 288 / 60%),
+    0 46px 90px oklch(0 0 0 / 70%);
 }
 
 .felt-disc::before {
   content: '';
   position: absolute;
-  inset: 8px;
+  inset: 10px;
   border-radius: 50%;
-  border: 2px dashed oklch(1 0 0 / 14%);
+  border: 2px solid oklch(0.7 0.15 290 / 22%);
+  box-shadow: inset 0 0 18px oklch(0.62 0.16 292 / 22%);
   pointer-events: none;
 }
 
@@ -178,16 +209,161 @@
   pointer-events: none;
 }
 
+/* Texto del turno: arriba a la izquierda, en PLANO sobre el fondo (sin
+   recuadro), como el kicker+nombre del header de antes. El estado de turno
+   también vive en la chapa del asiento activo (punto + halo). */
+.felt-turn {
+  position: absolute;
+  left: clamp(12px, 2vw, 24px);
+  top: calc(var(--topbar-h, 70px) + 6px); /* bajo el navbar (flota sobre él) */
+  z-index: 5;
+  margin: 0;
+  text-align: left;
+  pointer-events: none;
+}
+
+.felt-turn-k {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: var(--s1);
+}
+
+.felt-turn strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--amber);
+}
+
+/* Vista 3D (WIP, paso 2): el canvas de la mesa reemplaza al fieltro 2D en
+   modo ?vista=3d; el botón alterna (temporal hasta el grupo de cámara). */
+.mesa3d-host {
+  position: absolute;
+  inset: 0;
+  background: #07051a;
+}
+
+.mesa3d-host canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* Vidrio líquido (liquid glass): translúcido + desenfoque de fondo + brillo
+   superior + tinte propio, el mismo lenguaje que las gotas de decisión
+   (.act). SIN fondo que los una: cada botón es su propia gota con su color
+   (--tint, definido por data-cam). */
+.vista-toggle,
+.cam-btn {
+  --tint: oklch(0.72 0.15 300);
+  font-family: var(--font-board);
+  font-size: 0.85rem;
+  line-height: 1;
+  color: oklch(0.96 0.015 300);
+  background-color: color-mix(in oklab, var(--tint) 20%, oklch(0.17 0.05 292 / 30%));
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 22%) 0%, oklch(1 0 0 / 5%) 45%, transparent 72%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid color-mix(in oklab, var(--tint) 52%, oklch(1 0 0 / 14%));
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 24%),
+    0 10px 24px oklch(0.04 0.03 285 / 42%);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.vista-toggle:hover,
+.cam-btn:hover {
+  background-color: color-mix(in oklab, var(--tint) 32%, oklch(0.17 0.05 292 / 30%));
+  border-color: color-mix(in oklab, var(--tint) 74%, oklch(1 0 0 / 22%));
+  color: oklch(0.99 0.008 300);
+}
+
+.vista-toggle:focus-visible,
+.cam-btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--tint) 72%, oklch(0.99 0 0));
+  outline-offset: 2px;
+}
+
+/* Sin soporte de backdrop-filter: el cristal se vuelve opaco para no perder
+   el contraste del texto. */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .vista-toggle,
+  .cam-btn {
+    background-color: color-mix(in oklab, var(--tint) 55%, oklch(0.16 0.05 292 / 94%));
+  }
+}
+
+.vista-toggle {
+  position: absolute;
+  right: clamp(12px, 2vw, 22px);
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 6;
+  /* Su propio color: verde jade (cambia de mundo, no de cámara). */
+  --tint: oklch(0.72 0.12 195);
+}
+
+/* Grupo de cámara (paso 4): la vista activa + atajos, abajo a la izquierda.
+   Sin fondo ni borde: los une el espacio, no una placa común. */
+.cam-group {
+  position: absolute;
+  left: clamp(12px, 2vw, 22px);
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 6;
+  display: flex;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* Un color por botón (data-cam viene de TableCanvasR3F). */
+.cam-btn[data-cam='seat'] {
+  --tint: oklch(0.73 0.15 302); /* violeta: mi asiento */
+}
+
+.cam-btn[data-cam='wide'] {
+  --tint: oklch(0.7 0.12 248); /* azul noche: vista general */
+}
+
+.cam-btn[data-cam='top'] {
+  --tint: oklch(0.72 0.12 178); /* jade: cenital */
+}
+
+.cam-btn[data-cam='detail'] {
+  --tint: oklch(0.72 0.14 338); /* rosa: detalle */
+}
+
+/* Vista activa: su propio color a máxima carga + halo del mismo tono. */
+.cam-btn--on {
+  background-color: color-mix(in oklab, var(--tint) 46%, transparent);
+  border-color: color-mix(in oklab, var(--tint) 88%, oklch(1 0 0 / 30%));
+  color: oklch(0.99 0.008 300);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 32%),
+    0 10px 26px oklch(0.04 0.03 285 / 46%),
+    0 0 22px color-mix(in oklab, var(--tint) 42%, transparent);
+}
+
+/* El mazo vive en el centro del arco (entre tú y los rivales). */
 .deck-area {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 41%;
   translate: -50% -50%;
-}
-
-.deck-inner {
-  transform: rotateZ(var(--counter));
-  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
 }
 
 .deck-pile {
@@ -250,28 +426,76 @@
   white-space: nowrap;
 }
 
+/* Asiento en el arco de blackjack: la elipse achatada (rx grande, ry chico)
+   simula la profundidad de la mesa vista desde arriba sin 3D en las cartas.
+   --a = 0° es el frente del arco (rivales centrales); --a = 180° es tú
+   (abajo, al borde de la mesa). sin/cos en CSS: Chrome 111+. */
 .seat {
+  --rx: clamp(250px, 34vw, 420px);
+  --ry: 32%;
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: rotateZ(var(--a)) translateY(calc(-1 * var(--t-radius)));
+  left: calc(50% + var(--rx) * sin(var(--a)));
+  top: calc(50% - var(--ry) * cos(var(--a)));
+  translate: -50% -50%;
 }
 
+/* Plano y frontal: nada de rotateX/billboard (el usuario ve las cartas de
+   frente, sin distorsión). Solo el halo de turno da feedback de estado. */
 .seat-inner {
-  translate: -50% -50%;
-  transform: rotateZ(var(--counter)) scale(var(--scale, 1));
-  transition: transform 900ms cubic-bezier(0.6, 0.05, 0.2, 1);
+  transform: scale(var(--scale, 1));
+  transition: transform var(--t-med) var(--ease-out);
+}
+
+/* Tú (el activo): un poco más grande y un punto más abajo. */
+.seat-mine {
+  --ry: 35%;
+}
+
+.seat-mine .seat-panel {
+  width: clamp(236px, 28vmin, 320px);
 }
 
 /* Sin caja: las cartas viven SOBRE el fieltro; solo el cartel del nombre
    es un objeto de la mesa (como la placa con el nombre en un casino). */
 .seat-panel {
-  width: clamp(216px, 27vmin, 292px);
+  position: relative;
+  width: clamp(216px, 26vmin, 292px);
   margin: 0;
   padding: 0;
   background: none;
   border: 0;
   text-align: center;
+}
+
+/* Halo pulsante del asiento en turno: aro suave bajo las cartas. Sin cartas
+   no hay aro (si no, queda un óvalo vacío flotando sobre el fieltro). */
+.seat-panel.active:not(:has(.card))::after {
+  display: none;
+}
+
+.seat-panel.active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 64%;
+  width: 60%;
+  aspect-ratio: 2.4;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1.5px solid oklch(0.72 0.16 292 / 45%);
+  box-shadow: 0 0 16px oklch(0.68 0.18 292 / 35%);
+  animation: halo-pulse 2.2s ease-in-out infinite;
+  /* Detrás de las cartas (el stacking context lo crea el transform de
+     .seat-inner, así que el −1 queda sobre el fieltro, no debajo). */
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes halo-pulse {
+  50% {
+    opacity: 0.45;
+    scale: 1.06;
+  }
 }
 
 .seat-panel .player-head h2 {
@@ -289,9 +513,26 @@
   justify-content: center;
 }
 
+/* Cartas sobre la mesa: más grandes que el deck (legibles, fáciles de
+   apuntar para robar). Las tuyas van todavía más grandes. */
+.seat-panel .card.small {
+  width: 58px;
+  height: 80px;
+}
+
+.seat-mine .seat-panel .card.small {
+  width: 66px;
+  height: 91px;
+}
+
+/* Sin rotateX: los paneles son frontales (planos, nítidos). */
 .front-zone {
-  min-height: 70px;
+  min-height: 84px;
   margin-top: var(--s2);
+}
+
+.seat-mine .front-zone {
+  min-height: 96px;
 }
 
 /* Robo: solo el valor de la última carta resaltada; el resto se atenúa. */
@@ -308,16 +549,292 @@
   pointer-events: none;
 }
 
-/* Acciones: en flujo normal (nunca tapan al jugador en turno). */
-.table-actions {
-  max-width: 720px;
-  margin: var(--s4) auto var(--s2);
-  background: oklch(0.11 0.035 290 / 88%);
+/* HUD de decisiones: SIN placa común que los una — cada botón es su propia
+   gota de cristal con su color (misma familia que los de cámara). El grupo
+   solo posiciona y agrupa semánticamente. */
+.action-bar {
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  translate: -50%;
+  display: flex;
+  gap: 10px;
+  z-index: 30;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+/* Gotas de cristal líquido con tinte propio (--c): desenfoque + saturación del
+   fondo, brillo superior envolvente, filo teñido, luz interior y sombra
+   teñida. El hover carga el tinte; el estado armed lo mantiene con pulso. */
+.act {
+  --c: oklch(0.7 0.15 150);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 64px;
+  padding: 8px 0 6px;
+  border: 1px solid color-mix(in oklab, var(--c) 46%, oklch(1 0 0 / 12%));
+  border-radius: 20px;
+  background-color: color-mix(in oklab, var(--c) 22%, oklch(0.16 0.05 292 / 24%));
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 20%) 0%, oklch(1 0 0 / 5%) 45%, transparent 75%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  color: var(--parchment);
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 26%),
+    inset 0 -10px 16px color-mix(in oklab, var(--c) 14%, transparent),
+    0 12px 26px oklch(0.04 0.03 285 / 44%);
+  transition:
+    transform var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+}
+
+/* Sin backdrop-filter el cristal se vuelve opaco (no se pierde contraste). */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .act {
+    background-color: color-mix(in oklab, var(--c) 52%, oklch(0.16 0.05 292 / 92%));
+  }
+}
+
+.act-icon {
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.act-icon .ninja-svg {
+  display: block;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin: 0 auto;
+}
+
+.act-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* Sombra del propio color (nunca gris neutro sobre un vidrio teñido). */
+  color: color-mix(in oklab, var(--c) 38%, oklch(0.96 0.01 300));
+}
+
+.act:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-color: color-mix(in oklab, var(--c) 34%, oklch(0.16 0.05 292 / 24%));
+  border-color: color-mix(in oklab, var(--c) 74%, oklch(1 0 0 / 20%));
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 30%),
+    inset 0 -10px 16px color-mix(in oklab, var(--c) 18%, transparent),
+    0 14px 30px oklch(0.04 0.03 285 / 46%),
+    0 0 20px color-mix(in oklab, var(--c) 40%, transparent);
+}
+
+.act:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+.act:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--c) 70%, oklch(0.99 0 0));
+  outline-offset: 2px;
+}
+
+.act:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.act-draw {
+  --c: oklch(0.72 0.17 150); /* verde Pedir */
+}
+
+.act-stand {
+  --c: oklch(0.63 0.2 25); /* rojo Plantarse */
+}
+
+.act-steal {
+  --c: oklch(0.75 0.14 55); /* naranja Robar */
+}
+
+.act-stash {
+  --c: oklch(0.66 0.17 295); /* violeta Guardar */
+}
+
+.act-steal.armed {
+  background-color: color-mix(in oklab, var(--c) 44%, oklch(0.16 0.05 292 / 24%));
+  border-color: color-mix(in oklab, var(--c) 88%, oklch(1 0 0 / 26%));
+  animation: armed-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes armed-pulse {
+  50% {
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 30%),
+      0 0 10px color-mix(in oklab, var(--c) 35%, transparent);
+  }
+}
+
+/* Hint del modo robo: flota justo arriba del HUD (la barra es fija).
+   Sin nowrap: en pantallas angostas el texto se envuelve en vez de
+   recortarse por ambos extremos (los elementos fixed no scrollean). */
+.table .hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 74px);
+  translate: -50%;
+  z-index: 30;
+  margin: 0;
+  max-width: min(92vw, 62ch);
+  text-align: center;
+  background: oklch(0.12 0.04 292 / 85%);
+  border: 1px solid oklch(0.75 0.14 55 / 40%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s4);
   backdrop-filter: blur(8px);
-  border: 1px solid oklch(0.7 0.12 300 / 18%);
-  border-radius: var(--r-panel);
-  padding: var(--s2) var(--s3);
-  justify-content: center;
+}
+
+/* Error de la partida: flota arriba del HUD (la página no scrollea; no
+   puede quedar escondido abajo del todo). */
+.table .error {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 82px);
+  translate: -50%;
+  z-index: 30;
+  margin: 0;
+  max-width: min(92vw, 62ch);
+  text-align: center;
+  background: oklch(0.12 0.04 292 / 90%);
+  border: 1px solid oklch(0.63 0.2 25 / 55%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s4);
+  backdrop-filter: blur(8px);
+}
+
+/* Partida terminada: el podio necesita espacio pero no debe empujar la
+   página fuera de la ventana (sin scroll): su propio scroll si hace falta. */
+.table .result {
+  flex: 0 1 auto;
+  max-height: 30dvh;
+  overflow-y: auto;
+  margin-bottom: var(--s3);
+}
+
+/* Pantallas cortas (1280×720 y menores): se compacta la tarjeta y el
+   rótulo del turno para que la mesa entera quepa sin scroll ni solapes. */
+@media (max-height: 780px) {
+  .felt-turn strong {
+    font-size: 1.35rem;
+  }
+
+  .seat {
+    --ry: 31%;
+  }
+
+  .seat-mine {
+    --ry: 33%;
+  }
+
+  .seat-panel {
+    width: clamp(180px, 22vmin, 250px);
+  }
+
+  .seat-mine .seat-panel {
+    width: clamp(200px, 25vmin, 280px);
+  }
+
+  .seat-panel .card.small {
+    width: 50px;
+    height: 69px;
+  }
+
+  .seat-mine .seat-panel .card.small {
+    width: 56px;
+    height: 78px;
+  }
+
+  .front-zone {
+    min-height: 74px;
+  }
+
+  .seat-mine .front-zone {
+    min-height: 86px;
+  }
+
+  .bust-banner {
+    padding: var(--s2) var(--s3);
+  }
+
+  .table .hint {
+    font-size: 0.82rem;
+  }
+}
+
+/* Móvil: arco más cerrado y paneles chicos para que los extremos no se
+   salgan de la pantalla. Va DESPUÉS de la regla corta: en un celular
+   (estrecho y bajo) manda el ancho propio. */
+@media (max-width: 640px) {
+  .seat {
+    --rx: 40vw;
+    --ry: 30%;
+  }
+
+  .seat-mine {
+    --ry: 33%;
+  }
+
+  .seat-panel {
+    width: 148px;
+  }
+
+  .seat-mine .seat-panel {
+    width: 168px;
+  }
+
+  .seat-panel .card.small {
+    width: 42px;
+    height: 58px;
+  }
+
+  .seat-mine .seat-panel .card.small {
+    width: 48px;
+    height: 66px;
+  }
+
+  .seat-panel .player-head h2 {
+    font-size: 0.9rem;
+  }
+
+  .front-zone {
+    min-height: 62px;
+  }
+
+  .seat-mine .front-zone {
+    min-height: 70px;
+  }
+
+  /* La barra ya no tiene placa ni padding propio: en pantallas cortas solo
+     se achican las gotas. */
+  .act {
+    width: 56px;
+  }
+}
+
+/* Sin movimiento: nada de transiciones de escena (el halo de turno se
+   mantiene como indicador estático). */
+@media (prefers-reduced-motion: reduce) {
+  .seat-inner {
+    transition: none;
+  }
+
+  .seat-panel.active::after,
+  .act-steal.armed {
+    animation: none;
+  }
 }
 
 /* Vuelo de cartas: capa fija; GSAP anima solo el inner (transform). */
@@ -332,24 +849,6 @@
   position: fixed;
   translate: -50% -50%;
   z-index: 40;
-}
-
-@media (max-width: 640px) {
-  .table-felt {
-    --t-radius: 112px;
-  }
-
-  .table-stage {
-    height: 400px;
-  }
-
-  .seat-panel {
-    width: 156px;
-  }
-
-  .seat-panel .player-head h2 {
-    font-size: 0.9rem;
-  }
 }
 
 .player-head {
@@ -532,6 +1031,14 @@
 }
 
 .bust-banner {
+  /* Flota centrado bajo el navbar (no empuja la sala: es un aviso). */
+  position: absolute;
+  top: calc(var(--topbar-h, 70px) + 10px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 7;
+  max-width: min(92vw, 60ch);
+  text-align: center;
   background: oklch(0.62 0.17 25 / 15%);
   border: 1px solid oklch(0.62 0.17 25 / 50%);
   color: oklch(0.82 0.1 25);

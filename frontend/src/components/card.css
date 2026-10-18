@@ -243,7 +243,8 @@
 
 .empty-front {
   color: var(--parchment-dim);
-  opacity: 0.6;
+  font-size: 0.78rem;
+  opacity: 0.55;
 }
 
 /* --- Dorso: peluche blanco sobre índigo (nunca muestra número) --- */
