@@ -97,7 +97,7 @@
 .event-chip {
   position: absolute;
   right: 16px;
-  top: 14px;
+  top: calc(var(--topbar-h, 70px) + 14px); /* bajo el navbar (flota sobre él) */
   z-index: 5;
   margin: 0;
   font-family: var(--font-board);
@@ -118,17 +118,26 @@
    "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado opuesto,
    siempre cerca y nítidos. Los paneles/cartas son frontales (planos); solo
    el fieltro se inclina un poco (vista semi-cenital). Sin scroll vertical:
-   la página ocupa exactamente la ventana menos el topbar. */
+   la ventana de juego ocupa exactamente la ventana menos el navbar. */
 .table {
   max-width: none;
-  /* 63px = alto real del topbar (medido: padding 1rem×2 + línea + borde).
-     Si cambia el topbar, ajustar este valor (es la única resta de altura). */
-  height: calc(100dvh - var(--topbar-h, 63px));
-  max-height: calc(100dvh - var(--topbar-h, 63px));
+  /* La ventana de juego pasa POR DEBAJO del navbar (margin negativo + altura
+     completa): así el cristal del navbar tiene escena que desenfocar. Sin
+     esto, "transparente" sobre el degradado plano del body se ve IGUAL que
+     una placa opaca. --topbar-h (styles.css) ya no se resta: solo desplaza
+     el HUD de arriba para que no quede bajo el navbar. */
+  height: 100dvh;
+  max-height: 100dvh;
+  margin-top: calc(-1 * var(--topbar-h, 70px));
   overflow: hidden;
+  position: relative; /* ancla del cartel de bust (flota, no empuja la sala) */
   display: flex;
   flex-direction: column;
-  padding: var(--s2) clamp(12px, 2vw, 28px) 100px; /* 100px: deja libre la barra fija */
+  /* La ventana de juego es la SALA completa: sin aire (pega con el navbar,
+     los costados y el borde inferior de la pantalla). El HUD —barra de
+     acciones, chips— flota por encima con position: fixed, así que ya no
+     hace falta reservarles sitio. */
+  padding: 0;
 }
 
 /* El escenario es la SALA: piso alfombra oscuro con un charco de luz donde
@@ -137,7 +146,9 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  margin: var(--s1) 0;
+  /* Sin margen: el escenario llega al navbar, a los costados y al borde
+     inferior de la pantalla. */
+  margin: 0;
   overflow: hidden;
   user-select: none;
   background:
@@ -204,7 +215,7 @@
 .felt-turn {
   position: absolute;
   left: clamp(12px, 2vw, 24px);
-  top: 6px;
+  top: calc(var(--topbar-h, 70px) + 6px); /* bajo el navbar (flota sobre él) */
   z-index: 5;
   margin: 0;
   text-align: left;
@@ -244,57 +255,107 @@
   touch-action: none;
 }
 
+/* Vidrio líquido (liquid glass): translúcido + desenfoque de fondo + brillo
+   superior + tinte propio, el mismo lenguaje que las gotas de decisión
+   (.act). SIN fondo que los una: cada botón es su propia gota con su color
+   (--tint, definido por data-cam). */
+.vista-toggle,
+.cam-btn {
+  --tint: oklch(0.72 0.15 300);
+  font-family: var(--font-board);
+  font-size: 0.85rem;
+  line-height: 1;
+  color: oklch(0.96 0.015 300);
+  background-color: color-mix(in oklab, var(--tint) 20%, oklch(0.17 0.05 292 / 30%));
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 22%) 0%, oklch(1 0 0 / 5%) 45%, transparent 72%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid color-mix(in oklab, var(--tint) 52%, oklch(1 0 0 / 14%));
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 24%),
+    0 10px 24px oklch(0.04 0.03 285 / 42%);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.vista-toggle:hover,
+.cam-btn:hover {
+  background-color: color-mix(in oklab, var(--tint) 32%, oklch(0.17 0.05 292 / 30%));
+  border-color: color-mix(in oklab, var(--tint) 74%, oklch(1 0 0 / 22%));
+  color: oklch(0.99 0.008 300);
+}
+
+.vista-toggle:focus-visible,
+.cam-btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--tint) 72%, oklch(0.99 0 0));
+  outline-offset: 2px;
+}
+
+/* Sin soporte de backdrop-filter: el cristal se vuelve opaco para no perder
+   el contraste del texto. */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .vista-toggle,
+  .cam-btn {
+    background-color: color-mix(in oklab, var(--tint) 55%, oklch(0.16 0.05 292 / 94%));
+  }
+}
+
 .vista-toggle {
   position: absolute;
-  right: 16px;
-  bottom: 14px;
+  right: clamp(12px, 2vw, 22px);
+  bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 6;
-  font-family: var(--font-board);
-  font-size: 0.85rem;
-  color: var(--parchment-dim);
-  background: oklch(1 0 0 / 6%);
-  border: 1px solid oklch(1 0 0 / 12%);
-  border-radius: 999px;
-  padding: var(--s1) var(--s3);
-  cursor: pointer;
+  /* Su propio color: verde jade (cambia de mundo, no de cámara). */
+  --tint: oklch(0.72 0.12 195);
 }
 
-.vista-toggle:hover {
-  color: var(--parchment);
-  border-color: oklch(1 0 0 / 22%);
-}
-
-/* Grupo de cámara (paso 4): vista activa + atajos, abajo a la izquierda. */
+/* Grupo de cámara (paso 4): la vista activa + atajos, abajo a la izquierda.
+   Sin fondo ni borde: los une el espacio, no una placa común. */
 .cam-group {
   position: absolute;
-  left: 16px;
-  bottom: 14px;
+  left: clamp(12px, 2vw, 22px);
+  bottom: max(14px, env(safe-area-inset-bottom));
   z-index: 6;
   display: flex;
-  gap: 6px;
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 0;
 }
 
-.cam-btn {
-  font-family: var(--font-board);
-  font-size: 0.85rem;
-  color: var(--parchment-dim);
-  background: oklch(1 0 0 / 6%);
-  border: 1px solid oklch(1 0 0 / 12%);
-  border-radius: 999px;
-  padding: var(--s1) var(--s3);
-  cursor: pointer;
+/* Un color por botón (data-cam viene de TableCanvasR3F). */
+.cam-btn[data-cam='seat'] {
+  --tint: oklch(0.73 0.15 302); /* violeta: mi asiento */
 }
 
-.cam-btn:hover {
-  color: var(--parchment);
-  border-color: oklch(1 0 0 / 22%);
+.cam-btn[data-cam='wide'] {
+  --tint: oklch(0.7 0.12 248); /* azul noche: vista general */
 }
 
+.cam-btn[data-cam='top'] {
+  --tint: oklch(0.72 0.12 178); /* jade: cenital */
+}
+
+.cam-btn[data-cam='detail'] {
+  --tint: oklch(0.72 0.14 338); /* rosa: detalle */
+}
+
+/* Vista activa: su propio color a máxima carga + halo del mismo tono. */
 .cam-btn--on {
-  color: #1a1026;
-  background: var(--amber);
-  border-color: var(--amber);
-  font-weight: 600;
+  background-color: color-mix(in oklab, var(--tint) 46%, transparent);
+  border-color: color-mix(in oklab, var(--tint) 88%, oklch(1 0 0 / 30%));
+  color: oklch(0.99 0.008 300);
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 32%),
+    0 10px 26px oklch(0.04 0.03 285 / 46%),
+    0 0 22px color-mix(in oklab, var(--tint) 42%, transparent);
 }
 
 /* El mazo vive en el centro del arco (entre tú y los rivales). */
@@ -488,26 +549,25 @@
   pointer-events: none;
 }
 
-/* HUD de decisiones estilo blackjack: barra fija abajo al centro, botones
-   redondos con símbolo grande y etiqueta chica (specs 2026-10-16-mesa). */
+/* HUD de decisiones: SIN placa común que los una — cada botón es su propia
+   gota de cristal con su color (misma familia que los de cámara). El grupo
+   solo posiciona y agrupa semánticamente. */
 .action-bar {
   position: fixed;
   left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: max(14px, env(safe-area-inset-bottom));
   translate: -50%;
   display: flex;
-  gap: 14px;
+  gap: 10px;
   z-index: 30;
-  padding: 8px 14px;
-  background: oklch(0.12 0.04 292 / 82%);
-  backdrop-filter: blur(10px);
-  border: 1px solid oklch(0.7 0.12 300 / 22%);
-  border-radius: 999px;
-  box-shadow:
-    0 12px 40px oklch(0 0 0 / 50%),
-    0 0 24px oklch(0.55 0.18 292 / 18%);
+  padding: 0;
+  background: none;
+  border: 0;
 }
 
+/* Gotas de cristal líquido con tinte propio (--c): desenfoque + saturación del
+   fondo, brillo superior envolvente, filo teñido, luz interior y sombra
+   teñida. El hover carga el tinte; el estado armed lo mantiene con pulso. */
 .act {
   --c: oklch(0.7 0.15 150);
   display: grid;
@@ -515,15 +575,30 @@
   gap: 2px;
   width: 64px;
   padding: 8px 0 6px;
-  border: 0;
-  border-radius: 18px;
-  background: color-mix(in oklab, var(--c) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--c) 46%, oklch(1 0 0 / 12%));
+  border-radius: 20px;
+  background-color: color-mix(in oklab, var(--c) 22%, oklch(0.16 0.05 292 / 24%));
+  background-image: linear-gradient(180deg, oklch(1 0 0 / 20%) 0%, oklch(1 0 0 / 5%) 45%, transparent 75%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
   color: var(--parchment);
   cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 26%),
+    inset 0 -10px 16px color-mix(in oklab, var(--c) 14%, transparent),
+    0 12px 26px oklch(0.04 0.03 285 / 44%);
   transition:
     transform var(--t-fast) var(--ease-out),
-    background var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
     box-shadow var(--t-fast) var(--ease-out);
+}
+
+/* Sin backdrop-filter el cristal se vuelve opaco (no se pierde contraste). */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .act {
+    background-color: color-mix(in oklab, var(--c) 52%, oklch(0.16 0.05 292 / 92%));
+  }
 }
 
 .act-icon {
@@ -544,13 +619,19 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: oklch(0.86 0.03 292);
+  /* Sombra del propio color (nunca gris neutro sobre un vidrio teñido). */
+  color: color-mix(in oklab, var(--c) 38%, oklch(0.96 0.01 300));
 }
 
 .act:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: color-mix(in oklab, var(--c) 34%, transparent);
-  box-shadow: 0 0 18px color-mix(in oklab, var(--c) 45%, transparent);
+  background-color: color-mix(in oklab, var(--c) 34%, oklch(0.16 0.05 292 / 24%));
+  border-color: color-mix(in oklab, var(--c) 74%, oklch(1 0 0 / 20%));
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 30%),
+    inset 0 -10px 16px color-mix(in oklab, var(--c) 18%, transparent),
+    0 14px 30px oklch(0.04 0.03 285 / 46%),
+    0 0 20px color-mix(in oklab, var(--c) 40%, transparent);
 }
 
 .act:active:not(:disabled) {
@@ -558,7 +639,7 @@
 }
 
 .act:focus-visible {
-  outline: 2px solid oklch(0.85 0.12 85);
+  outline: 2px solid color-mix(in oklab, var(--c) 70%, oklch(0.99 0 0));
   outline-offset: 2px;
 }
 
@@ -584,14 +665,16 @@
 }
 
 .act-steal.armed {
-  background: color-mix(in oklab, var(--c) 38%, transparent);
-  box-shadow: 0 0 20px color-mix(in oklab, var(--c) 55%, transparent);
+  background-color: color-mix(in oklab, var(--c) 44%, oklch(0.16 0.05 292 / 24%));
+  border-color: color-mix(in oklab, var(--c) 88%, oklch(1 0 0 / 26%));
   animation: armed-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes armed-pulse {
   50% {
-    box-shadow: 0 0 8px color-mix(in oklab, var(--c) 35%, transparent);
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 30%),
+      0 0 10px color-mix(in oklab, var(--c) 35%, transparent);
   }
 }
 
@@ -601,7 +684,7 @@
 .table .hint {
   position: fixed;
   left: 50%;
-  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 88px);
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 74px);
   translate: -50%;
   z-index: 30;
   margin: 0;
@@ -619,7 +702,7 @@
 .table .error {
   position: fixed;
   left: 50%;
-  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 96px);
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 82px);
   translate: -50%;
   z-index: 30;
   margin: 0;
@@ -734,11 +817,8 @@
     min-height: 70px;
   }
 
-  .action-bar {
-    gap: 10px;
-    padding: 8px 12px;
-  }
-
+  /* La barra ya no tiene placa ni padding propio: en pantallas cortas solo
+     se achican las gotas. */
   .act {
     width: 56px;
   }
@@ -951,6 +1031,14 @@
 }
 
 .bust-banner {
+  /* Flota centrado bajo el navbar (no empuja la sala: es un aviso). */
+  position: absolute;
+  top: calc(var(--topbar-h, 70px) + 10px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 7;
+  max-width: min(92vw, 60ch);
+  text-align: center;
   background: oklch(0.62 0.17 25 / 15%);
   border: 1px solid oklch(0.62 0.17 25 / 50%);
   color: oklch(0.82 0.1 25);
