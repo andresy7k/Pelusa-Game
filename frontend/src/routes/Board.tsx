@@ -5,7 +5,7 @@ import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
-import { TableCanvasR3F } from '../features/mesa3d/TableCanvasR3F';
+import { TableCanvasR3F, type MesaFlight } from '../features/mesa3d/TableCanvasR3F';
 import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
 
 // Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
@@ -34,6 +34,9 @@ export function Board() {
   const [robbing, setRobbing] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const flightSeq = useRef(0);
+  // Vuelo de carta del mazo en la vista 3D (espejo del FlightLayer 2D).
+  const [mesaFlight, setMesaFlight] = useState<MesaFlight | null>(null);
+  const mesaFlightSeq = useRef(0);
   // Cartas recién ganadas (draw/steal) que aún están "en vuelo": se ocultan
   // en el frente hasta que su fantasma aterriza (evita verlas duplicadas).
   const [arrivals, setArrivals] = useState(0);
@@ -52,6 +55,9 @@ export function Board() {
   const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
   const stealValue = state.lastDrawnValue;
   const rivals = state.players.filter((p) => p.id !== meId);
+  // Asiento de quien tiene el turno (constante por render): con él disparamos
+  // el vuelo 3D, porque `meId` cambia apenas se muta el estado.
+  const drawerSeat = state.players.find((p) => p.id === meId)?.seat ?? 0;
   const hasStealTarget = stealValue != null && rivals.some((p) => (state.fronts[p.id] ?? []).includes(stealValue));
   // Modo robo efectivo: activo, mi turno y con algo robable este turno.
   const stealing = robbing && myTurn && stealValue != null;
@@ -72,6 +78,7 @@ export function Board() {
     if (vista3d) next.delete('vista');
     else next.set('vista', '3d');
     next.delete('cam');
+    setMesaFlight(null); // un vuelo a medias no debe reanudarse al volver
     setSearch(next);
   }
 
@@ -106,12 +113,18 @@ export function Board() {
   async function draw() {
     if (!id || !myTurn) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const deckRect = centerOf(document.getElementById('deck-pile'));
+    const deckRect = vista3d ? null : centerOf(document.getElementById('deck-pile'));
     const next = await act(() => api.draw(id, meId));
     if (!next) return;
     const e = next.lastEvent as { type?: string; value?: number; bust?: boolean } | null;
     if (e?.type !== 'DRAW' || e.bust || typeof e.value !== 'number' || reduced) return;
     const drawn = e.value;
+    // Vista 3D: el vuelo lo pinta el canvas (mismo timing que FlightLayer 2D).
+    if (vista3d) {
+      mesaFlightSeq.current += 1;
+      setMesaFlight({ id: mesaFlightSeq.current, seat: drawerSeat, value: drawn });
+      return;
+    }
     setArrivals((n) => n + 1);
     requestAnimationFrame(() => {
       const slots = incomingSlots();
@@ -201,14 +214,15 @@ export function Board() {
             onSteal={(v) => {
               void doSteal(v)
             }}
+            flight={mesaFlight}
             game={{
               deckCount: state.deckRemaining,
-              lastDrawnValue: state.lastDrawnValue,
               stealValue: stealing ? stealValue : null,
               seats: [...state.players]
                 .sort((a, b) => a.seat - b.seat)
                 .map((p) => ({
                   seat: p.seat,
+                  name: p.name,
                   isTurn: p.id === meId && !finished,
                   values: state.fronts[p.id] ?? [],
                 })),

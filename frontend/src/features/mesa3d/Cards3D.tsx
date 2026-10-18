@@ -1,7 +1,10 @@
 // frontend/src/features/mesa3d/Cards3D.tsx
 // Paso 5: las cartas VIVEN sobre la mesa. El mazo ocupa el ojo del remolino
-// (su altura crece con las cartas restantes), la última carta sacada queda
-// boca arriba junto al mazo y el frente de cada jugador se despliega sobre su
+// y se AGOTA al jugar (la pileza sigue al conteo sobre los 110 del mazo +
+// chip flotante con las cartas restantes); cada carta sacada viaja en vuelo
+// mazo→jugador (espejo del FlightLayer 2D: la carta entrante nace oculta en
+// su nido y la que vuela aterriza encima: nunca se ven dos a la vez) y el
+// frente de cada jugador se despliega sobre su
 // nido en filas de a 4 con leve solape (nunca apilado: en Pelusas todos los
 // frentes están a la vista). Modo robo: las cartas del valor robable brillan
 // en ámbar y son clickeables; arrastrar la órbita NO dispara clicks (guard
@@ -19,6 +22,7 @@ const { w: CW, h: CH, t: CT, cornerR: CR } = CARD.size
 /** Vista mínima de un asiento para el canvas (la lógica vive en Board). */
 export interface MesaSeatView {
   seat: number
+  name: string
   values: number[]
   isTurn: boolean
 }
@@ -26,9 +30,15 @@ export interface MesaSeatView {
 /** Estado del juego reducido a lo que la mesa debe mostrar en 3D. */
 export interface MesaGameView {
   deckCount: number
-  lastDrawnValue: number | null
   stealValue: number | null
   seats: MesaSeatView[]
+}
+
+/** Vuelo de una carta del mazo hacia el nido de un asiento (lo dispara Board). */
+export interface MesaFlight {
+  id: number
+  seat: number
+  value: number
 }
 
 /** Rig compartido de interacción: drag-guard + cursor del puntero. */
@@ -184,6 +194,14 @@ function Card3D({
 
 // --- mazo ------------------------------------------------------------------
 
+/** Cartas visibles del montón: la pileza se agota con el conteo (0 = vacío,
+ *  escala proporcional sobre los 110 del mazo para que NADA se vea fijo). */
+export function deckPile(count: number): number {
+  if (count <= 0) return 0
+  const ratio = count / CARD.deck.total
+  return Math.min(CARD.deck.maxPile, Math.max(1, Math.round(ratio * CARD.deck.maxPile)))
+}
+
 function DeckPile({
   count,
   active,
@@ -213,9 +231,8 @@ function DeckPile({
     }))
   }, [])
 
-  const pile = Math.max(0, Math.min(count, CARD.deck.maxPile))
-  // Altura ∝ cartas: mazos largos se comprimen bajo el tope del montón.
-  const step = Math.min(CARD.deck.step, CARD.deck.maxStack / Math.max(1, pile))
+  const pile = deckPile(count)
+  const step = CARD.deck.step
 
   return (
     <group>
@@ -252,6 +269,143 @@ function DeckPile({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
+    </group>
+  )
+}
+
+// --- chip de conteo del mazo ------------------------------------------------
+
+/** Píldora (mismo violeta oscuro que las chapas 2D) con bordes redondeados
+ *  a mano (arcTo: roundRect no está en todos los lib.dom). También la usan
+ *  las chapas de nombre (Seats3D). */
+export function pillPath(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  const r = h / 2
+  g.beginPath()
+  g.moveTo(x + r, y)
+  g.arcTo(x + w, y, x + w, y + h, r)
+  g.arcTo(x + w, y + h, x, y + h, r)
+  g.arcTo(x, y + h, x, y, r)
+  g.arcTo(x, y, x + w, y, r)
+  g.closePath()
+}
+
+/** "N cartas" flotando junto al mazo (paridad con el .deck-count 2D): el
+ *  número baja en vivo. Lienzo propio: se repinta por conteo y al llegar la
+ *  fuente (mismo patrón de repaint que las texturas de carta). */
+function DeckCountChip({ count }: { count: number }) {
+  const chip = useMemo(() => {
+    const cv = document.createElement('canvas')
+    cv.width = 384
+    cv.height = 128
+    const tex = new THREE.CanvasTexture(cv)
+    tex.anisotropy = 8
+    return { cv, g: cv.getContext('2d')!, tex }
+  }, [])
+  const countRef = useRef(count)
+  countRef.current = count
+
+  const draw = (n: number) => {
+    const { cv, g, tex } = chip
+    g.clearRect(0, 0, cv.width, cv.height)
+    pillPath(g, 3, 3, cv.width - 6, cv.height - 6)
+    g.fillStyle = 'rgba(23, 16, 31, 0.85)'
+    g.fill()
+    g.lineWidth = 4
+    g.strokeStyle = 'rgba(203, 155, 234, 0.5)'
+    g.stroke()
+    g.textBaseline = 'middle'
+    g.textAlign = 'left'
+    g.font = `700 58px 'Space Grotesk', system-ui, sans-serif`
+    const label = String(Math.max(0, n))
+    g.fillStyle = MESA3D.colors.amber
+    g.fillText(label, 34, cv.height / 2 + 2)
+    const wNum = g.measureText(label).width
+    g.font = `600 44px 'Space Grotesk', system-ui, sans-serif`
+    g.fillStyle = '#F2ECF4'
+    g.fillText(' cartas', 34 + wNum, cv.height / 2 + 3)
+    tex.needsUpdate = true
+  }
+
+  useEffect(() => {
+    draw(count)
+  }, [count])
+
+  // Fuente tardía: repinta con el conteo actual (el primer paint usa fallback).
+  useEffect(() => {
+    let live = true
+    void document.fonts.load('700 58px "Space Grotesk"').then(() => {
+      if (live) draw(countRef.current)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  useEffect(() => () => chip.tex.dispose(), [chip])
+
+  const c = CARD.deck.countChip
+  const h = 0.11
+  return (
+    <sprite position={[c.x, c.y, c.z]} scale={[(h * chip.cv.width) / chip.cv.height, h, 1]}>
+      <spriteMaterial map={chip.tex} transparent depthWrite={false} />
+    </sprite>
+  )
+}
+
+// --- vuelo de una carta sacada ---------------------------------------------
+
+/** Carta en vuelo mazo→nido (espejo 3D del FlightLayer 2D): power2.inOut
+ *  sobre `dur`, arco de `lift` y balanceo ±9°; aterriza en su nido boca arriba
+ *  con el "top" hacia el centro (misma pose que FrontRow). */
+function DrawFlight({
+  flight,
+  seatCount,
+  deckTop,
+  onDone,
+}: {
+  flight: MesaFlight
+  seatCount: number
+  deckTop: number
+  onDone: () => void
+}) {
+  const g = useRef<THREE.Group>(null)
+  const prog = useRef(0)
+  const done = useRef(false)
+  const doneRef = useRef(onDone)
+  doneRef.current = onDone
+
+  const to = seatPoint(flight.seat, seatCount)
+  const toRotY = Math.atan2(to.x, to.z)
+  const bank = to.x >= 0 ? 1 : -1 // mismo ±9° que el vuelo 2D
+
+  useFrame((_, dt) => {
+    const el = g.current
+    if (!el || done.current) return
+    prog.current = Math.min(1, prog.current + dt / MESA3D.cards.flight.dur)
+    const t = prog.current
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // power2.inOut
+    el.position.x = THREE.MathUtils.lerp(0, to.x, e)
+    el.position.z = THREE.MathUtils.lerp(0, to.z, e)
+    el.position.y =
+      THREE.MathUtils.lerp(deckTop, CARD.baseY, e) + Math.sin(Math.PI * e) * MESA3D.cards.flight.lift
+    el.rotation.y = toRotY * e
+    el.rotation.z = Math.sin(Math.PI * e) * 0.16 * bank
+    if (t >= 1) {
+      done.current = true
+      doneRef.current()
+    }
+  })
+
+  return (
+    <group ref={g} position={[0, deckTop, 0]}>
+      <Card3D
+        value={flight.value}
+        faceUp
+        position={[0, 0, 0]}
+        onDown={() => {}}
+        clickOk={() => false}
+        cursor={() => {}}
+      />
     </group>
   )
 }
@@ -360,13 +514,17 @@ function TurnRing({ seatIndex, seatCount }: { seatIndex: number; seatCount: numb
 
 export interface Cards3DProps {
   game: MesaGameView
+  /** Último robo del mazo en curso (Board lo limpia al aterrizar). */
+  flight?: MesaFlight | null
   canAct?: boolean
   onDraw?: () => void
   onSteal?: (value: number) => void
 }
 
-export function Cards3D({ game, canAct = false, onDraw, onSteal }: Cards3DProps) {
+export function Cards3D({ game, flight = null, canAct = false, onDraw, onSteal }: Cards3DProps) {
   const rig = useRef<PointerRig>({ down: null, cursors: 0 })
+  // Vuelos ya aterrizados: no se reproducen dos veces (mismo id → ignorado).
+  const [landed, setLanded] = useState(-1)
 
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     rig.current.down = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }
@@ -394,6 +552,10 @@ export function Cards3D({ game, canAct = false, onDraw, onSteal }: Cards3DProps)
   const n = game.seats.length
   const turnSeat = game.seats.find((s) => s.isTurn)?.seat ?? -1
   const canSteal = canAct && game.stealValue != null
+  // Vuelo activo: mientras viaja, la carta entrante queda OCULTA en su nido
+  // (misma regla "nunca dos a la vez" que en 2D) y el mazo ya descontó.
+  const active = flight && flight.id !== landed ? flight : null
+  const deckTop = CARD.baseY + deckPile(game.deckCount + 1) * CARD.deck.step
 
   return (
     <group>
@@ -405,17 +567,15 @@ export function Cards3D({ game, canAct = false, onDraw, onSteal }: Cards3DProps)
         clickOk={clickOk}
         cursor={cursor}
       />
+      <DeckCountChip count={game.deckCount} />
 
-      {game.lastDrawnValue != null && (
-        <Card3D
-          value={game.lastDrawnValue}
-          faceUp
-          position={[CARD.lastCard.x, CARD.baseY, CARD.lastCard.z]}
-          rotY={Math.atan2(CARD.lastCard.x, CARD.lastCard.z) + CARD.lastCard.rot}
-          hoverable
-          onDown={onDown}
-          clickOk={clickOk}
-          cursor={cursor}
+      {active && (
+        <DrawFlight
+          key={active.id}
+          flight={active}
+          seatCount={Math.max(1, n)}
+          deckTop={deckTop}
+          onDone={() => setLanded(active.id)}
         />
       )}
 
@@ -425,7 +585,7 @@ export function Cards3D({ game, canAct = false, onDraw, onSteal }: Cards3DProps)
             key={s.seat}
             seatIndex={s.seat}
             seatCount={n}
-            values={s.values}
+            values={active && active.seat === s.seat ? s.values.slice(0, -1) : s.values}
             isTurn={s.isTurn}
             steal={game.stealValue}
             canSteal={canSteal}
