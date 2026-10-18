@@ -231,6 +231,72 @@
   color: var(--amber);
 }
 
+/* Vista 3D (WIP, paso 2): el canvas de la mesa reemplaza al fieltro 2D en
+   modo ?vista=3d; el botón alterna (temporal hasta el grupo de cámara). */
+.mesa3d-host {
+  position: absolute;
+  inset: 0;
+  background: #07051a;
+}
+
+.mesa3d-host canvas {
+  display: block;
+  touch-action: none;
+}
+
+.vista-toggle {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  z-index: 6;
+  font-family: var(--font-board);
+  font-size: 0.85rem;
+  color: var(--parchment-dim);
+  background: oklch(1 0 0 / 6%);
+  border: 1px solid oklch(1 0 0 / 12%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  cursor: pointer;
+}
+
+.vista-toggle:hover {
+  color: var(--parchment);
+  border-color: oklch(1 0 0 / 22%);
+}
+
+/* Grupo de cámara (paso 4): vista activa + atajos, abajo a la izquierda. */
+.cam-group {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+}
+
+.cam-btn {
+  font-family: var(--font-board);
+  font-size: 0.85rem;
+  color: var(--parchment-dim);
+  background: oklch(1 0 0 / 6%);
+  border: 1px solid oklch(1 0 0 / 12%);
+  border-radius: 999px;
+  padding: var(--s1) var(--s3);
+  cursor: pointer;
+}
+
+.cam-btn:hover {
+  color: var(--parchment);
+  border-color: oklch(1 0 0 / 22%);
+}
+
+.cam-btn--on {
+  color: #1a1026;
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 600;
+}
+
 /* El mazo vive en el centro del arco (entre tú y los rivales). */
 .deck-area {
   position: absolute;
