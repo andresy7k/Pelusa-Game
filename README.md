@@ -1,33 +1,38 @@
 # Pelusa Game
 
-Juego web de Pelusas. Backend = fuente de verdad (Java + Spring Boot). Frontend = React + TS (fases 5+).
+Juego web de Pelusas. Backend = fuente de verdad (Java + Spring Boot); frontend = React + TS.
+Hotseat (un dispositivo) y **multijugador online por código de sala**, sin cuentas.
 
-Docs: `docs/PROJECT_PLAN.md` (fases) · `docs/ARCHITECTURE.md` · `docs/DATA_MODEL.md` · `docs/API_CONTRACT.md` · `docs/DECISIONS.md` · `docs/LEARNING_LOG.md`.
+Docs: `docs/PROJECT_PLAN.md` (fases) · `docs/ARCHITECTURE.md` · `docs/DATA_MODEL.md` ·
+`docs/API_CONTRACT.md` · `docs/DECISIONS.md` · `docs/LEARNING_LOG.md` · `docs/DEPLOY.md`.
 
 ## Requisitos
 
-- JDK 17 + Maven 3.9 (backend). Esta máquina aún tiene solo JRE 8 → ver "Instalar JDK".
-- Docker Compose (Postgres 16 local). Sin Docker, los tests usan H2 en memoria.
+- JDK 17 (es el del CI; con JDKs más nuevos los tests pueden fallar por JaCoCo/Mockito).
+- Maven 3.9+, Node 20+.
+- Docker opcional: Postgres 16 local. Sin Docker, el backend corre con H2 en memoria.
 
-## Backend (Phase 2)
+## Backend
 
 ```bash
-cp .env.example .env          # opcional: exporta las vars en tu shell
-docker compose up -d postgres # DB local pelusa/pelusa
+docker compose up -d postgres   # DB local pelusa/pelusa
 cd backend
-mvn spring-boot:run           # http://localhost:8080/api/health y /actuator/health
-mvn verify                    # tests: contexto + Flyway V1 sobre H2 real
+mvn spring-boot:run             # http://localhost:8080
 ```
 
-## Instalar JDK 17 (Windows, sin winget en esta máquina)
+Sin Docker (H2 en memoria, se pierde al reiniciar):
 
-1. Descargar Microsoft Build of OpenJDK 17 (x64 ZIP) desde
-   https://learn.microsoft.com/java/openjdk/download#openjdk-17
-2. Descomprimir en `C:\Java\jdk-17` y añadir `C:\Java\jdk-17\bin` al PATH.
-3. `java -version` debe decir 17. Luego `mvn -version` (instalar Maven desde
-   https://maven.apache.org/download.cgi si falta).
+```bash
+cd backend
+mvn spring-boot:run \
+  -Dspring-boot.run.arguments="--spring.datasource.url=jdbc:h2:mem:pelusa;MODE=PostgreSQL;DB_CLOSE_DELAY=-1 --spring.datasource.driver-class-name=org.h2.Driver --spring.datasource.username=sa"
+```
 
-## Frontend (Phase 5)
+- Salud: `GET /actuator/health` (DataSource real) y `GET /api/ping` (204, keep-alive gratuito).
+- Tests: `mvn verify` con JDK 17 (el CI los corre en cada push).
+- Migraciones Flyway V1…V7 en `backend/src/main/resources/db/migration/`.
+
+## Frontend
 
 ```bash
 cd frontend
@@ -37,9 +42,27 @@ npm run dev            # http://localhost:5173 (proxy /api → :8080)
 npm run build          # typecheck + build prod (lo corre el CI)
 ```
 
-Flujo: home → setup (nombres) → board (`/game/:id`: hotseat, siempre juega
-quien tiene el turno — sacar/plantarse/guardar/robar, ver frentes y resultado)
-→ history.
+Flujo: home → setup → board (`/game/:id`) → history.
+En setup se elige **Un dispositivo** (hotseat) u **Online**.
+
+## Multijugador online (resumen)
+
+- Crear sala genera un **código de 6 caracteres** (alfabeto sin letras ambiguas).
+  El enlace para invitar es `/setup?code=CODIGO`.
+- Lobby con polling cada 2 s: muestra quiénes entran y el host decide cuándo
+  empezar (mínimo 2). Al arrancar, todos saltan solos al tablero.
+- El `playerId` vive en `localStorage` por partida: recargar no pierde la silla.
+- Quien llega con la partida empezada entra como **espectador** (sin silla).
+- Turnos ONLINE con **reloj de 15 s**: al vencer, el backend rota el turno
+  (expiración perezosa al leer o actuar) y emite `TURN_EXPIRED`.
+- Tablero con polling de 2,5 s (pestaña visible); no hay WebSockets.
+
+## Deploy (gratis)
+
+Vercel (front) + Render Free (backend Docker) + Neon Free (Postgres).
+Pasos, variables (`VITE_API_URL`, `CORS_ALLOWED_ORIGINS`, `BACKEND_URL`) y
+blueprints (`render.yaml`, `backend/Dockerfile`, `frontend/vercel.json`):
+ver **`docs/DEPLOY.md`**. El backend expone `$PORT` y el CI valida con JDK 17.
 
 ## Reglas cerradas
 

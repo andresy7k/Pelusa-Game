@@ -25,6 +25,34 @@ export function useGame(id: string | undefined) {
     void refresh();
   }, [refresh]);
 
+  // Salas ONLINE: el estado cambia por otros jugadores, así que se sondea.
+  // (En hotseat es un request barato cada 2.5 s; con la pestaña oculta, nada.)
+  // Cada minuto, un ping sin BD para que Render Free no duerma la instancia.
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    const tick = () => {
+      if (document.hidden) return;
+      api
+        .state(id)
+        .then((next) => {
+          if (alive) setState(next);
+        })
+        .catch(() => {
+          // Un fallo de red transitorio no debe borrar la mesa en pantalla.
+        });
+    };
+    const poll = window.setInterval(tick, 2500);
+    const keepAlive = window.setInterval(() => {
+      if (!document.hidden) void api.ping();
+    }, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(poll);
+      window.clearInterval(keepAlive);
+    };
+  }, [id]);
+
   async function act(fn: () => Promise<GameState>): Promise<GameState | null> {
     setBusy(true);
     setError(null);

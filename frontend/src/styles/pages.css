@@ -1064,6 +1064,25 @@
   font-weight: 600;
 }
 
+/* Reloj de turno (solo salas ONLINE): arriba a la derecha del escenario. */
+.turn-timer {
+  position: absolute;
+  top: var(--s4);
+  right: var(--s4);
+  margin: 0;
+  font-family: var(--font-board);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--parchment);
+  background: oklch(0 0 0 / 38%);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-control);
+}
+
+.turn-timer.urgent {
+  color: var(--blood);
+}
+
 .deck-count {
   animation: deck-tick var(--t-med) var(--ease-out);
 }
@@ -1093,4 +1112,68 @@
   min-width: 3.5rem;
   text-align: center;
   color: var(--amber);
+}
+
+/* ---------- Sala online: elegir modo, código y lobby ---------- */
+.mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-bottom: var(--s4);
+}
+
+.mode-tabs .ghost[aria-selected='true'] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.room-code {
+  font-family: var(--font-board);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-align: center;
+  color: var(--amber);
+  margin: var(--s2) 0 var(--s4);
+}
+
+.room-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--s6);
+}
+
+.room-link code {
+  font-size: 0.8rem;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-control);
+  background: oklch(1 0 0 / 6%);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.lobby-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--s6);
+  display: grid;
+  gap: var(--s2);
+}
+
+.lobby-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-control);
+  background: oklch(1 0 0 / 5%);
+}
+
+.lobby-list .who {
+  color: var(--parchment-dim);
+  font-size: 0.85rem;
 }

@@ -36,6 +36,8 @@ management:
       enabled: true
 
 server:
+  # Render inyecta PORT; en local cae a 8080. Sin esto, Render no enruta tráfico.
+  port: ${PORT:8080}
   error:
     include-message: never
     include-binding-errors: never

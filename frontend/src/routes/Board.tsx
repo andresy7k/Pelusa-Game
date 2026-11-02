@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { recall } from '../api/identity';
 import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
@@ -24,6 +25,8 @@ const ARC_HALF = ARC_DEG / 2;
 export function Board() {
   const { id } = useParams();
   const { state, error, busy, act } = useGame(id);
+  // Identidad online de ESTE navegador (el backend no tiene login).
+  const identity = useMemo(() => (id ? recall(id) : null), [id]);
   // Vista 3D del paso 2: ?vista=3d la activa y ?cam= elige la vista fija.
   const [search, setSearch] = useSearchParams();
   const vista3d = search.get('vista') === '3d';
@@ -48,10 +51,48 @@ export function Board() {
 
   if (!state) return <main className="page">{error ? friendlyMessage(error) : 'Repartiendo…'}</main>;
 
+  // Enlace directo a /game/:id con la sala todavía en lobby: mostramos dónde
+  // esperar en vez de una mesa vacía (sin turno abierto ni reloj).
+  if (state.status === 'CREATED') {
+    const inRoom = identity !== null;
+    return (
+      <main className="page narrow">
+        <p className="kicker">Sala online</p>
+        <h1>Todavía no empezó</h1>
+        <section className="panel">
+          <p className="room-code">{state.code ?? '······'}</p>
+          <p className="hint" role="status">
+            {inRoom
+              ? 'Tu silla está reservada. Volvé al lobby para esperar al anfitrión.'
+              : 'Entrá con el código para ocupar una silla (si queda lugar).'}
+          </p>
+          <div className="actions">
+            <Link
+              className="btn-primary"
+              to={inRoom ? `/setup?game=${state.id}` : state.code ? `/setup?code=${state.code}` : '/setup'}
+            >
+              {inRoom ? 'Ir al lobby' : 'Unirme a la sala'}
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const finished = state.status === 'FINISHED';
-  const meId = state.currentPlayerId ?? '';
-  const myTurn = !finished && meId !== '';
-  const ev = state.lastEvent as { type?: string; value?: number; count?: number; bust?: boolean } | null;
+  const online = state.mode === 'ONLINE';
+  // Online: "yo" es MI jugador guardado en este navegador, no el del turno.
+  // Hotseat: la UI entera actúa como quien tiene el turno.
+  const meId = online ? (identity?.playerId ?? '') : (state.currentPlayerId ?? '');
+  const myTurn = finished ? false : online ? meId !== '' && state.currentPlayerId === meId : meId !== '';
+  const spectator = online && meId === '';
+  const ev = state.lastEvent as {
+    type?: string;
+    value?: number;
+    count?: number;
+    bust?: boolean;
+    playerId?: string;
+  } | null;
   const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
   const stealValue = state.lastDrawnValue;
   const rivals = state.players.filter((p) => p.id !== meId);
@@ -175,15 +216,23 @@ export function Board() {
         </p>
       )}
 
+      {spectator && (
+        <p className="event-chip" role="status">
+          Estás mirando la mesa como espectador: no podés tocar cartas.
+        </p>
+      )}
+
       <div className="table-stage">
         {/* Texto del turno: plano, arriba a la izquierda, sobre el fondo
             (sin recuadro). El estado de turno también vive en cada chapa. */}
         <p className="felt-turn" role="status">
           <span className="felt-turn-k">{finished ? 'Mesa cerrada' : 'Turno de'}</span>
-          <strong>{finished ? 'Partida terminada' : nameOf(state.players, meId)}</strong>
+          <strong>{finished ? 'Partida terminada' : nameOf(state.players, state.currentPlayerId)}</strong>
         </p>
 
-        {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH') && (
+        {!finished && <TurnTimer deadline={state.turnDeadlineAt} />}
+
+        {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH' || ev?.type === 'TURN_EXPIRED') && (
           <div className="event-chip">
             {ev?.type === 'DRAW' && (
               <>
@@ -198,6 +247,12 @@ export function Board() {
             {ev?.type === 'STASH' && (
               <>
                 Guardó <strong>{String(ev.count)}</strong>
+              </>
+            )}
+            {ev?.type === 'TURN_EXPIRED' && (
+              <>
+                Se acabó el tiempo de{' '}
+                <strong>{nameOf(state.players, ev.playerId ?? null)}</strong>
               </>
             )}
           </div>
@@ -441,6 +496,30 @@ function FrontCards({
         );
       })}
     </div>
+  );
+}
+
+// Cuenta atrás del turno: el SERVIDOR manda (turnDeadlineAt). Esto solo pinta;
+// cuando vence, el próximo poll del estado ya trae el turno rotado.
+function TurnTimer({ deadline }: { deadline: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!deadline) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [deadline]);
+
+  if (!deadline) return null;
+  const left = Math.max(0, Math.ceil((new Date(deadline).getTime() - now) / 1000));
+  return (
+    <p
+      className={`turn-timer${left <= 5 && left > 0 ? ' urgent' : ''}`}
+      role="timer"
+      aria-label={`Quedan ${left} segundos de turno`}
+    >
+      {left > 0 ? `${left} s de turno` : 'Tiempo cumplido'}
+    </p>
   );
 }
 
