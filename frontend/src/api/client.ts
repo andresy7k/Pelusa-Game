@@ -1,4 +1,4 @@
-import { ApiException, type ApiError, type GameState } from './types';
+import { ApiException, type ApiError, type GameState, type JoinResult } from './types';
 
 // Cliente tipado del contrato. Decisiones:
 // - fetch nativo (sin axios): menos dependencias para Phase 5.
@@ -38,8 +38,30 @@ export const api = {
       body: JSON.stringify({ names, firstPlayerIndex }),
     });
   },
-  start(id: string): Promise<GameState> {
-    return request<GameState>(`/api/games/${id}/start`, { method: 'POST' });
+  /** Abrir sala online: devuelve el código y mi playerId (host). */
+  createOnline(name: string, capacity: number): Promise<JoinResult> {
+    return request<JoinResult>('/api/games/online', {
+      method: 'POST',
+      body: JSON.stringify({ name, capacity }),
+    });
+  },
+  /** Entrar por código: jugador nuevo o espectador si ya empezó. */
+  join(code: string, name: string): Promise<JoinResult> {
+    return request<JoinResult>('/api/games/join', {
+      method: 'POST',
+      body: JSON.stringify({ code, name }),
+    });
+  },
+  /** Hotseat: cuerpo {}. Online: el playerId prueba quién pide empezar. */
+  start(id: string, playerId?: string): Promise<GameState> {
+    return request<GameState>(`/api/games/${id}/start`, {
+      method: 'POST',
+      body: JSON.stringify(playerId ? { playerId } : {}),
+    });
+  },
+  /** Keep-alive de Render Free: no toca la BD. */
+  async ping(): Promise<void> {
+    await fetch(`${BASE}/api/ping`);
   },
   state(id: string): Promise<GameState> {
     return request<GameState>(`/api/games/${id}`);
