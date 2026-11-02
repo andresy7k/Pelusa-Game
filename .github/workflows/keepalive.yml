@@ -1,0 +1,18 @@
+name: keepalive
+
+# Render Free duerme la instancia tras 15 min sin tráfico. Un ping cada 10 min
+# la mantiene despierta (y entra en las 750 h/mes gratis del plan).
+# Requisito: configurar la variable de repositorio BACKEND_URL
+# (Settings → Secrets and variables → Actions → Variables).
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Despertar backend
+        if: vars.BACKEND_URL != ''
+        run: curl -fsS --max-time 60 "${{ vars.BACKEND_URL }}/api/ping"
