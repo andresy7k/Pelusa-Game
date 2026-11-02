@@ -7,6 +7,7 @@ import com.pelusa.application.dto.GameView.PlayerView;
 import com.pelusa.application.dto.GameView.ResultView;
 import com.pelusa.application.dto.GameView.ScoreView;
 import com.pelusa.application.dto.GameView.StashView;
+import com.pelusa.application.dto.JoinResult;
 import com.pelusa.domain.engine.DomainException;
 import com.pelusa.domain.engine.Table;
 import com.pelusa.domain.engine.Table.DrawResult;
@@ -14,6 +15,7 @@ import com.pelusa.domain.engine.Table.StealResult;
 import com.pelusa.domain.model.Card;
 import com.pelusa.domain.port.ShufflePort;
 import com.pelusa.domain.service.DeckFactory;
+import com.pelusa.domain.service.RoomCode;
 import com.pelusa.infrastructure.persistence.ActionKeyEntity;
 import com.pelusa.infrastructure.persistence.ActionKeyRepository;
 import com.pelusa.infrastructure.persistence.CardEntity;
@@ -30,6 +32,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,6 +49,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class GameService {
   private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
+  /** Plazo de turno en salas ONLINE (autoridad del servidor, no del cliente). */
+  private static final int TURN_SECONDS = 15;
 
   private final GameRepository games;
   private final PlayerRepository players;
@@ -98,17 +103,97 @@ public class GameService {
     game.setCurrentPlayerId(ps.get(first).getId());
     games.save(game);
 
-    List<Card> deck = DeckFactory.shuffledDeck(shuffle);
-    List<CardEntity> rows = new ArrayList<>(deck.size());
-    for (int i = 0; i < deck.size(); i++) {
-      rows.add(new CardEntity(UUID.randomUUID(), gameId, deck.get(i).value(), "DECK", null, i));
-    }
-    cards.saveAll(rows);
+    seedDeck(gameId);
     return view(gameId, null);
   }
 
+  /**
+   * Sala online: el host abre la mesa (modo ONLINE, cupo que él elige), queda
+   * como jugador asiento 0 y recibe un código único para invitar. La partida
+   * nace en CREATED = lobby de espera; el turno recién existe al hacer start.
+   */
+  @Transactional
+  public JoinResult createOnline(String name, int capacity) {
+    validateSingleName(name);
+    if (capacity < 2 || capacity > 6) {
+      throw new IllegalArgumentException("El cupo va de 2 a 6");
+    }
+    UUID gameId = UUID.randomUUID();
+    GameEntity game = new GameEntity(gameId, "CREATED");
+    game.setMode("ONLINE");
+    game.setCapacity(capacity);
+    game.setCode(availableCode());
+    // Orden obligatorio: primero el padre (games), luego los hijos (players).
+    games.save(game);
+
+    PlayerEntity host = new PlayerEntity(UUID.randomUUID(), gameId, name.trim(), 0);
+    players.save(host);
+    game.setCurrentPlayerId(host.getId());
+    game.setHostPlayerId(host.getId());
+    games.save(game);
+    seedDeck(gameId);
+    return new JoinResult(view(gameId, null), host.getId(), false);
+  }
+
+  /**
+   * Código único con reintento. La ventana de carrera entre "buscar" y "guardar"
+   * la cierra el índice UNIQUE de la migración V6: Java evita el error común
+   * (defensa amable) y la BD impide el imposible (defensa dura).
+   */
+  private String availableCode() {
+    for (int attempt = 0; attempt < 5; attempt++) {
+      String code = RoomCode.generate();
+      if (!games.existsByCode(code)) {
+        return code;
+      }
+    }
+    throw new DomainException("CODE_COLLISION", "No se pudo generar un código único, reintenta");
+  }
+
+  /**
+   * Unirse a una sala por código. Tres desenlaces:
+   * - lobby abierto con cupo: entra como jugador en el siguiente asiento;
+   * - lobby abierto pero lleno: GAME_FULL;
+   * - partida ya empezada/terminada: ESPECTADOR (no se crea jugador).
+   * El código es una llave: se normaliza a mayúsculas para tolerar cómo lo tecleen.
+   */
+  @Transactional
+  public JoinResult join(String code, String name) {
+    validateSingleName(name);
+    GameEntity game = games.findByCode(code.trim().toUpperCase(Locale.ROOT))
+        .orElseThrow(() -> new DomainException("CODE_NOT_FOUND", "Ese código no existe"));
+    if (!"CREATED".equals(game.getStatus())) {
+      return new JoinResult(view(game.getId(), null), null, true);
+    }
+    List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(game.getId());
+    if (ps.size() >= game.getCapacity()) {
+      throw new DomainException("GAME_FULL", "La sala está llena");
+    }
+    String clean = name.trim();
+    if (ps.stream().anyMatch(p -> p.getName().equalsIgnoreCase(clean))) {
+      throw new DomainException("NAME_TAKEN", "Ese nombre ya está en la mesa");
+    }
+    PlayerEntity player = new PlayerEntity(UUID.randomUUID(), game.getId(), clean, ps.size());
+    try {
+      players.save(player);
+    } catch (DataIntegrityViolationException e) {
+      // Carrera: otro request tomó el nombre o el asiento mientras decidíamos.
+      boolean nameTaken = players.findByGameIdOrderBySeatAsc(game.getId()).stream()
+          .anyMatch(p -> p.getName().equalsIgnoreCase(clean));
+      throw new DomainException(nameTaken ? "NAME_TAKEN" : "CONCURRENT_TURN",
+          nameTaken ? "Ese nombre ya está en la mesa" : "La mesa cambió, reintenta");
+    }
+    return new JoinResult(view(game.getId(), null), player.getId(), false);
+  }
+
+  /** Hotseat/compatibilidad: sin playerId no se exige host. */
   @Transactional
   public GameView start(UUID gameId) {
+    return start(gameId, null);
+  }
+
+  @Transactional
+  public GameView start(UUID gameId, UUID playerId) {
     GameEntity game = gameOr404(gameId);
     if ("FINISHED".equals(game.getStatus())) {
       throw new DomainException("GAME_FINISHED", "La partida ya terminó");
@@ -116,15 +201,24 @@ public class GameService {
     if ("IN_PROGRESS".equals(game.getStatus())) {
       throw new DomainException("ALREADY_STARTED", "La partida ya empezó");
     }
+    if (playerId != null && !playerId.equals(game.getHostPlayerId())) {
+      throw new DomainException("NOT_HOST", "Solo el anfitrión puede empezar");
+    }
+    if ("ONLINE".equals(game.getMode())
+        && players.findByGameIdOrderBySeatAsc(gameId).size() < 2) {
+      throw new DomainException("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores");
+    }
     game.setStatus("IN_PROGRESS");
     game.setStartedAt(OffsetDateTime.now());
-    turns.save(new TurnEntity(UUID.randomUUID(), gameId, game.getCurrentPlayerId()));
+    openTurn(gameId, game.getCurrentPlayerId(), game, OffsetDateTime.now());
     return view(gameId, null);
   }
 
-  @Transactional(readOnly = true)
+  /** La lectura también hace cumplir el reloj (expiración perezosa, sin job). */
+  @Transactional
   public GameView state(UUID gameId) {
-    gameOr404(gameId);
+    GameEntity game = gameOr404(gameId);
+    expireIfDue(game);
     return view(gameId, null);
   }
 
@@ -220,6 +314,7 @@ public class GameService {
 
   private GameView guarded(UUID gameId, UUID playerId, String key, Action action) {
     GameEntity game = gameOr404(gameId);
+    UUID expiredPlayer = expireIfDue(game);
     if ("FINISHED".equals(game.getStatus())) {
       throw new DomainException("GAME_FINISHED", "La partida ya terminó");
     }
@@ -228,6 +323,9 @@ public class GameService {
       throw new DomainException("INVALID_PLAYER", "Ese jugador no está en la partida");
     }
     if (!game.getCurrentPlayerId().equals(playerId)) {
+      if (playerId.equals(expiredPlayer)) {
+        throw new DomainException("TURN_EXPIRED", "Se acabó el tiempo de tu turno");
+      }
       throw new DomainException("NOT_YOUR_TURN", "No es tu turno");
     }
     if (key != null && keys.existsByGameIdAndKey(gameId, key)) {
@@ -307,12 +405,60 @@ public class GameService {
   }
 
   private void closeAndRotate(UUID gameId, TurnEntity turn, UUID playerId, Table table, String outcome) {
-    turn.setEndedAt(OffsetDateTime.now());
+    OffsetDateTime now = OffsetDateTime.now();
+    turn.setEndedAt(now);
     turn.setOutcome(outcome);
     // La Table rotó en memoria: hay que persistir la rotación o el turno
     // quedaría congelado en el jugador anterior (bug real cazado por CI).
-    games.getReferenceById(gameId).setCurrentPlayerId(table.currentPlayerId());
-    turns.save(new TurnEntity(UUID.randomUUID(), gameId, table.currentPlayerId()));
+    GameEntity game = games.getReferenceById(gameId);
+    game.setCurrentPlayerId(table.currentPlayerId());
+    openTurn(gameId, table.currentPlayerId(), game, now);
+  }
+
+  /** Abre turno; en ONLINE le pone plazo. En hotseat no hay reloj. */
+  private TurnEntity openTurn(UUID gameId, UUID playerId, GameEntity game, OffsetDateTime now) {
+    TurnEntity turn = new TurnEntity(UUID.randomUUID(), gameId, playerId);
+    if ("ONLINE".equals(game.getMode())) {
+      turn.setDeadlineAt(now.plusSeconds(TURN_SECONDS));
+    }
+    return turns.save(turn);
+  }
+
+  /**
+   * Expiración perezosa: si el turno ONLINE abierto pasó su plazo, lo cierra
+   * como STAND con evento TURN_EXPIRED y abre el siguiente. Devuelve el
+   * jugador que perdió el turno (null si no expiró nada). El cliente nunca
+   * decide el tiempo: cualquier lectura/acción aplica el paso del reloj.
+   */
+  private UUID expireIfDue(GameEntity game) {
+    if (!"ONLINE".equals(game.getMode()) || !"IN_PROGRESS".equals(game.getStatus())) {
+      return null;
+    }
+    var openOpt = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(game.getId());
+    if (openOpt.isEmpty()) {
+      return null;
+    }
+    TurnEntity open = openOpt.get();
+    OffsetDateTime deadline = open.getDeadlineAt();
+    OffsetDateTime now = OffsetDateTime.now();
+    if (deadline == null || now.isBefore(deadline)) {
+      return null;
+    }
+    UUID expired = open.getPlayerId();
+    open.setEndedAt(now);
+    open.setOutcome("STAND");
+    open.setDetail(toJson(event("TURN_EXPIRED", Map.of("playerId", expired.toString()))));
+    List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(game.getId());
+    int index = 0;
+    for (int i = 0; i < ps.size(); i++) {
+      if (ps.get(i).getId().equals(expired)) {
+        index = i;
+      }
+    }
+    UUID next = ps.get((index + 1) % ps.size()).getId();
+    game.setCurrentPlayerId(next);
+    openTurn(game.getId(), next, game, now);
+    return expired;
   }
 
   private Map<String, Object> finishGame(UUID gameId, TurnEntity turn, Table table,
@@ -347,6 +493,22 @@ public class GameService {
   private GameEntity gameOr404(UUID gameId) {
     return games.findById(gameId)
         .orElseThrow(() -> new DomainException("GAME_NOT_FOUND", "La partida no existe"));
+  }
+
+  /** Mazo inicial: el mismo origen para partida local y sala online (DRY). */
+  private void seedDeck(UUID gameId) {
+    List<Card> deck = DeckFactory.shuffledDeck(shuffle);
+    List<CardEntity> rows = new ArrayList<>(deck.size());
+    for (int i = 0; i < deck.size(); i++) {
+      rows.add(new CardEntity(UUID.randomUUID(), gameId, deck.get(i).value(), "DECK", null, i));
+    }
+    cards.saveAll(rows);
+  }
+
+  private static void validateSingleName(String name) {
+    if (name == null || name.isBlank() || name.trim().length() > 60) {
+      throw new IllegalArgumentException("Nombre inválido (1-60 caracteres)");
+    }
   }
 
   private static void validateNames(List<String> names) {
@@ -424,10 +586,11 @@ public class GameService {
         ps.stream().map(p -> new PlayerView(p.getId(), p.getName(), p.getSeat())).toList();
     // R-01/ADR-014: valor robable este turno = última carta sacada (null si no hay).
     // La próxima carta del mazo NO se expone (§11 del contrato): filtra estrategia.
-    Integer lastDrawn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId)
-        .map(TurnEntity::getLastDrawnValue)
-        .orElse(null);
-    return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(), deck,
-        lastDrawn, playerViews, fronts, stashed, event, result);
+    var openTurn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId);
+    Integer lastDrawn = openTurn.map(TurnEntity::getLastDrawnValue).orElse(null);
+    OffsetDateTime turnDeadline = openTurn.map(TurnEntity::getDeadlineAt).orElse(null);
+    return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(),
+        game.getHostPlayerId(), game.getCode(), game.getMode(), game.getCapacity(),
+        deck, lastDrawn, turnDeadline, playerViews, fronts, stashed, event, result);
   }
 }

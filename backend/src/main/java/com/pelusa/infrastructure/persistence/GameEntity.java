@@ -32,6 +32,18 @@ public class GameEntity {
   @Column(name = "finished_at")
   private OffsetDateTime finishedAt;
 
+  @Column(name = "host_player_id")
+  private UUID hostPlayerId;
+
+  @Column(name = "code")
+  private String code;
+
+  @Column(name = "mode")
+  private String mode = "LOCAL";
+
+  @Column(name = "capacity")
+  private int capacity = 6;
+
   @Version
   private long version;
 
@@ -47,9 +59,17 @@ public class GameEntity {
   public String getStatus() { return status; }
   public UUID getCurrentPlayerId() { return currentPlayerId; }
   public UUID getWinnerId() { return winnerId; }
+  public UUID getHostPlayerId() { return hostPlayerId; }
+  public String getCode() { return code; }
+  public String getMode() { return mode; }
+  public int getCapacity() { return capacity; }
   public void setStatus(String status) { this.status = status; }
   public void setCurrentPlayerId(UUID id) { this.currentPlayerId = id; }
   public void setWinnerId(UUID id) { this.winnerId = id; }
   public void setStartedAt(OffsetDateTime t) { this.startedAt = t; }
   public void setFinishedAt(OffsetDateTime t) { this.finishedAt = t; }
+  public void setHostPlayerId(UUID id) { this.hostPlayerId = id; }
+  public void setCode(String code) {this.code = code; }
+  public void setMode(String mode) { this.mode = mode; }
+  public void setCapacity(int capacity) { this.capacity = capacity; }
 }

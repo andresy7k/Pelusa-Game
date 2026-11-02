@@ -1,5 +1,6 @@
 package com.pelusa.application.dto;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,13 +14,21 @@ public record GameView(
     UUID id,
     String status,
     UUID currentPlayerId,
+    UUID hostPlayerId,
+    String code,
+    String mode,
+    int capacity,
     int deckRemaining,
     Integer lastDrawnValue,
+    /** Plazo del turno ONLINE (ISO-8601 UTC); null en hotseat o sin turno abierto. */
+    OffsetDateTime turnDeadlineAt,
     List<PlayerView> players,
     Map<UUID, List<Integer>> fronts,
     Map<UUID, StashView> stashed,
     Map<String, Object> lastEvent,
-    ResultView result) {
+    ResultView result) 
+    
+    {
 
   public record PlayerView(UUID id, String name, int seat) {}
 
