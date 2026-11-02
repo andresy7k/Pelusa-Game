@@ -88,3 +88,21 @@
 **Alternativas:** (a) robar cualquier valor (estado previo) — permite robar sin relación con tu draw; (b) robar solo "inmediatamente después del draw" — más rígido que la regla del autor ("la última que saqué").
 **Consecuencias:** + Regla fiel al juego físico; la UI resalta SOLO las cartas robables. − 1 columna + V5; los tests de robo deben amañar el mazo para sacar el valor correcto primero.
 **Defensa:** "El riesgo estaba previsto en ADR-011; el cambio fue quirúrgico: 1 método de dominio, 1 columna, 1 errorCode, tests de tabla (sin draw / valor distinto / valor igual)."
+
+## ADR-015 — Salas online por código, sin cuentas (2026-11-02, CERRADO por el autor)
+**Contexto:** Sección 1–2 del multijugador: jugar entre dispositivos sin auth (ADR-010) y sin fricción de registro. WebSockets no atraviesan el rewrite de Vercel.
+**Decisión:** salas con `code` de 6 caracteres (alfabeto sin 0/O/1/I/L), UNIQUE en DB y generación con SecureRandom + reintento ante colisión. El creador es host (silla 0) y único que puede iniciar. La identidad del jugador vive en `localStorage` por id de partida; no hay login. Quien entra con la partida empezada queda **espectador** (`playerId:null`) y no ocupa cupo.
+**Alternativas:** UUID en la URL (fea para dictar por voz), cuentas con auth (fuera de alcance v1), WebSockets (no pasan por Vercel rewrites).
+**Consecuencias:** + Enlace compartible y cero registro; defensa clara de "el servidor sigue siendo la autoridad". − Identidad "de navegador": borrar storage o cambiar de dispositivo te deja espectador (aceptado y documentado).
+
+## ADR-016 — Polling 2.5 s + keep-alive, sin WebSockets (2026-11-02, CERRADO por el autor)
+**Contexto:** El front debe ver turnos ajenos en vivo con el stack gratis (Vercel + Render Free). WS exige conexión persistente; Render Free duerme a los 15 min.
+**Decisión:** `GET /api/games/{id}` cada 2.5 s con la pestaña visible (document.hidden pausa), `GET /api/ping` cada 60 s desde el front y un workflow de GitHub cada 10 min para despertar Render. El estado se re-renderiza tal como llega: no hay merge optimista ni predicción local.
+**Alternativas:** WebSockets (bloqueado por Vercel/rewrites y por el plan free), SSE (posible, pero más complejo que el problema que resuelve hoy).
+**Consecuencias:** + Simple, stateless, barato y fácil de defender; el servidor no guarda conexiones. − Latencia de hasta 2.5 s y requests periódicos (entran holgados en los límites free).
+
+## ADR-017 — Timer de 15 s autoritativo con expiración perezosa (2026-11-02, CERRADO por el autor)
+**Contexto:** Salas online necesitan límite de turno para que nadie congele la mesa; un timer de cliente es trivialmente burlable.
+**Decisión:** `turns.deadline_at` (V7) marca el plazo; al abrir turno se fija `now + 15 s` **solo en ONLINE** (hotseat no tiene reloj). No hay job ni hilo: cualquier lectura/acción ejecuta `expireIfDue` — si venció, cierra el turno (`outcome STAND`, evento `TURN_EXPIRED`), rota y abre el siguiente. La acción del jugador vencido en el mismo request recibe 409 `TURN_EXPIRED`; si otro request ya rotó, `NOT_YOUR_TURN`. `turnDeadlineAt` se expone en la vista y el front solo pinta la cuenta atrás.
+**Alternativas:** `@Scheduled` cada segundo (consume CPU con la instancia dormida y complica el arranque), timer en el navegador (sin autoridad), sin timer (mesas congeladas).
+**Consecuencias:** + Sin estado extra ni jobs; el estado siempre converge en la próxima lectura. − Si todos cierran la pestaña, la expiración se aplica cuando alguien vuelve a leer (documentado; los clientes polléan mientras juegan).

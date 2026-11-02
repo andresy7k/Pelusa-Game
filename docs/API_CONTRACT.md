@@ -39,18 +39,37 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 **Reglas:** ninguna de turno aún. Genera 110 `cards(DECK)` con `pile_order` aleatorio persistido.
 **Impacto BD:** 1 transacción: 1 game + N players + 110 cards.
 
+## 1.1 `POST /api/games/online` — abrir sala con código
+**Propósito:** crear partida ONLINE en lobby (`CREATED`) con código de invitación único.
+**Request:**
+```json
+{ "name": "Ana", "capacity": 4 }
+```
+Validación: `name` 1–60, `capacity` 2–6. El creador es el host (silla 0).
+**Response 201:** `{ "game": {..., "mode":"ONLINE", "code":"ABC234", "hostPlayerId":"uuid", "capacity":4}, "playerId":"uuid", "spectator":false }`.
+**Errores:** 400 `VALIDATION_FAILED`, 409 `CODE_COLLISION` (5 reintentos de código agotados).
+**Reglas:** el código usa alfabeto sin 0/O/1/I/L (6 caracteres); UNIQUE en BD como red final.
+
+## 1.2 `POST /api/games/join` — entrar por código
+**Propósito:** unirse al lobby como jugador; si la partida ya empezó/terminó, mirar como espectador.
+**Request:** `{ "code": "abc234", "name": "Beto" }` (el código se normaliza a mayúsculas).
+**Response 200:** `{ "game": {...}, "playerId":"uuid", "spectator":false }`; en partida ya empezada `playerId:null, spectator:true` (no crea silla, aunque la sala esté llena).
+**Errores:** 404 `CODE_NOT_FOUND`, 409 `GAME_FULL` (lobby sin cupo) / `NAME_TAKEN` / `CONCURRENT_TURN` (carrera al tomar asiento), 400 `VALIDATION_FAILED`.
+**Reglas:** asiento = siguiente libre (0..capacity-1); nombre único por mesa (case-insensitive al validar).
+
 ## 2. `POST /api/games/{id}/start` — iniciar
-**Propósito:** `CREATED→IN_PROGRESS`, fija `currentPlayerId`.
-**Request:** `{}` + `Idempotency-Key`.
+**Propósito:** `CREATED→IN_PROGRESS`, fija `currentPlayerId` (y el plazo del primer turno).
+**Request:** `{ "playerId":"uuid" }` opcional (hotseat lo omite; en sala ONLINE manda quién pide y debe ser el host) + `Idempotency-Key`.
 **Response 200:** estado con `IN_PROGRESS`.
-**Errores:** 404 `GAME_NOT_FOUND`, 409 `ALREADY_STARTED` / `GAME_FINISHED`, 422 si sin jugadores (imposible si crear valida).
-**Impacto BD:** update games + 1 turn abierto.
+**Errores:** 404 `GAME_NOT_FOUND`, 409 `ALREADY_STARTED` / `GAME_FINISHED` / `NOT_HOST` (pidió alguien que no es el anfitrión) / `NOT_ENOUGH_PLAYERS` (sala ONLINE con 1 jugador), 400 `VALIDATION_FAILED` (playerId no-UUID).
+**Impacto BD:** update games + 1 turn abierto con `deadline_at = now() + 15 s`.
 
 ## 3. `GET /api/games/{id}` — estado
-**Propósito:** única fuente para render (turno, mazo, frentes, puntos).
-**Response 200:** estado canónico + `lastDrawnValue` (valor robable este turno, ADR-014; `null` si aún no sacó).
-**Errores:** 404. Sin rate-limit estricto (GET cacheable 1s en React Query).
-**Impacto BD:** 4 selects (game, players, cards, turn abierto) con EntityGraph (sin N+1).
+**Propósito:** única fuente para render (turno, mazo, frentes, puntos, reloj).
+**Response 200:** estado canónico + `lastDrawnValue` (ADR-014; `null` si aún no sacó) + `turnDeadlineAt` (ISO-8601; `null` en hotseat o sin turno abierto).
+**Regla del reloj (Sección 3):** solo ONLINE. Cualquier lectura/acción aplica **expiración perezosa**: si el plazo ya pasó, el servidor cierra el turno (outcome `STAND`, evento `TURN_EXPIRED`), rota `currentPlayerId` y abre el siguiente con 15 s. El cliente solo pinta la cuenta atrás; nunca decide el tiempo.
+**Errores:** 404. Acción del jugador vencido en el mismo request → 409 `TURN_EXPIRED`; si otro request ya rotó el turno → 409 `NOT_YOUR_TURN`.
+**Impacto BD:** 4 selects (game, players, cards, turn abierto) con EntityGraph (sin N+1). En ONLINE, la lectura puede escribir el cierre/ apertura de turno.
 
 ## 4. `POST /api/games/{id}/stash` — guardar pelusas
 **Propósito:** mover mi `FRONT` (de turnos anteriores) a `STASHED`. Solo inicio de mi turno, una vez por turno.
@@ -95,7 +114,7 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 
 ## 9. Salud y meta
 - `GET /actuator/health` (interno, con chequeo `SELECT 1` a DB).
-- `GET /api/health` → `{"status":"UP"}` para la UI.
+- `GET /api/ping` → **204 No Content**, sin tocar la base: lo usa el front cada 60 s para que Render Free no duerma la instancia.
 - OpenAPI en `/v3/api-docs` + Swagger UI solo perfil dev.
 
 ## 10. Matriz de status (para tests MockMvc)
@@ -114,6 +133,18 @@ Validación: 2–6 nombres, 1–60 chars, únicos, `firstPlayerIndex` en rango (
 | Acción en `FINISHED` | 409 `GAME_FINISHED` |
 | Juego inexistente | 404 `GAME_NOT_FOUND` |
 | Reintento misma `Idempotency-Key` | 200 mismo estado, sin duplicar carta |
+| Crear sala online válida | 201 + `mode:ONLINE`, `code` 6 chars, host sentado |
+| Unirse con código en minúsculas | 200 + asiento siguiente, `spectator:false` |
+| Unirse a partida ya empezada | 200 + `playerId:null`, `spectator:true` |
+| Código inexistente | 404 `CODE_NOT_FOUND` |
+| Sala sin cupo | 409 `GAME_FULL` |
+| Nombre repetido en la mesa | 409 `NAME_TAKEN` |
+| Start sin ser host | 409 `NOT_HOST` |
+| Start ONLINE con 1 jugador | 409 `NOT_ENOUGH_PLAYERS` |
+| Body con UUID malformado | 400 `VALIDATION_FAILED` (nunca 500) |
+| Body con Content-Type no JSON | 415 `UNSUPPORTED_MEDIA_TYPE` |
+| Turno ONLINE vencido (acción del lento, mismo request) | 409 `TURN_EXPIRED` (turno ya rotado) |
+| Turno ONLINE vencido detectado por un GET | 200 con turno rotado y `lastEvent:TURN_EXPIRED` |
 
 ## 11. Lo que la UI tiene prohibido (para tu defensa)
 

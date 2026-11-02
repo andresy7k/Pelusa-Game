@@ -12,7 +12,7 @@ players 1──N cards (owner, nullable; DECK no tiene dueño)
 players 1──N turns (quién jugó el turno)
 ```
 
-## 2. Tablas (esquema actual = V1+V2+V3; abajo el estado final.
+## 2. Tablas (esquema actual = V1…V7; abajo el estado final.
 Los archivos V1/V2 no se reescriben aunque muestren `DUST_PILE`: son historia
 y Flyway valida checksums. El rename vive en `V3__deck_rename.sql`.)
 
@@ -67,6 +67,7 @@ CREATE TABLE turns (
   player_id   UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
   started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   ended_at   TIMESTAMP WITH TIME ZONE NULL,
+  deadline_at TIMESTAMP WITH TIME ZONE NULL,        -- V7: plazo del turno (ONLINE; NULL = sin reloj)
   outcome    VARCHAR(16) NULL CHECK (outcome IN ('STAND','BUST','STEAL','AUTO_FINISH')),
   detail     TEXT NULL,                           -- JSON serializado (portable: H2 no tiene JSONB)
   last_drawn_value INTEGER NULL,                  -- V5/ADR-014: valor robable del turno (NULL = sin draw)
@@ -123,5 +124,7 @@ Nunca se hace `DELETE` de cartas; el histórico es la tabla misma filtrada por `
 - **V3** renombra `DUST_PILE→DECK` (valores, constraint, índice). Lección: las migraciones aplicadas no se editan; el rename es una migración más.
 - **V4** (Java) dropea el check inline autogenerado por H2 que bloqueaba `DECK` tras V3 — se corrige con otra migración, nunca editando V3 ya aplicada.
 - **V5** añade `turns.last_drawn_value` (ADR-014: el robo solo acepta el valor de la última carta sacada; NULL al rotar turno).
+- **V6** añade el lobby online a `games`: `mode`, `code` (UNIQUE), `capacity`, `host_player_id` + checks (`chk_mode`, `chk_capacity`, `chk_code_consistency`) y FK `fk_games_host`.
+- **V7** añade `turns.deadline_at` (ADR-017): plazo por turno en ONLINE. La expiración es perezosa (la aplica la primera lectura/acción después del vencimiento); no hay job ni reloj en el cliente. Backfill de turnos abiertos al migrar.
 - Estrategia expand/contract si Phase 11 añade columnas (ej: `steal_from`): V2 añade nullable → código escribe ambos → V3 backfill + NOT NULL. No se elimina columna y código en el mismo deploy.
 - Seeds: `V999__demo.sql` solo perfil `demo`, nunca prod.

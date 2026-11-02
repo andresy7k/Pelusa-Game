@@ -91,6 +91,15 @@
 **Riesgos:** El estado transitorio del turno se reconstruye en cada request; si no se persiste, el valor se pierde entre acciones — cubierto por `turns.last_drawn_value` y el test `viewExposesLastDrawnValue`. (Nota: el tope del mazo se probó visible y se revirtió — filtra estrategia; §11 del contrato sigue en pie.)
 **Cómo defenderlo:** "Tabla de verdad del robo: sin draw → 422; valor distinto → 422; valor igual y presente → roba todas. El cambio tocó 1 clase de dominio + V5; los tests viejos fallaron exactamente donde debían y se reescribieron con la regla nueva."
 
+### 2026-11-02 — Multijugador online: código de sala, reloj y deploy gratis
+**Concepto:** Pasar de hotseat a salas entre dispositivos sin auth: el código de 6 caracteres es la invitación; la identidad es un `playerId` guardado en `localStorage`; el servidor sigue siendo la única autoridad (turnos, cupos y tiempo).
+**Problema:** Tres fricciones reales: (1) `DEFAULT` de BD no salva inserts de Hibernate con NULL explícito → `mode/capacity` con inicializador Java; (2) H2 no acepta varios `ADD COLUMN` en un `ALTER` (V6 va uno por columna); (3) el timer no puede vivir en el cliente ni en un job: Render Free duerme. Además, dos bugs de herramienta: PowerShell `$host` es de solo lectura (mandé basura en el body → 500) y `POST` sin body pone `application/x-www-form-urlencoded` → 415, no 500.
+**Solución:** endpoints `online/join/ping`, `start` con `playerId` opcional y `NOT_HOST`/`NOT_ENOUGH_PLAYERS`, códigos UNIQUE con reintento, espectador al entrar tarde; `turns.deadline_at` (V7) + expiración perezosa en cualquier lectura/acción, `TURN_EXPIRED` → 409 y cuenta atrás pintada desde el servidor; polling 2.5 s + keep-alive; deploy Docker en Render + Neon + Vercel con `CORS_ALLOWED_ORIGINS`.
+**Por qué:** Cada pieza es chica y verificable por API: crear→unirse→errores→host→espectador→vencimiento. El reloj en la BD evita hilos y sobrevive reinicios; la expiración perezosa aprovecha que los clientes ya leen el estado.
+**Alternativas:** WebSockets (bloqueados por el rewrite de Vercel), SSE (más complejo por ahora), `@Scheduled` (CPU y arranque), timer en JS (sin autoridad).
+**Riesgos:** expiración solo al leer (los clientes polléan; si todos cierran, converge al volver); localStorage se pierde al limpiar el navegador (se entra como espectador); Render Free cold start (~50 s) mitigado con keep-alive.
+**Cómo defenderlo:** "El cliente no decide nada: pinta `turnDeadlineAt` y el servidor cierra el turno en la primera lectura/acción vencida. El código se valida contra UNIQUE en DB y se reintenta; el host es el único que arranca; quien llega tarde mira sin ocupar silla. Todo verificado con curl/MockMvc, no 'a ojo'."
+
 ---
 <!-- Plantilla para próximas entradas:
 ### Fecha — Título

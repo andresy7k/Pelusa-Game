@@ -88,15 +88,16 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 
 ## 7. Errores, logs, observabilidad
 
-- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS, STEAL_VALUE_MISMATCH`.
-- `OncePerRequestFilter` genera `X-Request-Id` (o respeta el entrante), lo pone en MDC; logs estructurados (timestamp, level, requestId, gameId, playerId, action) sin PII ni secretos.
-- `GET /actuator/health` verifica `DataSource` con `SELECT 1` (health real, no "UP" hardcodeado). `GET /api/health` público ligero para la UI.
+- `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible. Juego: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS, STEAL_VALUE_MISMATCH`. Online: `CODE_NOT_FOUND, CODE_COLLISION, GAME_FULL, NAME_TAKEN, NOT_HOST, NOT_ENOUGH_PLAYERS, ALREADY_STARTED, TURN_EXPIRED`, `UNSUPPORTED_MEDIA_TYPE` (415). Cuerpo/JSON inválido o UUID mal formado → 400.
+- `OncePerRequestFilter` genera `X-Request-Id` (o respeta el entrante), lo pone en MDC; logs estructurados (timestamp, level, requestId, gameId, playerId, action) sin PII ni secretos. Los 500 se loguean con requestId para diagnosticar sin exponer detalles al cliente.
+- `GET /actuator/health` verifica `DataSource` con `SELECT 1` (health real, no "UP" hardcodeado). `GET /api/ping` público (204) para keep-alive del plan gratuito.
 - Rate-limit (Bucket4j o filtro simple, Phase 11): `POST /api/games` 10/min por IP; acciones 60/min por IP. Excedido → 429 con `Retry-After`.
 
 ## 8. Frontend (límites para no romper la autoridad)
 
 - React Query solo cachea `GET` (estado, histórico). Mutaciones (`draw/stand/stash/steal`) siempre van al servidor y reconcilian con lo que el servidor devuelve. Prohibido `if (canSteal)` local sin refrendo: el botón puede predecir, pero el servidor decide.
-- Estado UI: `useGame(id)` → `GET /api/games/{id}` → `{ status, currentPlayer, deckRemaining, fronts{playerId:[cards]}, stashed{playerId:{sum, countsByValue}}, lastEvent }`. Agrupación por valor es solo render.
+- Estado UI: `useGame(id)` → `GET /api/games/{id}` → `{ status, currentPlayerId, hostPlayerId, code, mode, capacity, deckRemaining, turnDeadlineAt, fronts{playerId:[cards]}, stashed{playerId:{sum, countsByValue}}, lastEvent }`. Agrupación por valor es solo render.
+- Online: la identidad (`playerId`) se guarda en `localStorage` con clave por partida; el lobby y el tablero hacen polling (2 s / 2,5 s, pausado con pestaña oculta) y `GET /api/ping` cada 60 s. Quien no tiene silla ve la mesa como espectador. El reloj solo pinta `turnDeadlineAt`; la expiración la decide el backend.
 - Animaciones GSAP en capa de presentación, nunca bloquean la mutación ni guardan estado de juego.
 
 ## 9. Qué podría salir mal (riesgos vivos)
@@ -105,6 +106,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 - Mappers manuales tediosos → aceptado; MapStruct solo si el tribunal lo pide (añade magia difícil de explicar).
 - Divergencia Postgres/H2 (tipos, `FOR UPDATE`) → SQL estándar en V1, tipos simples, CI corre ambos perfiles desde Phase 10.
 - Hero/animaciones rompen 60fps → presupuesto: solo `transform/opacity`, `prefers-reduced-motion`, timelines GSAP con `will-change` mínimo.
+- Render Free duerme el backend (~50 s de cold start) → keep-alive: `GET /api/ping` cada 60 s desde el front y workflow `keepalive.yml` cada 10 min. Es mitigación, no SLA.
 
 ## 10. Cómo se prueba esta arquitectura
 
