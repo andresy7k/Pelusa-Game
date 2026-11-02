@@ -2,8 +2,12 @@ package com.pelusa.infrastructure.web;
 
 import com.pelusa.application.GameService;
 import com.pelusa.application.dto.GameView;
+import com.pelusa.application.dto.JoinResult;
 import com.pelusa.infrastructure.web.dto.ActRequest;
 import com.pelusa.infrastructure.web.dto.CreateGameRequest;
+import com.pelusa.infrastructure.web.dto.CreateOnlineRequest;
+import com.pelusa.infrastructure.web.dto.JoinRequest;
+import com.pelusa.infrastructure.web.dto.StartRequest;
 import com.pelusa.infrastructure.web.dto.StealRequest;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -39,9 +43,27 @@ public class GameController {
     return service.create(req.names(), req.firstPlayerIndex());
   }
 
+  /** Abrir sala online: devuelve 201 con el código de invitación y el playerId del host. */
+  @PostMapping("/online")
+  @ResponseStatus(HttpStatus.CREATED)
+  public JoinResult createOnline(@Valid @RequestBody CreateOnlineRequest req) {
+    return service.createOnline(req.name(), req.capacity());
+  }
+
+  /**
+   * Unirse por código. 200 (no 201) porque la respuesta no siempre crea algo:
+   * si la partida ya empezó, devuelve spectator=true y no hay jugador nuevo.
+   */
+  @PostMapping("/join")
+  public JoinResult join(@Valid @RequestBody JoinRequest req) {
+    return service.join(req.code(), req.name());
+  }
+
   @PostMapping("/{id}/start")
-  public GameView start(@PathVariable UUID id) {
-    return service.start(id);
+  public GameView start(
+      @PathVariable UUID id,
+      @RequestBody(required = false) @Valid StartRequest req) {
+    return service.start(id, req == null ? null : req.playerId());
   }
 
   @GetMapping("/{id}")

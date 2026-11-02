@@ -19,6 +19,10 @@ public class TurnEntity {
   @Column(name = "started_at", nullable = false)
   private OffsetDateTime startedAt;
 
+  /** Plazo del turno (ONLINE); null = sin límite (hotseat / turnos viejos). */
+  @Column(name = "deadline_at")
+  private OffsetDateTime deadlineAt;
+
   @Column(name = "ended_at")
   private OffsetDateTime endedAt;
 
@@ -49,6 +53,8 @@ public class TurnEntity {
 
   public UUID getId() { return id; }
   public UUID getPlayerId() { return playerId; }
+  public OffsetDateTime getDeadlineAt() { return deadlineAt; }
+  public void setDeadlineAt(OffsetDateTime deadlineAt) { this.deadlineAt = deadlineAt; }
   public String getDetail() { return detail; }
   public boolean isActed() { return acted; }
   public boolean isStashed() { return stashed; }

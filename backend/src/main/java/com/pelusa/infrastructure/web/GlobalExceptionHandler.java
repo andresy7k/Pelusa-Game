@@ -3,12 +3,17 @@ package com.pelusa.infrastructure.web;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 /**
@@ -19,11 +24,14 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
   private static final Set<String> NOT_FOUND =
-      Set.of("GAME_NOT_FOUND");
+      Set.of("GAME_NOT_FOUND", "CODE_NOT_FOUND");
   private static final Set<String> CONFLICT =
       Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED",
-          "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN");
+          "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN", "CODE_COLLISION",
+          "GAME_FULL", "NAME_TAKEN", "NOT_HOST", "NOT_ENOUGH_PLAYERS", "TURN_EXPIRED");
   // Cualquier otro código de dominio cae en el default 422 (regla violada):
   // DECK_EMPTY, NO_STASHABLE_CARDS, NO_STEALABLE_CARDS, STEAL_VALUE_MISMATCH,
   // INVALID_PLAYER.
@@ -52,6 +60,23 @@ public class GlobalExceptionHandler {
     return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request inválido", req);
   }
 
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ProblemDetail unsupportedMedia(HttpMediaTypeNotSupportedException e, HttpServletRequest req) {
+    return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
+        "Content-Type no soportado: usá application/json", req);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ProblemDetail unreadable(HttpMessageNotReadableException e, HttpServletRequest req) {
+    return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Body JSON inválido o malformado", req);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ProblemDetail typeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest req) {
+    return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED",
+        "Parámetro inválido: " + e.getName(), req);
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   public ProblemDetail illegalArgument(IllegalArgumentException e, HttpServletRequest req) {
     return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", e.getMessage(), req);
@@ -64,6 +89,8 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ProblemDetail unexpected(Exception e, HttpServletRequest req) {
+    // Un 500 nunca debe ser mudo: dejamos el stacktrace con el requestId para correlacionar.
+    log.error("Error inesperado en {} {}", req.getMethod(), req.getRequestURI(), e);
     return problem(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL", "Error inesperado", req);
   }
 
