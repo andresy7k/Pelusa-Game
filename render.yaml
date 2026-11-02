@@ -16,5 +16,5 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-      - key: CORS_ALLOWED_ORIGINS
-        sync: false
+      # CORS_ALLOWED_ORIGINS es opcional: el proxy /api de Vercel evita CORS.
+      # Agregala solo si el front llama directo al backend (modo directo).
