@@ -151,19 +151,19 @@ class GameApiTest {
     UUID ana = playerId(created, 0);
     UUID beto = playerId(created, 1);
 
-    act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
     act(gameId, "stand", ana, UUID.randomUUID().toString(), null);
     act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
     act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
     act(gameId, "stand", beto, UUID.randomUUID().toString(), null);
+    act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
 
     JsonNode after = act(gameId, "steal", ana, UUID.randomUUID().toString(),
         "{\"playerId\":\"" + ana + "\",\"value\":4}");
     assertThat(after.get("fronts").get(ana.toString()).size()).isEqualTo(3);
 
-    // Sin ese valor → 422
+    // Agotadas las cartas robables de ese valor → 422
     mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\",\"value\":9}"))
+            .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STEALABLE_CARDS"));
   }
