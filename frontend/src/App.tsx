@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
-import { Board } from './routes/Board';
-import { History } from './routes/History';
-import { Home } from './routes/Home';
-import { Setup } from './routes/Setup';
+
+const Board = lazy(() => import('./routes/Board').then((m) => ({ default: m.Board })));
+const History = lazy(() => import('./routes/History').then((m) => ({ default: m.History })));
+const Home = lazy(() => import('./routes/Home').then((m) => ({ default: m.Home })));
+const Setup = lazy(() => import('./routes/Setup').then((m) => ({ default: m.Setup })));
 
 // El topbar global se oculta solo en el home: el hero tiene su propio nav.
 // El resto de las páginas lo conservan tal cual.
@@ -35,12 +37,14 @@ function Shell() {
           </header>
         </>
       )}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/setup" element={<Setup />} />
-        <Route path="/game/:id" element={<Board />} />
-        <Route path="/history" element={<History />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/game/:id" element={<Board />} />
+          <Route path="/history" element={<History />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }

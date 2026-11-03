@@ -356,8 +356,8 @@ export function MonsterCanvas({ mode, activeValue, accent, hoveredValue, intro, 
       flat // colores exactos de config (sin tone mapping)
       orthographic={false}
       camera={{ fov: HERO.camera.fov, position: [0, HERO.camera.y, 14] }}
-      gl={{ alpha: true, antialias: true }}
-      dpr={mode === 'full' ? [1, 1.75] : 1}
+      gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+      dpr={mode === 'full' ? [1, 1.5] : 1}
       onCreated={handleCreated}
       style={{ position: 'fixed', inset: 0, zIndex: 20, pointerEvents: 'none' }}
       aria-hidden

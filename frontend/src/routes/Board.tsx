@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recall } from '../api/identity';
@@ -6,8 +6,12 @@ import { friendlyMessage } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
-import { TableCanvasR3F, type MesaFlight } from '../features/mesa3d/TableCanvasR3F';
+import type { MesaFlight } from '../features/mesa3d/TableCanvasR3F';
 import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
+
+const TableCanvasR3F = lazy(() =>
+  import('../features/mesa3d/TableCanvasR3F').then((module) => ({ default: module.TableCanvasR3F }))
+);
 
 // Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
 // es "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado
@@ -259,6 +263,7 @@ export function Board() {
         )}
 
         {vista3d ? (
+          <Suspense fallback={null}>
           <TableCanvasR3F
             seatCount={state.players.length}
             cam={cam}
@@ -283,6 +288,7 @@ export function Board() {
                 })),
             }}
           />
+          </Suspense>
         ) : (
         <div className="table-felt">
           <div className="felt-disc" aria-hidden="true" />
@@ -506,7 +512,7 @@ function TurnTimer({ deadline }: { deadline: string | null }) {
 
   useEffect(() => {
     if (!deadline) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    const timer = window.setInterval(() => setNow(Date.now()), 500);
     return () => window.clearInterval(timer);
   }, [deadline]);
 
