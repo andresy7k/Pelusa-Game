@@ -139,7 +139,8 @@ Luego New → Static Site → root `frontend`, build
 | `Uncaught TypeError: Failed to fetch` | backend dormido o URL mal formada | abrir `/api/health`; revisar `VITE_API_URL` en el bundle |
 | 404 al recargar `/game/<id>` | falta el rewrite SPA | agregar `/*` → `/index.html` en el static site |
 | `Connection refused` a Postgres | URL JDBC mal formada | debe empezar con `jdbc:postgresql://` y llevar `sslmode=require` |
-| Flyway falla al boot | migración no portable o pooler | usar conexión directa de Neon; correr `mvn verify` (H2, JDK 17) antes de mergear |
+| `Unsupported Database: PostgreSQL 18.6` | falta el módulo `flyway-database-postgresql` (Flyway 10+ separa el soporte por motor) | el `pom.xml` ya incluye el módulo con Flyway 11.20.3; verificá que el jar tenga `BOOT-INF/lib/flyway-database-postgresql-*.jar` |
+| Flyway falla al boot | migración no portable o pooler | usar conexión directa de Neon; correr `mvn verify` (H2, JDK 25 LTS) antes de mergear |
 | Neon deja de responder | se agotaron los 100 CU-hours/mes | evitar health checks que consulten la DB; `/api/health` no la toca |
 | Render duerme igual | workflow sin `BACKEND_URL` | definir la variable y correr el workflow a mano una vez |
 | El build del front falla en Render (`vite: not found`) | `npm ci` omitió devDependencies | el Blueprint usa `npm ci --include=dev`; revisá el lockfile |
@@ -193,5 +194,5 @@ Con 2–6 jugadores y polling de 2,5 s, el consumo entra holgado.
   duerme; con la mesa quieta, el primer click puede tardar.
 - **`frontend/vercel.json` solo aplica en Vercel**: en dev local manda el proxy
   de Vite (`vite.config.ts`).
-- Tests: `mvn verify` con JDK 17 (58 tests: dominio, API, Flyway y online). El CI
+- Tests: `mvn verify` con JDK 25 LTS (58 tests: dominio, API, Flyway y online). El CI
   los corre en cada push y sube el jar como artifact.

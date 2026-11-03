@@ -591,6 +591,6 @@ public class GameService {
     OffsetDateTime turnDeadline = openTurn.map(TurnEntity::getDeadlineAt).orElse(null);
     return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(),
         game.getHostPlayerId(), game.getCode(), game.getMode(), game.getCapacity(),
-        deck, lastDrawn, turnDeadline, playerViews, fronts, stashed, event, result);
+        deck, deck, lastDrawn, turnDeadline, playerViews, fronts, stashed, event, result);
   }
 }

@@ -8,7 +8,7 @@ Docs: `docs/PROJECT_PLAN.md` (fases) · `docs/ARCHITECTURE.md` · `docs/DATA_MOD
 
 ## Requisitos
 
-- JDK 17 (es el del CI; con JDKs más nuevos los tests pueden fallar por JaCoCo/Mockito).
+- JDK 25 LTS (es el del CI y del runtime de producción).
 - Maven 3.9+, Node 20+.
 - Docker opcional: Postgres 16 local. Sin Docker, el backend corre con H2 en memoria.
 
@@ -29,7 +29,7 @@ mvn spring-boot:run \
 ```
 
 - Salud: `GET /api/health` (200, sin DB; health check de Render), `GET /actuator/health` (DataSource real) y `GET /api/ping` (204, keep-alive gratuito).
-- Tests: `mvn verify` con JDK 17 (el CI los corre en cada push).
+- Tests: `mvn verify` con JDK 25 LTS (el CI los corre en cada push).
 - Migraciones Flyway V1…V7 en `backend/src/main/resources/db/migration/`.
 
 ## Frontend
@@ -63,7 +63,7 @@ Render Free: **frontend static + backend Docker en un mismo Blueprint**
 (`render.yaml`) y Neon Free (Postgres). Render autoconecta `VITE_API_URL` y
 `CORS_ALLOWED_ORIGINS`; `BACKEND_URL` activa el keep-alive.
 Pasos, la alternativa con Vercel y troubleshooting: ver **`docs/DEPLOY.md`**.
-El backend expone `$PORT` y el CI valida con JDK 17.
+El backend expone `$PORT` y el CI valida con JDK 25 LTS.
 
 ## Reglas cerradas
 
