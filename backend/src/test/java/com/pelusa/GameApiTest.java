@@ -70,7 +70,7 @@ class GameApiTest {
 
   private void rigDust(UUID gameId, int... values) {
     List<CardEntity> dust = cards.findByGameId(gameId).stream()
-        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+        .filter(c -> "DECK".equals(c.getLocation()))
         .sorted(Comparator.comparingInt(CardEntity::getPileOrder))
         .toList();
     assertThat(dust.size()).isGreaterThanOrEqualTo(values.length);
@@ -78,13 +78,13 @@ class GameApiTest {
       cards.delete(dust.get(i));
     }
     List<CardEntity> kept = cards.findByGameId(gameId).stream()
-        .filter(c -> "DUST_PILE".equals(c.getLocation()))
+        .filter(c -> "DECK".equals(c.getLocation()))
         .sorted(Comparator.comparingInt(CardEntity::getPileOrder))
         .toList();
     for (int i = 0; i < values.length; i++) {
       CardEntity old = kept.get(i);
       cards.delete(old);
-      cards.save(new CardEntity(UUID.randomUUID(), gameId, values[i], "DUST_PILE", null, i));
+      cards.save(new CardEntity(UUID.randomUUID(), gameId, values[i], "DECK", null, i));
     }
   }
 
