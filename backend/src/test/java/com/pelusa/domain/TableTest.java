@@ -73,6 +73,7 @@ class TableTest {
     assertThat(count).isEqualTo(1);
     assertThat(t.stashed().get(t.currentPlayerId()))
         .containsExactly(new Card(4));
+    assertThat(t.fronts().get(t.currentPlayerId())).as("guardar vacía el frente").isEmpty();
   }
 
   @Test
@@ -176,6 +177,230 @@ class TableTest {
   }
 
   @Test
+  void finishExposesScoresAndEmptyDeck() {
+    Table t = twoPlayers(0, 5, 1);
+    assertThat(t.deckRemaining()).isEqualTo(2);
+    t.drawCurrent();
+    assertThat(t.lastDrawnValue()).isEqualTo(5);
+    assertThat(t.deckRemaining()).isEqualTo(1);
+    t.standCurrent();
+    assertThat(t.lastDrawnValue()).as("el valor robable se limpia al rotar").isNull();
+    t.drawCurrent();
+    assertThat(t.deckRemaining()).isZero();
+    // Auto-stash al terminar: los frentes pasan a puntos y quedan vacíos.
+    assertThat(t.scores().get(ANA).sum()).isEqualTo(5);
+    assertThat(t.scores().get(BETO).sum()).isEqualTo(1);
+    assertThat(t.fronts().get(ANA)).isEmpty();
+    assertThat(t.stashed().get(BETO)).containsExactly(new Card(1));
+  }
+
+  @Test
+  void bustedCardsNeverReachPoints() {
+    // Ana guarda un 9 de antes, luego revienta: su puntuación final es solo el 9.
+    Table t = twoPlayers(0, 9, 2, 4, 5, 4, 3);
+    t.drawCurrent(); // Ana 9
+    t.standCurrent();
+    t.drawCurrent(); // Beto 2
+    t.standCurrent();
+    t.stashCurrent(); // Ana guarda 9
+    t.drawCurrent(); // 4
+    t.drawCurrent(); // 5
+    DrawResult bust = t.drawCurrent(); // 4 → bust con 3
+    assertThat(bust.bust()).isTrue();
+    assertThat(t.stashed().get(ANA)).containsExactly(new Card(9));
+    t.drawCurrent(); // Beto 3 → mazo vacío
+    assertThat(t.scores().get(ANA).sum()).isEqualTo(9);
+    assertThat(t.scores().get(BETO).sum()).isEqualTo(5);
+  }
+
+  @Test
+  void repeatWithMoreThanThreeIsBust() {
+    Table t = twoPlayers(0, 1, 2, 3, 2, 9);
+    t.drawCurrent();
+    t.drawCurrent();
+    assertThat(t.drawCurrent().bust()).isFalse(); // 1,2,3 sin repetir
+    DrawResult bust = t.drawCurrent(); // 2 repetido con 4 en el frente
+    assertThat(bust.bust()).isTrue();
+    assertThat(t.discarded()).hasSize(4);
+    assertThat(t.currentPlayerId()).isEqualTo(BETO);
+  }
+
+  @Test
+  void tieBetweenFirstTwoSurvivesLowerThird() {
+    // Ana 5, Beto 5, Ceci 1 → empate Ana/Beto, sin ganador.
+    Table t = threePlayers(5, 5, 1);
+    playOneEach(t);
+    assertThat(t.isTie()).isTrue();
+    assertThat(t.winnerId()).isNull();
+  }
+
+  @Test
+  void laterHigherScoreBreaksEarlierTie() {
+    // Ana 3, Beto 3 (empate parcial), Ceci 8 → gana Ceci, no hay empate.
+    Table t = threePlayers(3, 3, 8);
+    playOneEach(t);
+    assertThat(t.isTie()).isFalse();
+    assertThat(t.winnerId()).isEqualTo(CECI);
+  }
+
+  @Test
+  void laterPlayerTyingTheLeaderIsTie() {
+    // Ana 7, Beto 2, Ceci 7 → empate Ana/Ceci.
+    Table t = threePlayers(7, 2, 7);
+    playOneEach(t);
+    assertThat(t.isTie()).isTrue();
+    assertThat(t.winnerId()).isNull();
+  }
+
+  @Test
+  void winnerCanBeLastSeatWithoutTie() {
+    Table t = threePlayers(1, 2, 3);
+    playOneEach(t);
+    assertThat(t.winnerId()).isEqualTo(CECI);
+    assertThat(t.isTie()).isFalse();
+  }
+
+  @Test
+  void turnRotationWrapsAroundFromLastSeat() {
+    Table t = new Table(List.of(ANA, BETO, CECI), deck(4, 5, 6, 7), 2);
+    assertThat(t.currentPlayerId()).isEqualTo(CECI);
+    t.drawCurrent();
+    t.standCurrent();
+    assertThat(t.currentPlayerId()).isEqualTo(ANA);
+  }
+
+  @Test
+  void standWithoutDrawingFailsEvenAfterStashing() {
+    Table t = twoPlayers(0, 4, 5, 6);
+    assertThatThrownBy(t::standCurrent)
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("MUST_DRAW_FIRST");
+    t.drawCurrent();
+    t.standCurrent();
+    t.drawCurrent();
+    t.standCurrent();
+    t.stashCurrent(); // Ana guarda su 4: guardar no cuenta como sacar
+    assertThatThrownBy(t::standCurrent)
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("MUST_DRAW_FIRST");
+    assertThat(t.currentPlayerId()).isEqualTo(ANA);
+  }
+
+  @Test
+  void stashTwiceInSameTurnFails() {
+    Table t = twoPlayers(0, 4, 5, 6);
+    t.drawCurrent();
+    t.standCurrent();
+    t.drawCurrent(); // Beto 5
+    t.standCurrent();
+    t.stashCurrent();
+    assertThatThrownBy(t::stashCurrent)
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("ALREADY_STASHED_THIS_TURN");
+  }
+
+  @Test
+  void drawFromEmptyDeckFails() {
+    Table t = new Table(List.of(ANA, BETO), List.of(), 0);
+    assertThatThrownBy(t::drawCurrent)
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("DECK_EMPTY");
+  }
+
+  @Test
+  void stealRejectsOutOfRangeValues() {
+    Table t = twoPlayers(0, 4, 5);
+    t.drawCurrent();
+    assertThatThrownBy(() -> t.stealCurrent(0)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> t.stealCurrent(11)).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void stealAcceptsBoundaryValuesOneAndTen() {
+    // 1 y 10 son valores válidos: llegan a la regla (aquí, nadie los tiene → NO_STEALABLE).
+    Table low = twoPlayers(0, 1, 9);
+    low.drawCurrent();
+    assertThatThrownBy(() -> low.stealCurrent(1))
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("NO_STEALABLE_CARDS");
+    Table high = twoPlayers(0, 10, 9);
+    high.drawCurrent();
+    assertThatThrownBy(() -> high.stealCurrent(10))
+        .isInstanceOf(DomainException.class)
+        .extracting(e -> ((DomainException) e).getCode())
+        .isEqualTo("NO_STEALABLE_CARDS");
+  }
+
+  @Test
+  void stealDoesNotTakeOwnCardsNorTriggerBust() {
+    // Ana tiene 4 de antes y saca otro 4; Beto tiene un 4: solo se roba el de Beto.
+    Table t = twoPlayers(0, 4, 4, 7, 4, 9);
+    t.drawCurrent(); // Ana 4
+    t.standCurrent();
+    t.drawCurrent(); // Beto 4
+    t.drawCurrent(); // Beto 7
+    t.standCurrent();
+    t.drawCurrent(); // Ana 4 (frente 4,4: 2 cartas, sigue)
+    var steal = t.stealCurrent(4);
+    assertThat(steal.count()).isEqualTo(1);
+    assertThat(steal.fromPlayerIds()).containsExactly(BETO);
+    assertThat(t.fronts().get(ANA)).containsExactly(new Card(4), new Card(4), new Card(4));
+    assertThat(t.fronts().get(BETO)).containsExactly(new Card(7));
+    assertThat(t.status()).isEqualTo(GameStatus.IN_PROGRESS);
+    assertThat(t.currentPlayerId()).as("robar no rota el turno").isEqualTo(ANA);
+  }
+
+  @Test
+  void constructorValidatesPlayersAndFirstIndex() {
+    assertThatThrownBy(() -> new Table(List.of(ANA), deck(1), 0))
+        .isInstanceOf(IllegalArgumentException.class);
+    List<UUID> seven = java.util.stream.Stream.generate(UUID::randomUUID).limit(7).toList();
+    assertThatThrownBy(() -> new Table(seven, deck(1), 0))
+        .isInstanceOf(IllegalArgumentException.class);
+    List<UUID> six = java.util.stream.Stream.generate(UUID::randomUUID).limit(6).toList();
+    assertThat(new Table(six, deck(1), 5).currentPlayerId()).isEqualTo(six.get(5));
+    assertThatThrownBy(() -> new Table(List.of(ANA, BETO), deck(1), -1))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new Table(List.of(ANA, BETO), deck(1), 2))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void hydrateRestoresTurnFlags() {
+    Table t = twoPlayers(0, 6, 9);
+    t.hydrate(java.util.Map.of(BETO, List.of(new Card(6))), java.util.Map.of(), List.of(new Card(2)),
+        true, false, 6);
+    assertThat(t.lastDrawnValue()).isEqualTo(6);
+    assertThat(t.discarded()).containsExactly(new Card(2));
+    // acted=true → ya no puede guardar; pero sí robar el 6 de Beto.
+    assertThatThrownBy(t::stashCurrent).isInstanceOf(DomainException.class);
+    assertThat(t.stealCurrent(6).count()).isEqualTo(1);
+  }
+
+  private static final UUID ANA = UUID.fromString("00000000-0000-0000-0000-000000000001");
+  private static final UUID BETO = UUID.fromString("00000000-0000-0000-0000-000000000002");
+  private static final UUID CECI = UUID.fromString("00000000-0000-0000-0000-000000000003");
+
+  private static Table threePlayers(int... deck) {
+    return new Table(List.of(ANA, BETO, CECI), deck(deck), 0);
+  }
+
+  /** Cada jugador saca una carta y se planta; la última agota el mazo. */
+  private static void playOneEach(Table t) {
+    t.drawCurrent();
+    t.standCurrent();
+    t.drawCurrent();
+    t.standCurrent();
+    t.drawCurrent();
+    assertThat(t.status()).isEqualTo(GameStatus.FINISHED);
+  }
+
+  @Test
   void actionsAfterFinishFail() {
     Table t = twoPlayers(0, 5, 1);
     t.drawCurrent();
@@ -185,5 +410,11 @@ class TableTest {
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())
         .isEqualTo("GAME_FINISHED");
+    for (Runnable action : List.<Runnable>of(t::standCurrent, t::stashCurrent, () -> t.stealCurrent(1))) {
+      assertThatThrownBy(action::run)
+          .isInstanceOf(DomainException.class)
+          .extracting(e -> ((DomainException) e).getCode())
+          .isEqualTo("GAME_FINISHED");
+    }
   }
 }

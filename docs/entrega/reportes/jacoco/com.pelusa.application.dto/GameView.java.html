@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.application.dto</a> &gt; <span class="el_source">GameView.java</span></div><h1>GameView.java</h1><pre class="source lang-java linenums">package com.pelusa.application.dto;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Vista de estado canónica (API_CONTRACT). Sin anotaciones HTTP: el service
+ * la construye, el controller la devuelve tal cual. Las claves UUID se
+ * serializan como strings en JSON.
+ */
+<span class="fc" id="L13">public record GameView(</span>
+    UUID id,
+    String status,
+    UUID currentPlayerId,
+    UUID hostPlayerId,
+    String code,
+    String mode,
+    int capacity,
+    int deckRemaining,
+    int dustRemaining,
+    Integer lastDrawnValue,
+    /** Plazo del turno ONLINE (ISO-8601 UTC); null en hotseat o sin turno abierto. */
+    OffsetDateTime turnDeadlineAt,
+    /** Fechas del histórico: creación, inicio y fin (null mientras no ocurran). */
+    OffsetDateTime createdAt,
+    OffsetDateTime startedAt,
+    OffsetDateTime finishedAt,
+    List&lt;PlayerView&gt; players,
+    Map&lt;UUID, List&lt;Integer&gt;&gt; fronts,
+    Map&lt;UUID, StashView&gt; stashed,
+    Map&lt;String, Object&gt; lastEvent,
+    ResultView result) {
+
+<span class="fc" id="L36">  public record PlayerView(UUID id, String name, int seat) {}</span>
+
+<span class="fc" id="L38">  public record StashView(int sum, Map&lt;Integer, Long&gt; countsByValue) {}</span>
+
+<span class="fc" id="L40">  public record ResultView(UUID winnerId, boolean tie, String reason, List&lt;ScoreView&gt; scores) {}</span>
+
+<span class="fc" id="L42">  public record ScoreView(UUID playerId, String name, int sum, Map&lt;Integer, Long&gt; countsByValue) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

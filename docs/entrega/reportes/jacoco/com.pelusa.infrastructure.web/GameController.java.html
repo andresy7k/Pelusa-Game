@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.web</a> &gt; <span class="el_source">GameController.java</span></div><h1>GameController.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.web;
+
+import com.pelusa.application.GameService;
+import com.pelusa.application.dto.GameView;
+import com.pelusa.application.dto.JoinResult;
+import com.pelusa.infrastructure.web.dto.ActRequest;
+import com.pelusa.infrastructure.web.dto.CreateGameRequest;
+import com.pelusa.infrastructure.web.dto.CreateOnlineRequest;
+import com.pelusa.infrastructure.web.dto.JoinRequest;
+import com.pelusa.infrastructure.web.dto.StartRequest;
+import com.pelusa.infrastructure.web.dto.StealRequest;
+import com.pelusa.application.dto.PlayerSummary;
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Fachada HTTP fina: valida DTOs y delega. Cero reglas aquí (API_CONTRACT).
+ * {@code Idempotency-Key} en POSTs de acción: reintento seguro.
+ */
+@RestController
+@RequestMapping(&quot;/api/games&quot;)
+public class GameController {
+  private final GameService service;
+
+<span class="fc" id="L38">  public GameController(GameService service) {</span>
+<span class="fc" id="L39">    this.service = service;</span>
+<span class="fc" id="L40">  }</span>
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public GameView create(@Valid @RequestBody CreateGameRequest req) {
+<span class="fc" id="L45">    return service.create(req.names(), req.firstPlayerIndex());</span>
+  }
+
+  /** Abrir sala online: devuelve 201 con el código de invitación y el playerId del host. */
+  @PostMapping(&quot;/online&quot;)
+  @ResponseStatus(HttpStatus.CREATED)
+  public JoinResult createOnline(@Valid @RequestBody CreateOnlineRequest req) {
+<span class="fc" id="L52">    return service.createOnline(req.name(), req.capacity());</span>
+  }
+
+  /**
+   * Unirse por código. 200 (no 201) porque la respuesta no siempre crea algo:
+   * si la partida ya empezó, devuelve spectator=true y no hay jugador nuevo.
+   */
+  @PostMapping(&quot;/join&quot;)
+  public JoinResult join(@Valid @RequestBody JoinRequest req) {
+<span class="fc" id="L61">    return service.join(req.code(), req.name());</span>
+  }
+
+  @PostMapping(&quot;/{id}/start&quot;)
+  public GameView start(
+      @PathVariable UUID id,
+      @RequestBody(required = false) @Valid StartRequest req) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    return service.start(id, req == null ? null : req.playerId());</span>
+  }
+
+  @GetMapping(&quot;/{id}&quot;)
+  public GameView state(@PathVariable UUID id) {
+<span class="fc" id="L73">    return service.state(id);</span>
+  }
+
+  /** Consultar jugadores: asiento, turno, frente y puntos guardados de cada uno. */
+  @GetMapping(&quot;/{id}/players&quot;)
+  public List&lt;PlayerSummary&gt; players(@PathVariable UUID id) {
+<span class="fc" id="L79">    return service.players(id);</span>
+  }
+
+  @PostMapping(&quot;/{id}/stash&quot;)
+  public GameView stash(
+      @PathVariable UUID id,
+      @Valid @RequestBody ActRequest req,
+      @RequestHeader(value = &quot;Idempotency-Key&quot;, required = false) String key) {
+<span class="fc" id="L87">    return service.stash(id, req.playerId(), key);</span>
+  }
+
+  @PostMapping(&quot;/{id}/draw&quot;)
+  public GameView draw(
+      @PathVariable UUID id,
+      @Valid @RequestBody ActRequest req,
+      @RequestHeader(value = &quot;Idempotency-Key&quot;, required = false) String key) {
+<span class="fc" id="L95">    return service.draw(id, req.playerId(), key);</span>
+  }
+
+  @PostMapping(&quot;/{id}/stand&quot;)
+  public GameView stand(
+      @PathVariable UUID id,
+      @Valid @RequestBody ActRequest req,
+      @RequestHeader(value = &quot;Idempotency-Key&quot;, required = false) String key) {
+<span class="fc" id="L103">    return service.stand(id, req.playerId(), key);</span>
+  }
+
+  @PostMapping(&quot;/{id}/steal&quot;)
+  public GameView steal(
+      @PathVariable UUID id,
+      @Valid @RequestBody StealRequest req,
+      @RequestHeader(value = &quot;Idempotency-Key&quot;, required = false) String key) {
+<span class="fc" id="L111">    return service.steal(id, req.playerId(), key, req.value());</span>
+  }
+
+  @GetMapping(&quot;/{id}/result&quot;)
+  public GameView result(@PathVariable UUID id) {
+<span class="fc" id="L116">    return service.result(id);</span>
+  }
+
+  @GetMapping(&quot;/history&quot;)
+  public Page&lt;GameView&gt; history(@PageableDefault(size = 20) Pageable pageable) {
+<span class="fc" id="L121">    return service.history(pageable);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

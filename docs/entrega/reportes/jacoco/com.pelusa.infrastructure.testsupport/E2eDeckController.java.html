@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>E2eDeckController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.testsupport</a> &gt; <span class="el_source">E2eDeckController.java</span></div><h1>E2eDeckController.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.testsupport;
+
+import com.pelusa.infrastructure.persistence.CardEntity;
+import com.pelusa.infrastructure.persistence.CardRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * SOLO perfil {@code e2e} (Playwright): ordena el mazo de una partida para que
+ * los escenarios sean reproducibles (ej. &quot;sacar 2, 5, 9 y luego un 5 repetido&quot;).
+ * No toca reglas ni turnos: solo el orden ({@code pile_order}) de cartas que ya
+ * están en el mazo, así la composición 13×(1-5) + 9×(6-10) se conserva.
+ * Con {@code truncate=true} descarta el resto del mazo para probar el final
+ * de partida sin jugar 110 cartas. En prod el bean no existe (404).
+ */
+@RestController
+@Profile(&quot;e2e&quot;)
+public class E2eDeckController {
+  private final CardRepository cards;
+
+<span class="fc" id="L35">  public E2eDeckController(CardRepository cards) {</span>
+<span class="fc" id="L36">    this.cards = cards;</span>
+<span class="fc" id="L37">  }</span>
+
+<span class="fc" id="L39">  public record RigRequest(@NotNull List&lt;@NotNull @Min(1) @Max(10) Integer&gt; values, boolean truncate) {}</span>
+
+  @PostMapping(&quot;/api/test/games/{id}/deck&quot;)
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  @Transactional
+  public void rig(@PathVariable UUID id, @Valid @RequestBody RigRequest req) {
+<span class="fc" id="L45">    List&lt;CardEntity&gt; deck = new ArrayList&lt;&gt;(cards.findByGameId(id).stream()</span>
+<span class="fc" id="L46">        .filter(c -&gt; &quot;DECK&quot;.equals(c.getLocation()))</span>
+<span class="fc" id="L47">        .sorted(Comparator.comparingInt(CardEntity::getPileOrder))</span>
+<span class="fc" id="L48">        .toList());</span>
+<span class="fc" id="L49">    List&lt;CardEntity&gt; top = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">    for (int value : req.values()) {</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">      CardEntity pick = deck.stream().filter(c -&gt; c.getValue() == value).findFirst()</span>
+<span class="fc" id="L52">          .orElseThrow(() -&gt; new IllegalArgumentException(&quot;No quedan cartas &quot; + value + &quot; en el mazo&quot;));</span>
+<span class="fc" id="L53">      deck.remove(pick);</span>
+<span class="fc" id="L54">      top.add(pick);</span>
+<span class="fc" id="L55">    }</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">    if (req.truncate()) {</span>
+<span class="fc" id="L57">      cards.deleteAll(deck); // el resto del mazo desaparece</span>
+    } else {
+<span class="fc" id="L59">      top.addAll(deck); // el resto queda detrás, en su orden original</span>
+    }
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    for (int i = 0; i &lt; top.size(); i++) {</span>
+<span class="fc" id="L62">      top.get(i).setPileOrder(i);</span>
+    }
+<span class="fc" id="L64">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -62,6 +62,8 @@ function Chooser({ initialMode, initialCode }: { initialMode: Mode; initialCode:
 function LocalSetup() {
   const [count, setCount] = useState(2);
   const [names, setNames] = useState<string[]>(['', '']);
+  // Jugador inicial elegido por la mesa (el backend lo valida: firstPlayerIndex).
+  const [first, setFirst] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -70,6 +72,7 @@ function LocalSetup() {
     const n = Math.min(6, Math.max(2, next));
     setCount(n);
     setNames((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? ''));
+    setFirst((f) => (f < n ? f : 0));
   }
 
   function setName(i: number, value: string) {
@@ -90,7 +93,7 @@ function LocalSetup() {
     setBusy(true);
     setError(null);
     try {
-      const game = await api.create(list, 0);
+      const game = await api.create(list, first);
       await api.start(game.id);
       navigate(`/game/${game.id}`);
     } catch (err) {
@@ -130,6 +133,16 @@ function LocalSetup() {
             />
           </label>
         ))}
+        <label>
+          ¿Quién empieza?
+          <select value={first} onChange={(e) => setFirst(Number(e.target.value))}>
+            {names.map((n, i) => (
+              <option key={i} value={i}>
+                {n.trim() || `Jugador ${i + 1}`}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="actions">
           <button type="submit" className="primary" disabled={busy}>
             {busy ? 'Repartiendo…' : 'Crear y empezar'}

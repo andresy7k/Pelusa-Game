@@ -32,12 +32,16 @@ export interface GameState {
   currentPlayerId: string | null;
   hostPlayerId: string | null;
   code: string | null;
-  mode: 'HOTSEAT' | 'ONLINE';
+  // El backend manda LOCAL para hotseat (games.mode, V6).
+  mode: 'LOCAL' | 'ONLINE';
   capacity: number;
   deckRemaining: number;
   dustRemaining: number;
   lastDrawnValue: number | null;
   turnDeadlineAt: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
   players: PlayerView[];
   fronts: Record<string, number[]>;
   stashed: Record<string, StashView>;
@@ -76,8 +80,26 @@ export function friendlyMessage(code: string): string {
       return 'La partida ya terminó.';
     case 'GAME_NOT_FOUND':
       return 'Esa partida no existe.';
-    case 'DUST_PILE_EMPTY':
+    case 'MUST_DRAW_FIRST':
+      return 'Primero sacá al menos una carta; después podés plantarte.';
+    case 'DECK_EMPTY':
       return 'No quedan cartas en el mazo.';
+    case 'STEAL_VALUE_MISMATCH':
+      return 'Solo podés robar el valor de la última carta que sacaste.';
+    case 'INVALID_PLAYER':
+      return 'Ese jugador no está en esta mesa.';
+    case 'TURN_EXPIRED':
+      return 'Se acabó el tiempo de tu turno.';
+    case 'NOT_HOST':
+      return 'Solo el anfitrión puede empezar la partida.';
+    case 'NOT_ENOUGH_PLAYERS':
+      return 'Hacen falta al menos 2 jugadores.';
+    case 'GAME_FULL':
+      return 'La sala está llena.';
+    case 'NAME_TAKEN':
+      return 'Ese nombre ya está en la mesa.';
+    case 'CODE_NOT_FOUND':
+      return 'No existe una sala con ese código.';
     case 'NO_STASHABLE_CARDS':
       return 'No tenés cartas para guardar ahora.';
     case 'NO_STEALABLE_CARDS':

@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>GlobalExceptionHandler.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.pelusa.infrastructure.web;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import jakarta.servlet.http.HttpServletRequest;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.net.URI;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Set;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.slf4j.Logger;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.slf4j.LoggerFactory;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.slf4j.MDC;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.dao.OptimisticLockingFailureException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.HttpStatus;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.ProblemDetail;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.converter.HttpMessageNotReadableException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.HttpMediaTypeNotSupportedException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.ExceptionHandler;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.RestControllerAdvice;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.servlet.NoHandlerFoundException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.servlet.resource.NoResourceFoundException;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Errores consistentes RFC7807 (API_CONTRACT &#167;error can&#243;nico).</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Mapea c&#243;digos de dominio &#8594; status: 404 no existe, 409 conflicto de turno,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * 422 regla violada, 400 validaci&#243;n. Phase 4 a&#241;ade los c&#243;digos de juego.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@RestControllerAdvice</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public class GlobalExceptionHandler {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; NOT_FOUND =</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Set.of(&#34;GAME_NOT_FOUND&#34;, &#34;CODE_NOT_FOUND&#34;);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; CONFLICT =</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Set.of(&#34;GAME_FINISHED&#34;, &#34;GAME_NOT_FINISHED&#34;, &#34;NOT_YOUR_TURN&#34;, &#34;ALREADY_STARTED&#34;,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;ALREADY_STASHED_THIS_TURN&#34;, &#34;CONCURRENT_TURN&#34;, &#34;CODE_COLLISION&#34;,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;GAME_FULL&#34;, &#34;NAME_TAKEN&#34;, &#34;NOT_HOST&#34;, &#34;NOT_ENOUGH_PLAYERS&#34;, &#34;TURN_EXPIRED&#34;);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Cualquier otro c&#243;digo de dominio cae en el default 422 (regla violada):</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // DECK_EMPTY, NO_STASHABLE_CARDS, NO_STEALABLE_CARDS, STEAL_VALUE_MISMATCH,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // INVALID_PLAYER.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(com.pelusa.domain.engine.DomainException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail domain(com.pelusa.domain.engine.DomainException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_43'/>
+43
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_43'>1</a>
+<span>
+
+1. domain : removed conditional - replaced equality check with false &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (NOT_FOUND.contains(e.getCode())) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      status = HttpStatus.NOT_FOUND;</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_45'/>
+45
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_45'>1</a>
+<span>
+
+1. domain : removed conditional - replaced equality check with false &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    } else if (CONFLICT.contains(e.getCode())) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      status = HttpStatus.CONFLICT;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_48'/>
+48
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_48'>1</a>
+<span>
+
+1. domain : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::domain &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(status, e.getCode(), e.getMessage(), req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(OptimisticLockingFailureException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail concurrent(OptimisticLockingFailureException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_53'/>
+53
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_53'>1</a>
+<span>
+
+1. concurrent : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::concurrent &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.CONFLICT, &#34;CONCURRENT_TURN&#34;, &#34;Otro request modific&#243; la partida, reintenta&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail beanValidation(org.springframework.web.bind.MethodArgumentNotValidException e,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_59'/>
+59
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_59'>1</a>
+<span>
+
+1. beanValidation : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::beanValidation &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.BAD_REQUEST, &#34;VALIDATION_FAILED&#34;, &#34;Request inv&#225;lido&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail unsupportedMedia(HttpMediaTypeNotSupportedException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_64'/>
+64
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_64'>1</a>
+<span>
+
+1. unsupportedMedia : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unsupportedMedia &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, &#34;UNSUPPORTED_MEDIA_TYPE&#34;,</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        &#34;Content-Type no soportado: us&#225; application/json&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(HttpMessageNotReadableException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail unreadable(HttpMessageNotReadableException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_70'/>
+70
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_70'>1</a>
+<span>
+
+1. unreadable : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unreadable &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.BAD_REQUEST, &#34;VALIDATION_FAILED&#34;, &#34;Body JSON inv&#225;lido o malformado&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(MethodArgumentTypeMismatchException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail typeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_75'/>
+75
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_75'>1</a>
+<span>
+
+1. typeMismatch : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::typeMismatch &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.BAD_REQUEST, &#34;VALIDATION_FAILED&#34;,</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;Par&#225;metro inv&#225;lido: &#34; + e.getName(), req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_77'/>
+77
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_77'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(IllegalArgumentException.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail illegalArgument(IllegalArgumentException e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_81'/>
+81
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_81'>1</a>
+<span>
+
+1. illegalArgument : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::illegalArgument &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.BAD_REQUEST, &#34;VALIDATION_FAILED&#34;, e.getMessage(), req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_82'/>
+82
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_82'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_83'/>
+83
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_83'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Spring Boot 3.2+ lanza NoResourceFoundException para rutas inexistentes;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_85'/>
+85
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_85'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // sin este handler ca&#237;a en el gen&#233;rico y respond&#237;a 500 + log de error.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail notFound(Exception e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_88'/>
+88
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_88'>1</a>
+<span>
+
+1. notFound : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::notFound &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.NOT_FOUND, &#34;NOT_FOUND&#34;, &#34;Recurso no existe&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_90'/>
+90
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_90'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(Exception.class)</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_92'/>
+92
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_92'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ProblemDetail unexpected(Exception e, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    // Un 500 nunca debe ser mudo: dejamos el stacktrace con el requestId para correlacionar.</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_94'/>
+94
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_94'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    log.error(&#34;Error inesperado en {} {}&#34;, req.getMethod(), req.getRequestURI(), e);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_95'/>
+95
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_95'>1</a>
+<span>
+
+1. unexpected : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unexpected &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return problem(HttpStatus.INTERNAL_SERVER_ERROR, &#34;INTERNAL&#34;, &#34;Error inesperado&#34;, req);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_96'/>
+96
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_96'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_97'/>
+97
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_97'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_98'/>
+98
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_98'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private ProblemDetail problem(HttpStatus status, String errorCode, String detail, HttpServletRequest req) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_99'/>
+99
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_99'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_100'/>
+100
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_100'>1</a>
+<span>
+
+1. problem : removed call to org/springframework/http/ProblemDetail::setType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    pd.setType(URI.create(&#34;https://pelusa/errors/&#34; + errorCode));</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_101'/>
+101
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_101'>1</a>
+<span>
+
+1. problem : removed call to org/springframework/http/ProblemDetail::setTitle &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    pd.setTitle(status.getReasonPhrase());</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_102'/>
+102
+</td>
+<td class='survived'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_102'>1</a>
+<span>
+
+1. problem : removed call to org/springframework/http/ProblemDetail::setInstance &rarr; SURVIVED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='survived'>    pd.setInstance(URI.create(req.getRequestURI()));</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_103'/>
+103
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_103'>1</a>
+<span>
+
+1. problem : removed call to org/springframework/http/ProblemDetail::setProperty &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    pd.setProperty(&#34;errorCode&#34;, errorCode);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String rid = MDC.get(&#34;requestId&#34;);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_105'/>
+105
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_105'>1</a>
+<span>
+
+1. problem : removed conditional - replaced equality check with false &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (rid != null) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_106'/>
+106
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_106'>1</a>
+<span>
+
+1. problem : removed call to org/springframework/http/ProblemDetail::setProperty &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      pd.setProperty(&#34;requestId&#34;, rid);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_108'/>
+108
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_108'>1</a>
+<span>
+
+1. problem : replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::problem &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return pd;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_109'/>
+109
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_109'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@3237d80f_110'/>
+110
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_110'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_43'>43</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_43'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>domain<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:unknownGameIs404()]</span></span> removed conditional - replaced equality check with false &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_45'>45</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_45'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>domain<br/><b>Killed by : </b>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()]</span></span> removed conditional - replaced equality check with false &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_48'>48</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_48'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>domain<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:unknownGameIs404()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::domain &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_53'>53</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_53'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>concurrent<br/><b>Killed by : </b>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::concurrent &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_59'>59</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_59'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>beanValidation<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::beanValidation &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_64'>64</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_64'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>unsupportedMedia<br/><b>Killed by : </b>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unsupportedMedia &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_70'>70</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_70'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>unreadable<br/><b>Killed by : </b>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:malformedJsonIs400AndNeverReachesService()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unreadable &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_75'>75</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_75'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>typeMismatch<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:malformedIdAndUnknownRouteAreClientErrors()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::typeMismatch &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_81'>81</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_81'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>illegalArgument<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createRejectsDuplicateNames()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::illegalArgument &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_88'>88</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_88'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>notFound<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:testSupportEndpointDoesNotExistOutsideE2eProfile()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::notFound &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_95'>95</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_95'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>unexpected<br/><b>Killed by : </b>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:unexpectedErrorIs500WithoutLeakingDetails()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::unexpected &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_100'>100</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_100'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()]</span></span> removed call to org/springframework/http/ProblemDetail::setType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_101'>101</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_101'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>none</span></span> removed call to org/springframework/http/ProblemDetail::setTitle &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[19],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[19],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[19],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:testSupportEndpointDoesNotExistOutsideE2eProfile()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinUnknownCodeIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:unknownGameIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createRejectsDuplicateNames()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionOnUnknownGameIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:malformedIdAndUnknownRouteAreClientErrors()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:historyRejectsPageSizeOver50()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotencyKeyLongerThanColumnIs400()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:hotseatStartWithAPlayerIdIsNotHost()]</li> <li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:malformedJsonIs400AndNeverReachesService()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinAndCreateValidateRequiredFields()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:resultInNotFinishedGame()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsDuplicateName()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:onlineStartWithoutPlayerIdCannotBypassHost()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiredTurnRotatesAndRejectsLateAction()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:drawAndStandRotateTurn()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stashMovesPreviousTurnFrontToPoints()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:startRequiresHostAndTwoPlayers()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:standWithoutDrawingIsRejected()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:finishDeclaresWinnerHistoryAndResult()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:startTwiceAndStartFinishedAreConflicts()]</li> <li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:unexpectedErrorIs500WithoutLeakingDetails()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionByStrangerIs422AndDrawOnEmptyDeckIs422()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealValueMustMatchLastDrawnCard()]</li> <li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:askingForMoreCopiesThanTheDeckHasIs400()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_102'>102</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_102'/> 
+
+<p class='SURVIVED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>none</span></span> removed call to org/springframework/http/ProblemDetail::setInstance &rarr; SURVIVED</span>
+<a title="Click to view covering tests" class="view-covered-by-tests" onClick="document.getElementById('MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[26],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]').style.display=(document.getElementById('MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[26],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]').style.display == 'block')?'none':'block';">Covering tests</a>
+<div class="covered-tests" id="MutationIdentifier-[location=Location-[clazz=com.pelusa.infrastructure.web.GlobalExceptionHandler,-method=problem,-methodDesc=(Lorg/springframework/http/HttpStatus;Ljava/lang/String;Ljava/lang/String;Ljakarta/servlet/http/HttpServletRequest;)Lorg/springframework/http/ProblemDetail;],-indexes=[26],-mutator=org.pitest.mutationtest.engine.gregor.mutators.VoidMethodCallMutator]" style="display:none;">Covered by tests:
+<ul>
+<li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:testSupportEndpointDoesNotExistOutsideE2eProfile()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinUnknownCodeIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:unknownGameIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createRejectsDuplicateNames()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionOnUnknownGameIs404()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:malformedIdAndUnknownRouteAreClientErrors()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:historyRejectsPageSizeOver50()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotencyKeyLongerThanColumnIs400()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:hotseatStartWithAPlayerIdIsNotHost()]</li> <li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:malformedJsonIs400AndNeverReachesService()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinAndCreateValidateRequiredFields()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:resultInNotFinishedGame()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsDuplicateName()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:onlineStartWithoutPlayerIdCannotBypassHost()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiredTurnRotatesAndRejectsLateAction()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:drawAndStandRotateTurn()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stashMovesPreviousTurnFrontToPoints()]</li> <li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:startRequiresHostAndTwoPlayers()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:standWithoutDrawingIsRejected()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:finishDeclaresWinnerHistoryAndResult()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:startTwiceAndStartFinishedAreConflicts()]</li> <li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:unexpectedErrorIs500WithoutLeakingDetails()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionByStrangerIs422AndDrawOnEmptyDeckIs422()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealValueMustMatchLastDrawnCard()]</li> <li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:askingForMoreCopiesThanTheDeckHasIs400()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()]</li> <li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()]</li> 
+</ul>
+</div></div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_103'>103</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_103'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()]</span></span> removed call to org/springframework/http/ProblemDetail::setProperty &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_105'>105</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_105'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()]</span></span> removed conditional - replaced equality check with false &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_106'>106</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_106'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()]</span></span> removed call to org/springframework/http/ProblemDetail::setProperty &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@3237d80f_108'>108</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@3237d80f_108'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>problem<br/><b>Killed by : </b>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()]</span></span> replaced return value with null for com/pelusa/infrastructure/web/GlobalExceptionHandler::problem &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_EQUAL_ELSE</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_ORDER_ELSE</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:malformedJsonIs400AndNeverReachesService()] (199 ms)</li><li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:optimisticLockConflictIs409ConcurrentTurn()] (9 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:testSupportEndpointDoesNotExistOutsideE2eProfile()] (11 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinUnknownCodeIs404()] (9 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:unknownGameIs404()] (11 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createRejectsDuplicateNames()] (10 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:errorsFollowProblemDetailsContract()] (12 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionOnUnknownGameIs404()] (18 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:malformedIdAndUnknownRouteAreClientErrors()] (30 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:historyRejectsPageSizeOver50()] (40 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotencyKeyLongerThanColumnIs400()] (55 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()] (88 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()] (133 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()] (155 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:hotseatStartWithAPlayerIdIsNotHost()] (161 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinAndCreateValidateRequiredFields()] (177 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:resultInNotFinishedGame()] (197 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsDuplicateName()] (200 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:onlineStartWithoutPlayerIdCannotBypassHost()] (274 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiredTurnRotatesAndRejectsLateAction()] (278 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:drawAndStandRotateTurn()] (265 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stashMovesPreviousTurnFrontToPoints()] (281 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:startRequiresHostAndTwoPlayers()] (317 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:standWithoutDrawingIsRejected()] (402 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:finishDeclaresWinnerHistoryAndResult()] (384 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:startTwiceAndStartFinishedAreConflicts()] (455 ms)</li><li>com.pelusa.infrastructure.web.GameControllerSliceTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.web.GameControllerSliceTest]/[method:unexpectedErrorIs500WithoutLeakingDetails()] (595 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionByStrangerIs422AndDrawOnEmptyDeckIs422()] (558 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealValueMustMatchLastDrawnCard()] (571 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:askingForMoreCopiesThanTheDeckHasIs400()] (636 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()] (1091 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()] (1156 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.30.1 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

@@ -51,7 +51,6 @@ public class TurnEntity {
     this.startedAt = OffsetDateTime.now();
   }
 
-  public UUID getId() { return id; }
   public UUID getPlayerId() { return playerId; }
   public OffsetDateTime getDeadlineAt() { return deadlineAt; }
   public void setDeadlineAt(OffsetDateTime deadlineAt) { this.deadlineAt = deadlineAt; }

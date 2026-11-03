@@ -9,7 +9,9 @@ import com.pelusa.infrastructure.web.dto.CreateOnlineRequest;
 import com.pelusa.infrastructure.web.dto.JoinRequest;
 import com.pelusa.infrastructure.web.dto.StartRequest;
 import com.pelusa.infrastructure.web.dto.StealRequest;
+import com.pelusa.application.dto.PlayerSummary;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -69,6 +71,12 @@ public class GameController {
   @GetMapping("/{id}")
   public GameView state(@PathVariable UUID id) {
     return service.state(id);
+  }
+
+  /** Consultar jugadores: asiento, turno, frente y puntos guardados de cada uno. */
+  @GetMapping("/{id}/players")
+  public List<PlayerSummary> players(@PathVariable UUID id) {
+    return service.players(id);
   }
 
   @PostMapping("/{id}/stash")

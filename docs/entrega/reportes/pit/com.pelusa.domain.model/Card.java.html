@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>Card.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.pelusa.domain.model;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Carta del mazo. Solo importa su valor (1-10); el &#34;palo&#34; no existe en Pelusas.</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Es un record: inmutable y con igualdad por valor (dos 4 son iguales).</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public record Card(int value) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  public Card {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_9'/>
+9
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_9'>4</a>
+<span>
+
+1. &#60;init&#62; : removed conditional - replaced comparison check with false &rarr; KILLED<br/>
+
+2. &#60;init&#62; : changed conditional boundary &rarr; KILLED<br/>
+
+3. &#60;init&#62; : removed conditional - replaced comparison check with false &rarr; KILLED<br/>
+
+4. &#60;init&#62; : changed conditional boundary &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (value &#60; 1 || value &#62; 10) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new IllegalArgumentException(&#34;Card value debe estar entre 1 y 10, fue: &#34; + value);</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_9'>9</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4cfd3d7e_9'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:rejectsValuesOutsideOneToTen(int)]/[test-template-invocation:#2]</span></span> removed conditional - replaced comparison check with false &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:acceptsBoundaryValues(int)]/[test-template-invocation:#1]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.pelusa.domain.StashPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StashPolicyTest]/[method:canStashAtTurnStartWithFront()]</span></span> removed conditional - replaced comparison check with false &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>4.<span><b>4</b><br/><b>Location : </b>&#60;init&#62;<br/><b>Killed by : </b>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:acceptsBoundaryValues(int)]/[test-template-invocation:#2]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_EQUAL_ELSE</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_ORDER_ELSE</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.pelusa.domain.StashPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StashPolicyTest]/[method:canStashAtTurnStartWithFront()] (0 ms)</li><li>com.pelusa.domain.StashPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StashPolicyTest]/[method:cannotStashAfterActing()] (0 ms)</li><li>com.pelusa.domain.StashPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StashPolicyTest]/[method:cannotStashTwice()] (0 ms)</li><li>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:acceptsBoundaryValues(int)]/[test-template-invocation:#2] (0 ms)</li><li>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:acceptsBoundaryValues(int)]/[test-template-invocation:#1] (0 ms)</li><li>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:rejectsValuesOutsideOneToTen(int)]/[test-template-invocation:#2] (1 ms)</li><li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:returnsEmptyWhenValueAbsent()] (0 ms)</li><li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:leavesOtherValuesAlone()] (1 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:shuffledDeckReallyAppliesThePort()] (0 ms)</li><li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:takesAllCardsOfRequestedValue()] (3 ms)</li><li>com.pelusa.domain.ScoringServiceTest.[engine:junit-jupiter]/[class:com.pelusa.domain.ScoringServiceTest]/[method:tiebreakWalksUpValues()] (0 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:deckHasExactly110Cards()] (4 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:shuffledDeckKeepsComposition()] (2 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:turnRotationWrapsAroundFromLastSeat()] (0 ms)</li><li>com.pelusa.domain.ScoringServiceTest.[engine:junit-jupiter]/[class:com.pelusa.domain.ScoringServiceTest]/[method:tiebreakPrefersMoreOnes()] (1 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:lowValuesHave13CopiesAndHighValuesHave9()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:repeatBelowThreeKeepsPlaying()] (1 ms)</li><li>com.pelusa.domain.ScoringServiceTest.[engine:junit-jupiter]/[class:com.pelusa.domain.ScoringServiceTest]/[method:higherSumWins()] (4 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealRejectsOutOfRangeValues()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stashAfterDrawingFails()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:repeatWithMoreThanThreeIsBust()] (0 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:drawAndStandRotatesTurn()] (2 ms)</li><li>com.pelusa.domain.ScoringServiceTest.[engine:junit-jupiter]/[class:com.pelusa.domain.ScoringServiceTest]/[method:fullTieIsZero()] (7 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stashTwiceInSameTurnFails()] (2 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealBeforeDrawingThisTurnFails()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:repeatWithThreeFrontsIsBustAndDiscards()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealOfValueOtherThanLastDrawnFails()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stashMovesFrontToPointsOnlyAtTurnStart()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealWithNoMatchingCardFails()] (2 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:standWithoutDrawingFailsEvenAfterStashing()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealAcceptsBoundaryValuesOneAndTen()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:winnerCanBeLastSeatWithoutTie()] (0 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealTakesAllOfLastDrawnValueFromOtherFronts()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:hydrateRestoresTurnFlags()] (2 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:shuffledDeckIsDeterministicWithSameSeed()] (12 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:emptyDustFinishesGameAndDeclaresWinner()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:tieBetweenFirstTwoSurvivesLowerThird()] (0 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:finishExposesScoresAndEmptyDeck()] (0 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:laterPlayerTyingTheLeaderIsTie()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:laterHigherScoreBreaksEarlierTie()] (1 ms)</li><li>com.pelusa.domain.ScoringServiceTest.[engine:junit-jupiter]/[class:com.pelusa.domain.ScoringServiceTest]/[method:scoreExposesSumAndCounts()] (14 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:bustOnLastDustCardAlsoFinishes()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealDoesNotTakeOwnCardsNorTriggerBust()] (6 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:bustedCardsNeverReachPoints()] (4 ms)</li><li>com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest]/[method:shuffleChangesOrderButKeepsTheCards()] (34 ms)</li><li>com.pelusa.domain.DeckFactoryTest.[engine:junit-jupiter]/[class:com.pelusa.domain.DeckFactoryTest]/[method:shuffledDeckKeepsSameMultiset()] (33 ms)</li><li>com.pelusa.domain.BustPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.BustPolicyTest]/[test-template:bustTruthTable(java.util.List, com.pelusa.domain.model.Card, boolean, java.lang.String)]/[test-template-invocation:#1] (58 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotencyKeyLongerThanColumnIs400()] (55 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()] (88 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:lobbyPollingDoesNotOpenTurnsOrClock()] (87 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:constructorValidatesPlayersAndFirstIndex()] (118 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinNormalizesCodeAndSeatsNextPlayer()] (89 ms)</li><li>com.pelusa.domain.BustPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.BustPolicyTest]/[method:boundaryExactlyThreeWithRepeatIsBust()] (124 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()] (133 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:corruptedEventDetailDoesNotBreakStateRead()] (121 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:hotseatStartHasNoDeadlineAndAcceptsEmptyBody()] (153 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()] (155 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:hotseatStartWithAPlayerIdIsNotHost()] (161 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinAndCreateValidateRequiredFields()] (177 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:resultInNotFinishedGame()] (197 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsDuplicateName()] (200 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:eachDrawRestartsTheFifteenSecondClock()] (194 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:repeatWithTwoCardsKeepsTurn()] (215 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotentRetryReturnsSameState()] (242 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:lateJoinBecomesSpectatorWithoutSeat()] (266 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:playersEndpointShowsTurnFrontAndPoints()] (246 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:onlineStartWithoutPlayerIdCannotBypassHost()] (274 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:everyActionBumpsOptimisticVersion()] (261 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiredTurnRotatesAndRejectsLateAction()] (278 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:historyKeepsDatesPlayersScoresAndWinner()] (244 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:drawAndStandRotateTurn()] (265 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:createOnlineReturnsLobbyWithCodeAndHost()] (321 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:actionWithinDeadlineIsAcceptedAndKeepsTurn()] (290 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:actionsAfterFinishFail()] (343 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stashMovesPreviousTurnFrontToPoints()] (281 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:startRequiresHostAndTwoPlayers()] (317 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:validationBoundariesAcceptTheLimits()] (307 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiryRotatesToTheNextSeatAndClosesTheOldTurn()] (377 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:standWithoutDrawingIsRejected()] (402 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotentRetryOfStandAfterRotationReturnsState()] (391 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:finishDeclaresWinnerHistoryAndResult()] (384 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:startTwiceAndStartFinishedAreConflicts()] (455 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionByStrangerIs422AndDrawOnEmptyDeckIs422()] (558 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealValueMustMatchLastDrawnCard()] (571 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:askingForMoreCopiesThanTheDeckHasIs400()] (636 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:requestedValuesComeOutFirstAndCompositionIsKept()] (649 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:identicalStashesAreDeclaredTie()] (705 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:bustDiscardsFrontAndRotates()] (738 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:playContinuesAfterBustWithDiscardedCardsInTable()] (840 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:lastEventIsPersistedForLaterReads()] (1004 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:rankingUsesTiebreakWhenSumsAreEqual()] (1041 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()] (1091 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()] (1156 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:truncateLeavesOnlyRequestedCards()] (1266 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealTakesAllOfValue()] (1342 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:bustOnLastCardFinishesGameWithoutScoringBustedCards()] (1643 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:rigOnlyReordersCardsStillInTheDeck()] (4808 ms)</li><li>com.pelusa.application.GameServiceTest.[engine:junit-jupiter]/[class:com.pelusa.application.GameServiceTest]/[method:eventSerializationFailureIsInternalError()] (5011 ms)</li><li>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:rejectsValuesOutsideOneToTen(int)]/[test-template-invocation:#3] (0 ms)</li><li>com.pelusa.domain.CardTest.[engine:junit-jupiter]/[class:com.pelusa.domain.CardTest]/[test-template:rejectsValuesOutsideOneToTen(int)]/[test-template-invocation:#1] (62 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.30.1 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

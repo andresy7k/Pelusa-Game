@@ -63,6 +63,9 @@ public class GameEntity {
   public String getCode() { return code; }
   public String getMode() { return mode; }
   public int getCapacity() { return capacity; }
+  public OffsetDateTime getCreatedAt() { return createdAt; }
+  public OffsetDateTime getStartedAt() { return startedAt; }
+  public OffsetDateTime getFinishedAt() { return finishedAt; }
   public void setStatus(String status) { this.status = status; }
   public void setCurrentPlayerId(UUID id) { this.currentPlayerId = id; }
   public void setWinnerId(UUID id) { this.winnerId = id; }

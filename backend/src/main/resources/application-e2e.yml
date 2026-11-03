@@ -1,0 +1,14 @@
+# Perfil e2e (Playwright): H2 en memoria (cada arranque empieza limpio) y el
+# endpoint de soporte /api/test/** (E2eDeckController). Nunca usar en prod.
+# Uso: java -jar target/pelusa-game-0.1.0-SNAPSHOT.jar --spring.profiles.active=e2e
+spring:
+  datasource:
+    url: jdbc:h2:mem:pelusa-e2e;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+server:
+  port: ${PORT:8081}
+# El proxy de Vite reenvía el Origin del navegador (http://localhost:5174):
+# sin esto Spring responde 403 "Invalid CORS request" a los POST.
+CORS_ALLOWED_ORIGINS: http://localhost:5174

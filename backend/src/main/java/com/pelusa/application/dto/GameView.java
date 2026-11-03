@@ -23,13 +23,15 @@ public record GameView(
     Integer lastDrawnValue,
     /** Plazo del turno ONLINE (ISO-8601 UTC); null en hotseat o sin turno abierto. */
     OffsetDateTime turnDeadlineAt,
+    /** Fechas del histórico: creación, inicio y fin (null mientras no ocurran). */
+    OffsetDateTime createdAt,
+    OffsetDateTime startedAt,
+    OffsetDateTime finishedAt,
     List<PlayerView> players,
     Map<UUID, List<Integer>> fronts,
     Map<UUID, StashView> stashed,
     Map<String, Object> lastEvent,
-    ResultView result) 
-    
-    {
+    ResultView result) {
 
   public record PlayerView(UUID id, String name, int seat) {}
 
