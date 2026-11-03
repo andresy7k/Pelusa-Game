@@ -1,4 +1,8 @@
-# Blueprint de Render (plan free). La base la da Neon; Render solo corre la API.
+# Blueprint de Render (plan free): despliega backend y frontend juntos.
+# - pelusa-backend: Spring Boot en Docker. La base la da Neon; el Postgres free
+#   de Render expira a los 30 días.
+# - pelusa-frontend: React/Vite compilado, servido como static site (CDN).
+# Render autoconecta las URLs con fromService: RENDER_EXTERNAL_URL.
 # En Render: New → Blueprint → este repo → completar las variables marcadas sync:false.
 services:
   - type: web
@@ -7,8 +11,10 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /actuator/health
-    autoDeploy: true
+    # DB-free: /actuator/health consulta Neon y le impide hacer scale-to-zero.
+    # /actuator/health queda para verificación manual de readiness.
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
     envVars:
       - key: SPRING_DATASOURCE_URL
         sync: false
@@ -16,5 +22,40 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-      # CORS_ALLOWED_ORIGINS es opcional: el proxy /api de Vercel evita CORS.
-      # Agregala solo si el front llama directo al backend (modo directo).
+      # El navegador llama al backend cross-origin desde el static site.
+      # Render inyecta la URL pública real del front (protocolo + slug incluidos).
+      - key: CORS_ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: pelusa-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+
+  - type: web
+    name: pelusa-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      # Vite incrusta esta URL al compilar (build-time, no runtime).
+      # Render inyecta la URL pública real del backend (protocolo + slug incluidos).
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: pelusa-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: NODE_VERSION
+        value: "22"
+    routes:
+      # SPA: cualquier ruta del cliente devuelve index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
