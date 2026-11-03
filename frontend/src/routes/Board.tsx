@@ -378,9 +378,9 @@ export function Board() {
             <button
               type="button"
               className="act act-stand"
-              disabled={busy || !myTurn}
+              disabled={busy || !myTurn || stealValue == null}
               onClick={() => id && act(() => api.stand(id, meId))}
-              title="Plantarse: pasar el turno"
+              title={stealValue == null ? 'Primero sacá al menos una carta' : 'Plantarse: pasar el turno'}
             >
               <span className="act-icon" aria-hidden="true">
                 −
@@ -517,16 +517,21 @@ function TurnTimer({ deadline }: { deadline: string | null }) {
   }, [deadline]);
 
   if (!deadline) return null;
-  const left = Math.max(0, Math.ceil((new Date(deadline).getTime() - now) / 1000));
+  // Tope en 15: si el reloj del dispositivo va un poco atrasado no mostramos 16 o 17.
+  const left = Math.min(15, Math.max(0, Math.ceil((new Date(deadline).getTime() - now) / 1000)));
   return (
-    <p
-      className={`turn-timer${left <= 5 && left > 0 ? ' urgent' : ''}`}
-      role="timer"
-      aria-label={`Quedan ${left} segundos de turno`}
-    >
-      {left > 0 ? `${left} s de turno` : 'Tiempo cumplido'}
+    <p className={`turn-timer ${timerTone(left)}`} role="timer" aria-label={`Quedan ${left} segundos de turno`}>
+      <span className="turn-timer-num">{left}</span>
+      <span className="turn-timer-unit">{left > 0 ? 's de turno' : 'tiempo cumplido'}</span>
     </p>
   );
+}
+
+// 15–10 s verde, 9–5 amarillo, menos de 5 rojo: la sensación de que se acaba el tiempo.
+function timerTone(left: number): 'timer-green' | 'timer-yellow' | 'timer-red' {
+  if (left >= 10) return 'timer-green';
+  if (left >= 5) return 'timer-yellow';
+  return 'timer-red';
 }
 
 function nameOf(players: { id: string; name: string }[], id: string | null): string {
