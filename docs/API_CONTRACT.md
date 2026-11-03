@@ -113,8 +113,9 @@ Validación: `name` 1–60, `capacity` 2–6. El creador es el host (silla 0).
 **Impacto BD:** select paginado + agregación `STASHED` por jugador (usa índice).
 
 ## 9. Salud y meta
-- `GET /actuator/health` (interno, con chequeo `SELECT 1` a DB).
-- `GET /api/ping` → **204 No Content**, sin tocar la base: lo usa el front cada 60 s para que Render Free no duerma la instancia.
+- `GET /api/health` → **200** `{"status":"UP"}`, sin tocar la base: es el health check de Render.
+- `GET /actuator/health` (interno, readiness manual con chequeo `SELECT 1` a DB; no usar como health check de Render).
+- `GET /api/ping` → **204 No Content**, sin tocar la base: lo usa el front cada 60 s mientras hay un tablero visible, y el workflow de keep-alive cada 10 min.
 - OpenAPI en `/v3/api-docs` + Swagger UI solo perfil dev.
 
 ## 10. Matriz de status (para tests MockMvc)

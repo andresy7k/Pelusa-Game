@@ -90,7 +90,7 @@ CREATED --start()--> IN_PROGRESS --draw/stand/stash/steal/bust--> IN_PROGRESS --
 
 - `GlobalExceptionHandler` → `application/problem+json` con `errorCode` máquina-legible. Juego: `NOT_YOUR_TURN, DECK_EMPTY, GAME_FINISHED, GAME_NOT_FOUND, VALIDATION_FAILED, CONCURRENT_TURN, NO_STEALABLE_CARDS, NO_STASHABLE_CARDS, STEAL_VALUE_MISMATCH`. Online: `CODE_NOT_FOUND, CODE_COLLISION, GAME_FULL, NAME_TAKEN, NOT_HOST, NOT_ENOUGH_PLAYERS, ALREADY_STARTED, TURN_EXPIRED`, `UNSUPPORTED_MEDIA_TYPE` (415). Cuerpo/JSON inválido o UUID mal formado → 400.
 - `OncePerRequestFilter` genera `X-Request-Id` (o respeta el entrante), lo pone en MDC; logs estructurados (timestamp, level, requestId, gameId, playerId, action) sin PII ni secretos. Los 500 se loguean con requestId para diagnosticar sin exponer detalles al cliente.
-- `GET /actuator/health` verifica `DataSource` con `SELECT 1` (health real, no "UP" hardcodeado). `GET /api/ping` público (204) para keep-alive del plan gratuito.
+- `GET /api/health` responde `{"status":"UP"}` sin tocar la DB: es el health check de Render (evita despertar Neon en cada probe). `GET /actuator/health` verifica `DataSource` con `SELECT 1` (readiness manual). `GET /api/ping` público (204) para keep-alive del plan gratuito.
 - Rate-limit (Bucket4j o filtro simple, Phase 11): `POST /api/games` 10/min por IP; acciones 60/min por IP. Excedido → 429 con `Retry-After`.
 
 ## 8. Frontend (límites para no romper la autoridad)

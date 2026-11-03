@@ -90,15 +90,15 @@
 **Defensa:** "El riesgo estaba previsto en ADR-011; el cambio fue quirúrgico: 1 método de dominio, 1 columna, 1 errorCode, tests de tabla (sin draw / valor distinto / valor igual)."
 
 ## ADR-015 — Salas online por código, sin cuentas (2026-11-02, CERRADO por el autor)
-**Contexto:** Sección 1–2 del multijugador: jugar entre dispositivos sin auth (ADR-010) y sin fricción de registro. WebSockets no atraviesan el rewrite de Vercel.
+**Contexto:** Sección 1–2 del multijugador: jugar entre dispositivos sin auth (ADR-010) y sin fricción de registro. En el deploy original, WebSockets no atravesaban el rewrite de Vercel.
 **Decisión:** salas con `code` de 6 caracteres (alfabeto sin 0/O/1/I/L), UNIQUE en DB y generación con SecureRandom + reintento ante colisión. El creador es host (silla 0) y único que puede iniciar. La identidad del jugador vive en `localStorage` por id de partida; no hay login. Quien entra con la partida empezada queda **espectador** (`playerId:null`) y no ocupa cupo.
-**Alternativas:** UUID en la URL (fea para dictar por voz), cuentas con auth (fuera de alcance v1), WebSockets (no pasan por Vercel rewrites).
+**Alternativas:** UUID en la URL (fea para dictar por voz), cuentas con auth (fuera de alcance v1), WebSockets (descartados también por simplicidad; con el deploy Render directo + CORS ya no habría bloqueo técnico).
 **Consecuencias:** + Enlace compartible y cero registro; defensa clara de "el servidor sigue siendo la autoridad". − Identidad "de navegador": borrar storage o cambiar de dispositivo te deja espectador (aceptado y documentado).
 
 ## ADR-016 — Polling 2.5 s + keep-alive, sin WebSockets (2026-11-02, CERRADO por el autor)
-**Contexto:** El front debe ver turnos ajenos en vivo con el stack gratis (Vercel + Render Free). WS exige conexión persistente; Render Free duerme a los 15 min.
+**Contexto:** El front debe ver turnos ajenos en vivo con el stack gratis (Render Free; originalmente el front iba en Vercel). WS exige conexión persistente; Render Free duerme a los 15 min.
 **Decisión:** `GET /api/games/{id}` cada 2.5 s con la pestaña visible (document.hidden pausa), `GET /api/ping` cada 60 s desde el front y un workflow de GitHub cada 10 min para despertar Render. El estado se re-renderiza tal como llega: no hay merge optimista ni predicción local.
-**Alternativas:** WebSockets (bloqueado por Vercel/rewrites y por el plan free), SSE (posible, pero más complejo que el problema que resuelve hoy).
+**Alternativas:** WebSockets (el proxy de Vercel no los soportaba y Render Free duerme; el deploy actual directo con CORS sí podría, pero se mantiene polling por simplicidad), SSE (posible, pero más complejo que el problema que resuelve hoy).
 **Consecuencias:** + Simple, stateless, barato y fácil de defender; el servidor no guarda conexiones. − Latencia de hasta 2.5 s y requests periódicos (entran holgados en los límites free).
 
 ## ADR-017 — Timer de 15 s autoritativo con expiración perezosa (2026-11-02, CERRADO por el autor)
