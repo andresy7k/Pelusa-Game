@@ -5,7 +5,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Health ligero para la UI. El health REAL (con DB) es /actuator/health.
+ * Health ligero (sin DB) para el health check de Render y la UI.
+ * El health REAL (con DB) es /actuator/health; no usarlo como probe de Render
+ * porque despierta Neon en cada chequeo y consume sus CU-hours gratis.
  */
 @RestController
 public class HealthController {

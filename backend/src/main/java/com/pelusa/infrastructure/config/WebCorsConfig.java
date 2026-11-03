@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * CORS para el front desplegado (Vercel) llamando al backend (Render).
+ * CORS para el front desplegado (Render static) llamando al backend (Render).
  * En dev no hace falta (Vite proxya /api), pero habilitarlo no estorba.
  * Orígenes por variable de entorno: CORS_ALLOWED_ORIGINS (coma-separados).
  */
