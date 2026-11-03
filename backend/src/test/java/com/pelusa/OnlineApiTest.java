@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Multijugador online (ADR-015/016/017): lobby por código, host, espectador y
- * reloj autoritativo. Se ejecuta en CI con JDK 17 (ver .github/workflows/ci.yml).
+ * reloj autoritativo. Se ejecuta en CI con JDK 25 LTS (ver .github/workflows/ci.yml).
  */
 @SpringBootTest
 @AutoConfigureMockMvc

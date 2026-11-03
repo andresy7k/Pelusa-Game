@@ -4,7 +4,7 @@
 > Regla: trabajamos UNA fase por vez. Cada fase termina con código funcionando + tests + docs actualizadas + diff revisado + PR. No se avanza sin aprobación.
 
 **Última actualización:** 2026-10-06 — Phase 1 Architecture (ejecutada en rama docs/phase1-architecture, pendiente tu revisión para commit/PR)
-**Stack confirmado:** Java 17 + Spring Boot 3 + Spring Data JPA + Flyway + PostgreSQL (dev/prod) / H2 (tests) + React + Vite + TypeScript + GSAP + Playwright
+**Stack confirmado:** Java 25 LTS + Spring Boot 3 + Spring Data JPA + Flyway + PostgreSQL (dev/prod) / H2 (tests) + React + Vite + TypeScript + GSAP + Playwright
 **Arquitectura propuesta:** Monolito modular con núcleo de dominio puro (testeable sin Spring) + capa application + infraestructura. Ver `DECISIONS.md` ADR-001.
 **Repo:** `C:\Users\Andréss\Desktop\UNAC\Calidad de Software\Pelusa-Game` — actualmente vacío, sin git. Primer paso: `git init` + estructura base.
 
@@ -78,7 +78,7 @@ Turno dentro de IN_PROGRESS: `START_TURN [stash opcional] → DRAW* → {STAND |
 Monolito modular, 3 capas: `domain` (Java puro: `DeckFactory`, `GameEngine`, `TurnPolicy`, `ScoringService` — sin anotaciones Spring), `application` (`GameService` transaccional, puertos `ShufflePort`, `ClockPort`), `infrastructure` (`RestController`, DTOs + Bean Validation, JPA entities + repositories, Flyway, GlobalExceptionHandler RFC7807, `requestId` filter). Frontend desacoplado vía REST, nunca decide reglas.
 
 ### Stack propuesto (resumen — detalle en DECISIONS ADR-002/003/004)
-Backend: Java 17 LTS, Spring Boot 3.3, Data JPA/Hibernate, Flyway, PostgreSQL 16 (Docker) + H2 (tests), JUnit5+Mockito+AssertJ, MockMvc, JaCoCo, Pitest. Frontend: React 18 + Vite + TypeScript, React Query o fetch tipado, GSAP 3 timelines, Playwright. CI: GitHub Actions. Todo versionado, sin secretos.
+Backend: Java 25 LTS, Spring Boot 3.3, Data JPA/Hibernate, Flyway, PostgreSQL 16 (Docker) + H2 (tests), JUnit5+Mockito+AssertJ, MockMvc, JaCoCo, Pitest. Frontend: React 18 + Vite + TypeScript, React Query o fetch tipado, GSAP 3 timelines, Playwright. CI: GitHub Actions. Todo versionado, sin secretos.
 
 ### Estructura de repositorio propuesta
 ```
@@ -123,14 +123,14 @@ README.md
 **Dependencias:** Phase 1. **Archivos:** `backend/*`, `docker-compose.yml`, `ci.yml` básico.
 **Estado 2026-10-06:** código completo en `feature/backend-foundation`, revisión estática OK.
 ⛔ Build SIN verificar en esta máquina (JRE 8, sin Maven/Docker/winget; descarga JDK 24MB/10min → inviable en sesión).
-Ver `README.md` para instalar JDK 17. CI (`ci.yml` con Temurin 17) lo verificará.
+Ver `README.md` para instalar JDK 25 LTS. CI (`ci.yml` con Temurin 25) lo verificará.
 **Criterio de terminado:** `GET /actuator/health` verifica DB, Flyway V1 aplica en Postgres y H2, CI build verde, PR mergeado.
 - [x] Scaffold Spring Boot 3 + JPA + Validation + Actuator
 - [x] Config por entorno (sin secretos), Hikari default, logs estructurados + requestId
 - [x] Flyway V1 (games, players, cards, turns), índices justificados
 - [x] GlobalExceptionHandler RFC7807 + HealthIndicator DB
 - [x] CI: build + unit skeleton
-- [ ] `mvn verify` en máquina con JDK 17 (BLOQUEADO aquí, pendiente)
+- [ ] `mvn verify` en máquina con JDK 25 (BLOQUEADO aquí, pendiente)
 
 ## Phase 3 — Game domain
 **Objetivo:** reglas puras 100% testeadas sin Spring ni DB.
@@ -143,7 +143,7 @@ Ver `README.md` para instalar JDK 17. CI (`ci.yml` con Temurin 17) lo verificar�
 - [x] Stash / Draw / Steal / Bust / Finish → `Table` + `StashPolicy`/`StealPolicy`
 - [x] Scoring + tiebreak → `ScoringService` lexicográfico 1→10
 - [x] Unit tests JUnit5+AssertJ (normales, edge, errores, invariantes)
-- [ ] `mvn test` verde + Pitest dominio (BLOQUEADO: pendiente JDK 17 / CI con remote)
+- [ ] `mvn test` verde + Pitest dominio (BLOQUEADO: pendiente JDK 25 / CI con remote)
 
 ## Phase 4 — REST API
 **Objetivo:** exponer dominio vía REST validado, backend como juez.

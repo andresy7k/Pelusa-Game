@@ -10,9 +10,9 @@
 **Alternativas:** (a) Capas clásicas controller→service→repository con lógica en services — descartada porque mezcla reglas con Spring y dificulta mutación/testing puro. (b) Microservicios / CQRS / eventos / Redis — descartados: sin justificación, matan defendibilidad y velocidad. (c) Lógica en frontend validada por backend — descartada: viola "backend fuente de verdad".
 **Consecuencias:** + Testeable sin contenedor, + Explicable en 2 minutos, + Cambios de regla en un solo lugar. − Requiere disciplina para no filtrar anotaciones JPA al dominio (revisión en PRs).
 
-## ADR-002 — Stack backend: Java 17 LTS + Spring Boot 3.3 + JPA/Hibernate + Flyway (2026-10-06, CONFIRMADO por el autor)
+## ADR-002 — Stack backend: Java 25 LTS + Spring Boot 3.3 + JPA/Hibernate + Flyway (2026-11-03, actualizado desde Java 17 por el upgrade de runtime)
 **Contexto:** Requisito obligatorio Java+Spring+REST+DB+tests. Sustentación exige explicar cada pieza.
-**Decisión:** Java 17 (LTS, records, sealed si hace falta), Spring Boot 3.3, Spring Data JPA, Bean Validation, Actuator, Flyway versionado (`V1__init.sql`), Jackson, ProblemDetails RFC7807.
+**Decisión:** Java 25 (última LTS, records, sealed si hace falta), Spring Boot 3.3, Spring Data JPA, Bean Validation, Actuator, Flyway versionado (`V1__init.sql`), Jackson, ProblemDetails RFC7807.
 **Alternativas:** (a) JDBC puro / jOOQ — más control SQL, pero más código y más superficie de error para 1 dev. (b) MongoDB — pierde FKs/constraints/transacciones relacionales que el tribunal espera ver. (c) Java 21 virtual threads — atractivo, pero toolchain universitario y Pitest más maduros en 17.
 **Consecuencias:** + Estándar defendible, + Pool Hikari y validación out-of-box. − JPA exige cuidar N+1 y mapeos (mitigado con EntityGraph + tests de queries).
 

@@ -30,30 +30,12 @@ export interface GameState {
   id: string;
   status: 'CREATED' | 'IN_PROGRESS' | 'FINISHED';
   currentPlayerId: string | null;
-  /** Dueño del lobby en salas ONLINE; null en hotseat (LOCAL). */
-  hostPlayerId: string | null;
-  /** Código de invitación de la sala; null en hotseat. */
-  code: string | null;
-  mode: 'LOCAL' | 'ONLINE';
-  capacity: number;
-  deckRemaining: number;
-  /** R-01/ADR-014: valor robable este turno (última carta sacada); null si no sacó. */
-  lastDrawnValue: number | null;
-  /** Plazo ISO-8601 del turno ONLINE; null en hotseat o sin turno abierto. */
-  turnDeadlineAt: string | null;
+  dustRemaining: number;
   players: PlayerView[];
   fronts: Record<string, number[]>;
   stashed: Record<string, StashView>;
   lastEvent: Record<string, unknown> | null;
   result: ResultView | null;
-}
-
-/** Respuesta de crear/unirse: el tablero + quién sos en esa sala. */
-export interface JoinResult {
-  game: GameState;
-  /** null cuando se entra como ESPECTADOR (la partida ya empezó). */
-  playerId: string | null;
-  spectator: boolean;
 }
 
 /** Error canónico RFC7807 con errorCode de dominio. */
@@ -81,14 +63,12 @@ export function friendlyMessage(code: string): string {
       return 'La partida ya terminó.';
     case 'GAME_NOT_FOUND':
       return 'Esa partida no existe.';
-    case 'DECK_EMPTY':
+    case 'DUST_PILE_EMPTY':
       return 'No quedan cartas en el mazo.';
     case 'NO_STASHABLE_CARDS':
       return 'No tenés cartas para guardar ahora.';
     case 'NO_STEALABLE_CARDS':
       return 'Nadie tiene ese valor boca arriba.';
-    case 'STEAL_VALUE_MISMATCH':
-      return 'Solo puedes robar el valor de la última carta que sacaste.';
     case 'ALREADY_STARTED':
       return 'La partida ya empezó.';
     case 'ALREADY_STASHED_THIS_TURN':
@@ -99,22 +79,6 @@ export function friendlyMessage(code: string): string {
       return 'Revisá los datos ingresados.';
     case 'GAME_NOT_FINISHED':
       return 'La partida sigue en curso.';
-    case 'CODE_NOT_FOUND':
-      return 'Ese código no existe. Revisalo.';
-    case 'GAME_FULL':
-      return 'La sala está llena.';
-    case 'NAME_TAKEN':
-      return 'Ese nombre ya está en la mesa. Probá otro.';
-    case 'NOT_HOST':
-      return 'Solo el anfitrión puede empezar la partida.';
-    case 'NOT_ENOUGH_PLAYERS':
-      return 'Faltan jugadores: se necesitan al menos 2.';
-    case 'CODE_COLLISION':
-      return 'No pudimos generar el código, probá de nuevo.';
-    case 'TURN_EXPIRED':
-      return 'Se te acabó el tiempo del turno.';
-    case 'INTERNAL':
-      return 'Error del servidor, probá de nuevo.';
     default:
       return 'Algo salió mal, probá de nuevo.';
   }
