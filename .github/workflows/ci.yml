@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "25"
           cache: maven
       - name: Build + tests (H2 real, Flyway V1)
         working-directory: backend

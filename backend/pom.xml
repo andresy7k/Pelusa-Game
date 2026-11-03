@@ -20,7 +20,7 @@
   <description>Pelusas — backend fuente de verdad de las reglas (Phase 2: foundation)</description>
 
   <properties>
-    <java.version>17</java.version>
+    <java.version>25</java.version>
     <!-- Flyway 10.10 (la que gestiona Boot 3.3.5) no soporta PostgreSQL 18.
          11.20.3 es la última 11.x y soporta PG 18; Boot 3.3 sigue funcionando. -->
     <flyway.version>11.20.3</flyway.version>
@@ -91,7 +91,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.12</version>
+        <version>0.8.14</version>
         <executions>
           <execution>
             <goals>
