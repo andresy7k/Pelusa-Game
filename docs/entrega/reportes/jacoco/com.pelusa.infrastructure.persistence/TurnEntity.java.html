@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TurnEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.persistence</a> &gt; <span class="el_source">TurnEntity.java</span></div><h1>TurnEntity.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.persistence;
+
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;turns&quot;)
+public class TurnEntity {
+  @Id
+  private UUID id;
+
+  @Column(name = &quot;game_id&quot;, nullable = false)
+  private UUID gameId;
+
+  @Column(name = &quot;player_id&quot;, nullable = false)
+  private UUID playerId;
+
+  @Column(name = &quot;started_at&quot;, nullable = false)
+  private OffsetDateTime startedAt;
+
+  /** Plazo del turno (ONLINE); null = sin límite (hotseat / turnos viejos). */
+  @Column(name = &quot;deadline_at&quot;)
+  private OffsetDateTime deadlineAt;
+
+  @Column(name = &quot;ended_at&quot;)
+  private OffsetDateTime endedAt;
+
+  @Column(length = 16)
+  private String outcome;
+
+  @Column(columnDefinition = &quot;TEXT&quot;)
+  private String detail;
+
+  @Column(nullable = false)
+  private boolean acted;
+
+  @Column(nullable = false)
+  private boolean stashed;
+
+  /** R-01/ADR-014: valor de la última carta sacada este turno (null = sin draw). */
+  @Column(name = &quot;last_drawn_value&quot;)
+  private Integer lastDrawnValue;
+
+<span class="fc" id="L45">  protected TurnEntity() {}</span>
+
+<span class="fc" id="L47">  public TurnEntity(UUID id, UUID gameId, UUID playerId) {</span>
+<span class="fc" id="L48">    this.id = id;</span>
+<span class="fc" id="L49">    this.gameId = gameId;</span>
+<span class="fc" id="L50">    this.playerId = playerId;</span>
+<span class="fc" id="L51">    this.startedAt = OffsetDateTime.now();</span>
+<span class="fc" id="L52">  }</span>
+
+<span class="fc" id="L54">  public UUID getPlayerId() { return playerId; }</span>
+<span class="fc" id="L55">  public OffsetDateTime getDeadlineAt() { return deadlineAt; }</span>
+<span class="fc" id="L56">  public void setDeadlineAt(OffsetDateTime deadlineAt) { this.deadlineAt = deadlineAt; }</span>
+<span class="fc" id="L57">  public String getDetail() { return detail; }</span>
+<span class="fc" id="L58">  public boolean isActed() { return acted; }</span>
+<span class="fc" id="L59">  public boolean isStashed() { return stashed; }</span>
+<span class="fc" id="L60">  public Integer getLastDrawnValue() { return lastDrawnValue; }</span>
+<span class="fc" id="L61">  public void setLastDrawnValue(Integer v) { this.lastDrawnValue = v; }</span>
+<span class="fc" id="L62">  public void setEndedAt(OffsetDateTime t) { this.endedAt = t; }</span>
+<span class="fc" id="L63">  public void setOutcome(String outcome) { this.outcome = outcome; }</span>
+<span class="fc" id="L64">  public void setDetail(String detail) { this.detail = detail; }</span>
+<span class="fc" id="L65">  public void setActed(boolean acted) { this.acted = acted; }</span>
+<span class="fc" id="L66">  public void setStashed(boolean stashed) { this.stashed = stashed; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

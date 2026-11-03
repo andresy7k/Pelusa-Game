@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.persistence</a> &gt; <span class="el_source">GameEntity.java</span></div><h1>GameEntity.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.persistence;
+
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+/**
+ * Espejo JPA de games. Sin reglas: los CHECKs viven en la migración V1,
+ * las transiciones viven en el dominio (Phase 3). {@code @Version} = base del 409.
+ */
+@Entity
+@Table(name = &quot;games&quot;)
+public class GameEntity {
+  @Id
+  private UUID id;
+
+  @Column(nullable = false, length = 16)
+  private String status;
+
+  @Column(name = &quot;current_player_id&quot;)
+  private UUID currentPlayerId;
+
+  @Column(name = &quot;winner_id&quot;)
+  private UUID winnerId;
+
+  @Column(name = &quot;created_at&quot;, nullable = false)
+  private OffsetDateTime createdAt;
+
+  @Column(name = &quot;started_at&quot;)
+  private OffsetDateTime startedAt;
+
+  @Column(name = &quot;finished_at&quot;)
+  private OffsetDateTime finishedAt;
+
+  @Column(name = &quot;host_player_id&quot;)
+  private UUID hostPlayerId;
+
+  @Column(name = &quot;code&quot;)
+  private String code;
+
+<span class="fc" id="L41">  @Column(name = &quot;mode&quot;)</span>
+  private String mode = &quot;LOCAL&quot;;
+
+<span class="fc" id="L44">  @Column(name = &quot;capacity&quot;)</span>
+  private int capacity = 6;
+
+  @Version
+  private long version;
+
+<span class="fc" id="L50">  protected GameEntity() {}</span>
+
+<span class="fc" id="L52">  public GameEntity(UUID id, String status) {</span>
+<span class="fc" id="L53">    this.id = id;</span>
+<span class="fc" id="L54">    this.status = status;</span>
+<span class="fc" id="L55">    this.createdAt = OffsetDateTime.now();</span>
+<span class="fc" id="L56">  }</span>
+
+<span class="fc" id="L58">  public UUID getId() { return id; }</span>
+<span class="fc" id="L59">  public String getStatus() { return status; }</span>
+<span class="fc" id="L60">  public UUID getCurrentPlayerId() { return currentPlayerId; }</span>
+<span class="fc" id="L61">  public UUID getWinnerId() { return winnerId; }</span>
+<span class="fc" id="L62">  public UUID getHostPlayerId() { return hostPlayerId; }</span>
+<span class="fc" id="L63">  public String getCode() { return code; }</span>
+<span class="fc" id="L64">  public String getMode() { return mode; }</span>
+<span class="fc" id="L65">  public int getCapacity() { return capacity; }</span>
+<span class="fc" id="L66">  public OffsetDateTime getCreatedAt() { return createdAt; }</span>
+<span class="fc" id="L67">  public OffsetDateTime getStartedAt() { return startedAt; }</span>
+<span class="fc" id="L68">  public OffsetDateTime getFinishedAt() { return finishedAt; }</span>
+<span class="fc" id="L69">  public void setStatus(String status) { this.status = status; }</span>
+<span class="fc" id="L70">  public void setCurrentPlayerId(UUID id) { this.currentPlayerId = id; }</span>
+<span class="fc" id="L71">  public void setWinnerId(UUID id) { this.winnerId = id; }</span>
+<span class="fc" id="L72">  public void setStartedAt(OffsetDateTime t) { this.startedAt = t; }</span>
+<span class="fc" id="L73">  public void setFinishedAt(OffsetDateTime t) { this.finishedAt = t; }</span>
+<span class="fc" id="L74">  public void setHostPlayerId(UUID id) { this.hostPlayerId = id; }</span>
+<span class="fc" id="L75">  public void setCode(String code) {this.code = code; }</span>
+<span class="fc" id="L76">  public void setMode(String mode) { this.mode = mode; }</span>
+<span class="fc" id="L77">  public void setCapacity(int capacity) { this.capacity = capacity; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

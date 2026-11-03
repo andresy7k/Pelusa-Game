@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoomCode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.domain.service</a> &gt; <span class="el_source">RoomCode.java</span></div><h1>RoomCode.java</h1><pre class="source lang-java linenums">package com.pelusa.domain.service;
+
+import java.security.SecureRandom;
+
+/**
+ * Fábrica de códigos de sala: 6 caracteres sin 0/O/1/I/L.
+ * El código es una LLAVE, no un número de orden: si fuera secuencial
+ * (A001, A002...) cualquiera podría adivinar la mesa recién creada.
+ * SecureRandom es el mismo criterio que RandomShuffleAdapter usa para barajar;
+ * Math.random() es una secuencia predecible y no sirve como llave.
+ */
+public final class RoomCode {
+  private RoomCode() {}
+
+<span class="fc" id="L15">  private static final SecureRandom RANDOM = new SecureRandom();</span>
+  private static final String ALFABETO = &quot;ABCDEFGHJKMNPQRSTUVWXYZ23456789&quot;;
+
+  /** Código de 6 caracteres al azar. La unicidad real la impone la BD (uq_games_code). */
+  public static String generate() {
+<span class="fc" id="L20">    StringBuilder sb = new StringBuilder(6);</span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">    for (int i = 0; i &lt; 6; i++) {</span>
+<span class="fc" id="L22">      sb.append(ALFABETO.charAt(RANDOM.nextInt(ALFABETO.length())));</span>
+    }
+<span class="fc" id="L24">    return sb.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

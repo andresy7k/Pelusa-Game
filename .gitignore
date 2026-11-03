@@ -80,3 +80,6 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Material personal de estudio/auditoría: vive solo en esta máquina
+docs/privado/

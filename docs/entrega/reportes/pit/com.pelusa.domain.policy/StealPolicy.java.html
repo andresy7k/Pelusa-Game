@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>StealPolicy.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.pelusa.domain.policy;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.pelusa.domain.model.Card;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.List;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Regla de robo R-01/ADR-011: solo en mi turno. Devuelve las cartas del</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * frente ajeno que coinciden con el valor pedido (el engine las mueve a mi</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * frente; si no hay ninguna, el engine responde 422 NO_STEALABLE_CARDS).</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public final class StealPolicy {</span></pre></td></tr>
+
+
+<tr>
+<td class='uncovered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='uncovered'><pre><span  class=''>  private StealPolicy() {}</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public static List&#60;Card&#62; stealable(List&#60;Card&#62; victimFront, int value) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_15'/>
+15
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_15'>3</a>
+<span>
+
+1. stealable : replaced return value with Collections.emptyList for com/pelusa/domain/policy/StealPolicy::stealable &rarr; KILLED<br/>
+
+2. lambda$stealable$0 : replaced boolean return with true for com/pelusa/domain/policy/StealPolicy::lambda$stealable$0 &rarr; KILLED<br/>
+
+3. lambda$stealable$0 : removed conditional - replaced equality check with false &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return victimFront.stream().filter(c -&#62; c.value() == value).toList();</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1208707b_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@1208707b_15'>15</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@1208707b_15'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>stealable<br/><b>Killed by : </b>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:leavesOtherValuesAlone()]</span></span> replaced return value with Collections.emptyList for com/pelusa/domain/policy/StealPolicy::stealable &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>lambda$stealable$0<br/><b>Killed by : </b>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:returnsEmptyWhenValueAbsent()]</span></span> replaced boolean return with true for com/pelusa/domain/policy/StealPolicy::lambda$stealable$0 &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>lambda$stealable$0<br/><b>Killed by : </b>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:leavesOtherValuesAlone()]</span></span> removed conditional - replaced equality check with false &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_EQUAL_ELSE</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_ORDER_ELSE</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:returnsEmptyWhenValueAbsent()] (0 ms)</li><li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:leavesOtherValuesAlone()] (1 ms)</li><li>com.pelusa.domain.StealPolicyTest.[engine:junit-jupiter]/[class:com.pelusa.domain.StealPolicyTest]/[method:takesAllCardsOfRequestedValue()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealAcceptsBoundaryValuesOneAndTen()] (3 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealWithNoMatchingCardFails()] (2 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealTakesAllOfLastDrawnValueFromOtherFronts()] (1 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:hydrateRestoresTurnFlags()] (2 ms)</li><li>com.pelusa.domain.TableTest.[engine:junit-jupiter]/[class:com.pelusa.domain.TableTest]/[method:stealDoesNotTakeOwnCardsNorTriggerBust()] (6 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:lastEventIsPersistedForLaterReads()] (1004 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()] (1091 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()] (1156 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealTakesAllOfValue()] (1342 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.30.1 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

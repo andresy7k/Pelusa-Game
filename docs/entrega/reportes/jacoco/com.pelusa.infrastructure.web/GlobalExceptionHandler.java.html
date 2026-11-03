@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.web</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.web;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+/**
+ * Errores consistentes RFC7807 (API_CONTRACT §error canónico).
+ * Mapea códigos de dominio → status: 404 no existe, 409 conflicto de turno,
+ * 422 regla violada, 400 validación. Phase 4 añade los códigos de juego.
+ */
+@RestControllerAdvice
+<span class="fc" id="L26">public class GlobalExceptionHandler {</span>
+
+<span class="fc" id="L28">  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);</span>
+
+<span class="fc" id="L30">  private static final Set&lt;String&gt; NOT_FOUND =</span>
+<span class="fc" id="L31">      Set.of(&quot;GAME_NOT_FOUND&quot;, &quot;CODE_NOT_FOUND&quot;);</span>
+<span class="fc" id="L32">  private static final Set&lt;String&gt; CONFLICT =</span>
+<span class="fc" id="L33">      Set.of(&quot;GAME_FINISHED&quot;, &quot;GAME_NOT_FINISHED&quot;, &quot;NOT_YOUR_TURN&quot;, &quot;ALREADY_STARTED&quot;,</span>
+          &quot;ALREADY_STASHED_THIS_TURN&quot;, &quot;CONCURRENT_TURN&quot;, &quot;CODE_COLLISION&quot;,
+          &quot;GAME_FULL&quot;, &quot;NAME_TAKEN&quot;, &quot;NOT_HOST&quot;, &quot;NOT_ENOUGH_PLAYERS&quot;, &quot;TURN_EXPIRED&quot;);
+  // Cualquier otro código de dominio cae en el default 422 (regla violada):
+  // DECK_EMPTY, NO_STASHABLE_CARDS, NO_STEALABLE_CARDS, STEAL_VALUE_MISMATCH,
+  // INVALID_PLAYER.
+
+  @ExceptionHandler(com.pelusa.domain.engine.DomainException.class)
+  public ProblemDetail domain(com.pelusa.domain.engine.DomainException e, HttpServletRequest req) {
+<span class="fc" id="L42">    HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">    if (NOT_FOUND.contains(e.getCode())) {</span>
+<span class="fc" id="L44">      status = HttpStatus.NOT_FOUND;</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    } else if (CONFLICT.contains(e.getCode())) {</span>
+<span class="fc" id="L46">      status = HttpStatus.CONFLICT;</span>
+    }
+<span class="fc" id="L48">    return problem(status, e.getCode(), e.getMessage(), req);</span>
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ProblemDetail concurrent(OptimisticLockingFailureException e, HttpServletRequest req) {
+<span class="fc" id="L53">    return problem(HttpStatus.CONFLICT, &quot;CONCURRENT_TURN&quot;, &quot;Otro request modificó la partida, reintenta&quot;, req);</span>
+  }
+
+  @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+  public ProblemDetail beanValidation(org.springframework.web.bind.MethodArgumentNotValidException e,
+      HttpServletRequest req) {
+<span class="fc" id="L59">    return problem(HttpStatus.BAD_REQUEST, &quot;VALIDATION_FAILED&quot;, &quot;Request inválido&quot;, req);</span>
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ProblemDetail unsupportedMedia(HttpMediaTypeNotSupportedException e, HttpServletRequest req) {
+<span class="fc" id="L64">    return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, &quot;UNSUPPORTED_MEDIA_TYPE&quot;,</span>
+        &quot;Content-Type no soportado: usá application/json&quot;, req);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ProblemDetail unreadable(HttpMessageNotReadableException e, HttpServletRequest req) {
+<span class="fc" id="L70">    return problem(HttpStatus.BAD_REQUEST, &quot;VALIDATION_FAILED&quot;, &quot;Body JSON inválido o malformado&quot;, req);</span>
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ProblemDetail typeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest req) {
+<span class="fc" id="L75">    return problem(HttpStatus.BAD_REQUEST, &quot;VALIDATION_FAILED&quot;,</span>
+<span class="fc" id="L76">        &quot;Parámetro inválido: &quot; + e.getName(), req);</span>
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ProblemDetail illegalArgument(IllegalArgumentException e, HttpServletRequest req) {
+<span class="fc" id="L81">    return problem(HttpStatus.BAD_REQUEST, &quot;VALIDATION_FAILED&quot;, e.getMessage(), req);</span>
+  }
+
+  // Spring Boot 3.2+ lanza NoResourceFoundException para rutas inexistentes;
+  // sin este handler caía en el genérico y respondía 500 + log de error.
+  @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+  public ProblemDetail notFound(Exception e, HttpServletRequest req) {
+<span class="fc" id="L88">    return problem(HttpStatus.NOT_FOUND, &quot;NOT_FOUND&quot;, &quot;Recurso no existe&quot;, req);</span>
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ProblemDetail unexpected(Exception e, HttpServletRequest req) {
+    // Un 500 nunca debe ser mudo: dejamos el stacktrace con el requestId para correlacionar.
+<span class="fc" id="L94">    log.error(&quot;Error inesperado en {} {}&quot;, req.getMethod(), req.getRequestURI(), e);</span>
+<span class="fc" id="L95">    return problem(HttpStatus.INTERNAL_SERVER_ERROR, &quot;INTERNAL&quot;, &quot;Error inesperado&quot;, req);</span>
+  }
+
+  private ProblemDetail problem(HttpStatus status, String errorCode, String detail, HttpServletRequest req) {
+<span class="fc" id="L99">    ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);</span>
+<span class="fc" id="L100">    pd.setType(URI.create(&quot;https://pelusa/errors/&quot; + errorCode));</span>
+<span class="fc" id="L101">    pd.setTitle(status.getReasonPhrase());</span>
+<span class="fc" id="L102">    pd.setInstance(URI.create(req.getRequestURI()));</span>
+<span class="fc" id="L103">    pd.setProperty(&quot;errorCode&quot;, errorCode);</span>
+<span class="fc" id="L104">    String rid = MDC.get(&quot;requestId&quot;);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (rid != null) {</span>
+<span class="fc" id="L106">      pd.setProperty(&quot;requestId&quot;, rid);</span>
+    }
+<span class="fc" id="L108">    return pd;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

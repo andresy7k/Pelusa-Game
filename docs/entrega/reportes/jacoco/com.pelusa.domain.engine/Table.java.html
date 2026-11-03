@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Table.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.domain.engine</a> &gt; <span class="el_source">Table.java</span></div><h1>Table.java</h1><pre class="source lang-java linenums">package com.pelusa.domain.engine;
+
+import com.pelusa.domain.model.Card;
+import com.pelusa.domain.model.GameStatus;
+import com.pelusa.domain.policy.BustPolicy;
+import com.pelusa.domain.policy.StashPolicy;
+import com.pelusa.domain.policy.StealPolicy;
+import com.pelusa.domain.service.ScoringService;
+import com.pelusa.domain.service.ScoringService.Score;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Mesa de juego en memoria. Java puro: sin Spring, sin JPA, sin I/O.
+ *
+ * &lt;p&gt;Una instancia = una partida. Phase 4 la reconstruye desde las entidades
+ * al inicio de cada request y la persiste al final, todo en 1 transacción.
+ *
+ * &lt;p&gt;Reglas aplicadas aquí: R-01 robo solo en turno y SOLO el valor de la
+ * última carta sacada (todas las de ese valor), R-02 bust = repetido &amp;&amp; frente&gt;=3
+ * post-colocación, R-03 suma + desempate 1→10, I-05 stash solo al inicio del
+ * turno, I-06 fin al agotarse el mazo.
+ */
+public class Table {
+  private final List&lt;UUID&gt; playerOrder;
+  private int currentIndex;
+<span class="fc" id="L33">  private final Map&lt;UUID, List&lt;Card&gt;&gt; fronts = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L34">  private final Map&lt;UUID, List&lt;Card&gt;&gt; stashed = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L35">  private final List&lt;Card&gt; discarded = new ArrayList&lt;&gt;();</span>
+  private final Deque&lt;Card&gt; deck;
+<span class="fc" id="L37">  private GameStatus status = GameStatus.IN_PROGRESS;</span>
+  private boolean actedThisTurn;
+  private boolean stashedThisTurn;
+  private Integer lastDrawnValue;
+  private UUID winnerId;
+  private boolean tie;
+<span class="fc" id="L43">  private Map&lt;UUID, Score&gt; scores = Map.of();</span>
+
+  /**
+   * @param players orden de turno (2-6, sin duplicados)
+   * @param deck cartas del mazo; la primera de la lista se saca primero.
+   *     Prod pasa {@code DeckFactory.shuffledDeck(...)}; los tests pasan mazos amañados.
+   * @param firstPlayerIndex quién empieza
+   */
+<span class="fc" id="L51">  public Table(List&lt;UUID&gt; players, List&lt;Card&gt; deck, int firstPlayerIndex) {</span>
+<span class="fc bfc" id="L52" title="All 4 branches covered.">    if (players.size() &lt; 2 || players.size() &gt; 6) {</span>
+<span class="fc" id="L53">      throw new IllegalArgumentException(&quot;La partida necesita de 2 a 6 jugadores&quot;);</span>
+    }
+<span class="fc bfc" id="L55" title="All 4 branches covered.">    if (firstPlayerIndex &lt; 0 || firstPlayerIndex &gt;= players.size()) {</span>
+<span class="fc" id="L56">      throw new IllegalArgumentException(&quot;firstPlayerIndex fuera de rango&quot;);</span>
+    }
+<span class="fc" id="L58">    this.playerOrder = List.copyOf(players);</span>
+<span class="fc" id="L59">    this.currentIndex = firstPlayerIndex;</span>
+<span class="fc" id="L60">    this.deck = new ArrayDeque&lt;&gt;(deck);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    for (UUID p : players) {</span>
+<span class="fc" id="L62">      fronts.put(p, new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L63">      stashed.put(p, new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L64">    }</span>
+<span class="fc" id="L65">  }</span>
+
+  public UUID currentPlayerId() {
+<span class="fc" id="L68">    return playerOrder.get(currentIndex);</span>
+  }
+
+  /** Guardar pelusas: frente propio → puntos. Solo al inicio del turno. */
+  public int stashCurrent() {
+<span class="fc" id="L73">    requireInProgress();</span>
+<span class="fc" id="L74">    List&lt;Card&gt; front = fronts.get(currentPlayerId());</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    if (stashedThisTurn) {</span>
+<span class="fc" id="L76">      throw new DomainException(&quot;ALREADY_STASHED_THIS_TURN&quot;, &quot;Ya guardaste este turno&quot;);</span>
+    }
+<span class="fc bfc" id="L78" title="All 2 branches covered.">    if (!StashPolicy.canStash(actedThisTurn, false, front)) {</span>
+<span class="fc" id="L79">      throw new DomainException(&quot;NO_STASHABLE_CARDS&quot;, &quot;No hay cartas guardables (frente vacío o ya actuaste)&quot;);</span>
+    }
+<span class="fc" id="L81">    stashed.get(currentPlayerId()).addAll(front);</span>
+<span class="fc" id="L82">    int count = front.size();</span>
+<span class="fc" id="L83">    front.clear();</span>
+<span class="fc" id="L84">    stashedThisTurn = true;</span>
+<span class="fc" id="L85">    return count;</span>
+  }
+
+  /** Sacar carta del mazo. Puede causar bust o terminar la partida. */
+  public DrawResult drawCurrent() {
+<span class="fc" id="L90">    requireInProgress();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (deck.isEmpty()) {</span>
+<span class="fc" id="L92">      throw new DomainException(&quot;DECK_EMPTY&quot;, &quot;El mazo está vacío&quot;);</span>
+    }
+<span class="fc" id="L94">    Card drawn = deck.removeFirst();</span>
+<span class="fc" id="L95">    List&lt;Card&gt; front = fronts.get(currentPlayerId());</span>
+<span class="fc" id="L96">    front.add(drawn);</span>
+<span class="fc" id="L97">    actedThisTurn = true;</span>
+<span class="fc" id="L98">    lastDrawnValue = drawn.value();</span>
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">    if (BustPolicy.isBust(front, drawn)) {</span>
+<span class="fc" id="L101">      discarded.addAll(front);</span>
+<span class="fc" id="L102">      front.clear();</span>
+<span class="fc" id="L103">      nextTurn();</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">      if (deck.isEmpty()) {</span>
+<span class="fc" id="L105">        finish(); // el mazo se agotó con el bust: también termina</span>
+<span class="fc" id="L106">        return new DrawResult(drawn, true, true);</span>
+      }
+<span class="fc" id="L108">      return new DrawResult(drawn, true, false);</span>
+    }
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    if (deck.isEmpty()) {</span>
+<span class="fc" id="L111">      finish();</span>
+<span class="fc" id="L112">      return new DrawResult(drawn, false, true);</span>
+    }
+<span class="fc" id="L114">    return new DrawResult(drawn, false, false);</span>
+  }
+
+  /**
+   * Plantarse voluntariamente y pasar el turno. Exige haber sacado al menos una
+   * carta este turno: si se pudiera pasar sin sacar, todos podrían plantarse
+   * para siempre y el mazo nunca se agotaría (la partida no terminaría).
+   */
+  public void standCurrent() {
+<span class="fc" id="L123">    requireInProgress();</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (lastDrawnValue == null) {</span>
+<span class="fc" id="L125">      throw new DomainException(&quot;MUST_DRAW_FIRST&quot;, &quot;Tenés que sacar al menos una carta antes de plantarte&quot;);</span>
+    }
+<span class="fc" id="L127">    nextTurn();</span>
+<span class="fc" id="L128">  }</span>
+
+  /**
+   * Robar: trae a mi frente TODAS las cartas del valor pedido que estén
+   * boca arriba en frentes ajenos. No dispara bust (solo el draw lo hace).
+   * R-01 (ADR-014): solo se puede robar el valor de la última carta sacada
+   * este turno; sin draw previo o con otro valor → STEAL_VALUE_MISMATCH.
+   */
+  public StealResult stealCurrent(int value) {
+<span class="fc" id="L137">    requireInProgress();</span>
+<span class="fc bfc" id="L138" title="All 4 branches covered.">    if (value &lt; 1 || value &gt; 10) {</span>
+<span class="fc" id="L139">      throw new IllegalArgumentException(&quot;value debe estar entre 1 y 10&quot;);</span>
+    }
+<span class="fc bfc" id="L141" title="All 4 branches covered.">    if (lastDrawnValue == null || value != lastDrawnValue) {</span>
+<span class="fc" id="L142">      throw new DomainException(&quot;STEAL_VALUE_MISMATCH&quot;,</span>
+          &quot;Solo puedes robar el valor de la última carta que sacaste&quot;);
+    }
+<span class="fc" id="L145">    UUID me = currentPlayerId();</span>
+<span class="fc" id="L146">    List&lt;Card&gt; taken = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L147">    List&lt;UUID&gt; victims = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    for (UUID other : playerOrder) {</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">      if (other.equals(me)) {</span>
+<span class="fc" id="L150">        continue;</span>
+      }
+<span class="fc" id="L152">      List&lt;Card&gt; found = StealPolicy.stealable(fronts.get(other), value);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">      if (!found.isEmpty()) {</span>
+<span class="fc" id="L154">        fronts.get(other).removeAll(found);</span>
+<span class="fc" id="L155">        taken.addAll(found);</span>
+<span class="fc" id="L156">        victims.add(other);</span>
+      }
+<span class="fc" id="L158">    }</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">    if (taken.isEmpty()) {</span>
+<span class="fc" id="L160">      throw new DomainException(&quot;NO_STEALABLE_CARDS&quot;, &quot;Nadie tiene ese valor boca arriba&quot;);</span>
+    }
+<span class="fc" id="L162">    fronts.get(me).addAll(taken);</span>
+<span class="fc" id="L163">    actedThisTurn = true;</span>
+<span class="fc" id="L164">    return new StealResult(value, taken.size(), List.copyOf(victims));</span>
+  }
+
+  /** Fin I-06: mazo vacío → auto-stash de frentes, puntuación, ganador. */
+  private void finish() {
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    for (UUID p : playerOrder) {</span>
+<span class="fc" id="L170">      stashed.get(p).addAll(fronts.get(p));</span>
+<span class="fc" id="L171">      fronts.get(p).clear();</span>
+<span class="fc" id="L172">    }</span>
+<span class="fc" id="L173">    Map&lt;UUID, Score&gt; result = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    for (UUID p : playerOrder) {</span>
+<span class="fc" id="L175">      result.put(p, ScoringService.score(stashed.get(p)));</span>
+<span class="fc" id="L176">    }</span>
+<span class="fc" id="L177">    UUID best = null;</span>
+<span class="fc" id="L178">    boolean draw = false;</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    for (UUID p : playerOrder) {</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">      if (best == null) {</span>
+<span class="fc" id="L181">        best = p;</span>
+      } else {
+<span class="fc" id="L183">        int cmp = ScoringService.compare(result.get(p), result.get(best));</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (cmp &gt; 0) {</span>
+<span class="fc" id="L185">          best = p;</span>
+<span class="fc" id="L186">          draw = false;</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        } else if (cmp == 0) {</span>
+<span class="fc" id="L188">          draw = true;</span>
+        }
+      }
+<span class="fc" id="L191">    }</span>
+<span class="fc" id="L192">    this.scores = Collections.unmodifiableMap(result);</span>
+<span class="fc" id="L193">    this.tie = draw;</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    this.winnerId = draw ? null : best;</span>
+<span class="fc" id="L195">    this.status = GameStatus.FINISHED;</span>
+<span class="fc" id="L196">  }</span>
+
+  private void nextTurn() {
+<span class="fc" id="L199">    currentIndex = (currentIndex + 1) % playerOrder.size();</span>
+<span class="fc" id="L200">    actedThisTurn = false;</span>
+<span class="fc" id="L201">    stashedThisTurn = false;</span>
+<span class="fc" id="L202">    lastDrawnValue = null;</span>
+<span class="fc" id="L203">  }</span>
+
+  private void requireInProgress() {
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (status == GameStatus.FINISHED) {</span>
+<span class="fc" id="L207">      throw new DomainException(&quot;GAME_FINISHED&quot;, &quot;La partida ya terminó&quot;);</span>
+    }
+<span class="fc" id="L209">  }</span>
+
+  /**
+   * Hidratación desde persistencia (Phase 4): el service reconstruye frentes,
+   * puntos y flags del turno en curso sobre una mesa fresca. Solo llamar una vez.
+   */
+  public void hydrate(
+      Map&lt;UUID, List&lt;Card&gt;&gt; savedFronts,
+      Map&lt;UUID, List&lt;Card&gt;&gt; savedStashed,
+      List&lt;Card&gt; savedDiscarded,
+      boolean acted,
+      boolean stashedFlag,
+      Integer lastDrawn) {
+<span class="fc bfc" id="L222" title="All 2 branches covered.">    for (UUID p : playerOrder) {</span>
+<span class="fc" id="L223">      fronts.get(p).addAll(savedFronts.getOrDefault(p, List.of()));</span>
+<span class="fc" id="L224">      stashed.get(p).addAll(savedStashed.getOrDefault(p, List.of()));</span>
+<span class="fc" id="L225">    }</span>
+<span class="fc" id="L226">    discarded.addAll(savedDiscarded);</span>
+<span class="fc" id="L227">    this.actedThisTurn = acted;</span>
+<span class="fc" id="L228">    this.stashedThisTurn = stashedFlag;</span>
+<span class="fc" id="L229">    this.lastDrawnValue = lastDrawn;</span>
+<span class="fc" id="L230">  }</span>
+
+  // --- Lecturas para el service (Phase 4 mapea a DTOs/entidades) ---
+
+  public GameStatus status() {
+<span class="fc" id="L235">    return status;</span>
+  }
+
+  public int deckRemaining() {
+<span class="fc" id="L239">    return deck.size();</span>
+  }
+
+  /** Valor de la última carta sacada este turno (null si aún no sacó). */
+  public Integer lastDrawnValue() {
+<span class="fc" id="L244">    return lastDrawnValue;</span>
+  }
+
+  public Map&lt;UUID, List&lt;Card&gt;&gt; fronts() {
+<span class="fc" id="L248">    return Collections.unmodifiableMap(fronts);</span>
+  }
+
+  public Map&lt;UUID, List&lt;Card&gt;&gt; stashed() {
+<span class="fc" id="L252">    return Collections.unmodifiableMap(stashed);</span>
+  }
+
+  public List&lt;Card&gt; discarded() {
+<span class="fc" id="L256">    return Collections.unmodifiableList(discarded);</span>
+  }
+
+  public UUID winnerId() {
+<span class="fc" id="L260">    return winnerId;</span>
+  }
+
+  public boolean isTie() {
+<span class="fc" id="L264">    return tie;</span>
+  }
+
+  public Map&lt;UUID, Score&gt; scores() {
+<span class="fc" id="L268">    return scores;</span>
+  }
+
+<span class="fc" id="L271">  public record DrawResult(Card drawn, boolean bust, boolean gameFinished) {}</span>
+
+<span class="fc" id="L273">  public record StealResult(int value, int count, List&lt;UUID&gt; fromPlayerIds) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

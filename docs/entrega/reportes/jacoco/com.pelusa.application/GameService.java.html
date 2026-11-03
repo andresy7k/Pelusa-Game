@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.application</a> &gt; <span class="el_source">GameService.java</span></div><h1>GameService.java</h1><pre class="source lang-java linenums">package com.pelusa.application;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pelusa.application.dto.GameView;
+import com.pelusa.application.dto.GameView.PlayerView;
+import com.pelusa.application.dto.GameView.ResultView;
+import com.pelusa.application.dto.GameView.ScoreView;
+import com.pelusa.application.dto.GameView.StashView;
+import com.pelusa.application.dto.JoinResult;
+import com.pelusa.application.dto.PlayerSummary;
+import com.pelusa.domain.engine.DomainException;
+import com.pelusa.domain.engine.Table;
+import com.pelusa.domain.engine.Table.DrawResult;
+import com.pelusa.domain.engine.Table.StealResult;
+import com.pelusa.domain.model.Card;
+import com.pelusa.domain.port.ShufflePort;
+import com.pelusa.domain.service.DeckFactory;
+import com.pelusa.domain.service.RoomCode;
+import com.pelusa.domain.service.ScoringService;
+import com.pelusa.domain.service.ScoringService.Score;
+import com.pelusa.infrastructure.persistence.ActionKeyEntity;
+import com.pelusa.infrastructure.persistence.ActionKeyRepository;
+import com.pelusa.infrastructure.persistence.CardEntity;
+import com.pelusa.infrastructure.persistence.CardRepository;
+import com.pelusa.infrastructure.persistence.GameEntity;
+import com.pelusa.infrastructure.persistence.GameRepository;
+import com.pelusa.infrastructure.persistence.PlayerEntity;
+import com.pelusa.infrastructure.persistence.PlayerRepository;
+import com.pelusa.infrastructure.persistence.TurnEntity;
+import com.pelusa.infrastructure.persistence.TurnRepository;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Casos de uso del juego. Cada método público = 1 transacción:
+ * reconstruye la {@link Table} desde las entidades, ejecuta la regla en
+ * memoria y persiste con writes dirigidos. La regla NUNCA vive aquí.
+ */
+@Service
+public class GameService {
+<span class="fc" id="L55">  private static final TypeReference&lt;Map&lt;String, Object&gt;&gt; MAP_TYPE = new TypeReference&lt;&gt;() {};</span>
+  /** Plazo de turno en salas ONLINE (autoridad del servidor, no del cliente). */
+  private static final int TURN_SECONDS = 15;
+  /** Largo de action_keys.action_key (V2): una clave más larga rompía el INSERT con 500. */
+  private static final int MAX_KEY_LENGTH = 64;
+
+  private final GameRepository games;
+  private final PlayerRepository players;
+  private final CardRepository cards;
+  private final TurnRepository turns;
+  private final ActionKeyRepository keys;
+  private final ShufflePort shuffle;
+  private final ObjectMapper json;
+
+  public GameService(
+      GameRepository games,
+      PlayerRepository players,
+      CardRepository cards,
+      TurnRepository turns,
+      ActionKeyRepository keys,
+      ShufflePort shuffle,
+<span class="fc" id="L76">      ObjectMapper json) {</span>
+<span class="fc" id="L77">    this.games = games;</span>
+<span class="fc" id="L78">    this.players = players;</span>
+<span class="fc" id="L79">    this.cards = cards;</span>
+<span class="fc" id="L80">    this.turns = turns;</span>
+<span class="fc" id="L81">    this.keys = keys;</span>
+<span class="fc" id="L82">    this.shuffle = shuffle;</span>
+<span class="fc" id="L83">    this.json = json;</span>
+<span class="fc" id="L84">  }</span>
+
+  // ---------- creación ----------
+
+  @Transactional
+  public GameView create(List&lt;String&gt; names, Integer firstPlayerIndex) {
+<span class="fc" id="L90">    validateNames(names);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    int first = firstPlayerIndex == null ? 0 : firstPlayerIndex;</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">    if (first &lt; 0 || first &gt;= names.size()) {</span>
+<span class="fc" id="L93">      throw new IllegalArgumentException(&quot;firstPlayerIndex fuera de rango&quot;);</span>
+    }
+<span class="fc" id="L95">    UUID gameId = UUID.randomUUID();</span>
+<span class="fc" id="L96">    GameEntity game = new GameEntity(gameId, &quot;CREATED&quot;);</span>
+<span class="fc" id="L97">    List&lt;PlayerEntity&gt; ps = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    for (int i = 0; i &lt; names.size(); i++) {</span>
+<span class="fc" id="L99">      ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));</span>
+    }
+    // Orden obligatorio: primero el padre (games), luego los hijos (players).
+    // Al revés, la FK players.game_id apunta a una fila que aún no existe → 500.
+    // Los nombres repetidos ya los rechazó validateNames: aquí no hay carrera
+    // posible (la partida es nueva), así que no hace falta capturar UNIQUE.
+<span class="fc" id="L105">    games.save(game);</span>
+<span class="fc" id="L106">    players.saveAll(ps);</span>
+<span class="fc" id="L107">    game.setCurrentPlayerId(ps.get(first).getId());</span>
+<span class="fc" id="L108">    games.save(game);</span>
+
+<span class="fc" id="L110">    seedDeck(gameId);</span>
+<span class="fc" id="L111">    return view(gameId, null);</span>
+  }
+
+  /**
+   * Sala online: el host abre la mesa (modo ONLINE, cupo que él elige), queda
+   * como jugador asiento 0 y recibe un código único para invitar. La partida
+   * nace en CREATED = lobby de espera; el turno recién existe al hacer start.
+   */
+  @Transactional
+  public JoinResult createOnline(String name, int capacity) {
+<span class="fc" id="L121">    validateSingleName(name);</span>
+<span class="fc bfc" id="L122" title="All 4 branches covered.">    if (capacity &lt; 2 || capacity &gt; 6) {</span>
+<span class="fc" id="L123">      throw new IllegalArgumentException(&quot;El cupo va de 2 a 6&quot;);</span>
+    }
+<span class="fc" id="L125">    UUID gameId = UUID.randomUUID();</span>
+<span class="fc" id="L126">    GameEntity game = new GameEntity(gameId, &quot;CREATED&quot;);</span>
+<span class="fc" id="L127">    game.setMode(&quot;ONLINE&quot;);</span>
+<span class="fc" id="L128">    game.setCapacity(capacity);</span>
+<span class="fc" id="L129">    game.setCode(availableCode());</span>
+    // Orden obligatorio: primero el padre (games), luego los hijos (players).
+<span class="fc" id="L131">    games.save(game);</span>
+
+<span class="fc" id="L133">    PlayerEntity host = new PlayerEntity(UUID.randomUUID(), gameId, name.trim(), 0);</span>
+<span class="fc" id="L134">    players.save(host);</span>
+<span class="fc" id="L135">    game.setCurrentPlayerId(host.getId());</span>
+<span class="fc" id="L136">    game.setHostPlayerId(host.getId());</span>
+<span class="fc" id="L137">    games.save(game);</span>
+<span class="fc" id="L138">    seedDeck(gameId);</span>
+<span class="fc" id="L139">    return new JoinResult(view(gameId, null), host.getId(), false);</span>
+  }
+
+  /**
+   * Código único con reintento. La ventana de carrera entre &quot;buscar&quot; y &quot;guardar&quot;
+   * la cierra el índice UNIQUE de la migración V6: Java evita el error común
+   * (defensa amable) y la BD impide el imposible (defensa dura).
+   */
+  private String availableCode() {
+<span class="fc bfc" id="L148" title="All 2 branches covered.">    for (int attempt = 0; attempt &lt; 5; attempt++) {</span>
+<span class="fc" id="L149">      String code = RoomCode.generate();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">      if (!games.existsByCode(code)) {</span>
+<span class="fc" id="L151">        return code;</span>
+      }
+    }
+<span class="fc" id="L154">    throw new DomainException(&quot;CODE_COLLISION&quot;, &quot;No se pudo generar un código único, reintenta&quot;);</span>
+  }
+
+  /**
+   * Unirse a una sala por código. Tres desenlaces:
+   * - lobby abierto con cupo: entra como jugador en el siguiente asiento;
+   * - lobby abierto pero lleno: GAME_FULL;
+   * - partida ya empezada/terminada: ESPECTADOR (no se crea jugador).
+   * El código es una llave: se normaliza a mayúsculas para tolerar cómo lo tecleen.
+   */
+  @Transactional
+  public JoinResult join(String code, String name) {
+<span class="fc" id="L166">    validateSingleName(name);</span>
+<span class="fc" id="L167">    GameEntity game = games.findByCode(code.trim().toUpperCase(Locale.ROOT))</span>
+<span class="fc" id="L168">        .orElseThrow(() -&gt; new DomainException(&quot;CODE_NOT_FOUND&quot;, &quot;Ese código no existe&quot;));</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">    if (!&quot;CREATED&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L170">      return new JoinResult(view(game.getId(), null), null, true);</span>
+    }
+<span class="fc" id="L172">    List&lt;PlayerEntity&gt; ps = players.findByGameIdOrderBySeatAsc(game.getId());</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (ps.size() &gt;= game.getCapacity()) {</span>
+<span class="fc" id="L174">      throw new DomainException(&quot;GAME_FULL&quot;, &quot;La sala está llena&quot;);</span>
+    }
+<span class="fc" id="L176">    String clean = name.trim();</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">    if (ps.stream().anyMatch(p -&gt; p.getName().equalsIgnoreCase(clean))) {</span>
+<span class="fc" id="L178">      throw new DomainException(&quot;NAME_TAKEN&quot;, &quot;Ese nombre ya está en la mesa&quot;);</span>
+    }
+<span class="fc" id="L180">    PlayerEntity player = new PlayerEntity(UUID.randomUUID(), game.getId(), clean, ps.size());</span>
+    try {
+      // saveAndFlush: el INSERT ocurre AQUÍ. Con save() la violación UNIQUE
+      // aparecía después (en la próxima query o al commitear), fuera del catch → 500.
+<span class="fc" id="L184">      players.saveAndFlush(player);</span>
+<span class="fc" id="L185">    } catch (DataIntegrityViolationException e) {</span>
+      // Carrera: otro request tomó el nombre o el asiento mientras decidíamos.
+      // La sesión quedó inutilizable para releer; el reintento verá NAME_TAKEN/GAME_FULL.
+<span class="fc" id="L188">      throw new DomainException(&quot;CONCURRENT_TURN&quot;, &quot;La mesa cambió, reintenta&quot;);</span>
+<span class="fc" id="L189">    }</span>
+<span class="fc" id="L190">    return new JoinResult(view(game.getId(), null), player.getId(), false);</span>
+  }
+
+  @Transactional
+  public GameView start(UUID gameId, UUID playerId) {
+<span class="fc" id="L195">    GameEntity game = gameOr404(gameId);</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">    if (&quot;FINISHED&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L197">      throw new DomainException(&quot;GAME_FINISHED&quot;, &quot;La partida ya terminó&quot;);</span>
+    }
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (&quot;IN_PROGRESS&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L200">      throw new DomainException(&quot;ALREADY_STARTED&quot;, &quot;La partida ya empezó&quot;);</span>
+    }
+    // Quien pide debe ser el anfitrión. Hotseat no tiene anfitrión (null): solo
+    // vale no mandar playerId. ONLINE siempre lo tiene: omitirlo NO lo saltea.
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (!Objects.equals(playerId, game.getHostPlayerId())) {</span>
+<span class="fc" id="L205">      throw new DomainException(&quot;NOT_HOST&quot;, &quot;Solo el anfitrión puede empezar&quot;);</span>
+    }
+<span class="fc" id="L207">    boolean online = &quot;ONLINE&quot;.equals(game.getMode());</span>
+<span class="fc bfc" id="L208" title="All 4 branches covered.">    if (online &amp;&amp; players.findByGameIdOrderBySeatAsc(gameId).size() &lt; 2) {</span>
+<span class="fc" id="L209">      throw new DomainException(&quot;NOT_ENOUGH_PLAYERS&quot;, &quot;Se necesitan al menos 2 jugadores&quot;);</span>
+    }
+<span class="fc" id="L211">    game.setStatus(&quot;IN_PROGRESS&quot;);</span>
+<span class="fc" id="L212">    game.setStartedAt(OffsetDateTime.now());</span>
+<span class="fc" id="L213">    openTurn(gameId, game.getCurrentPlayerId(), game, OffsetDateTime.now());</span>
+<span class="fc" id="L214">    return view(gameId, null);</span>
+  }
+
+  /** La lectura también hace cumplir el reloj (expiración perezosa, sin job). */
+  @Transactional
+  public GameView state(UUID gameId) {
+<span class="fc" id="L220">    GameEntity game = gameOr404(gameId);</span>
+<span class="fc" id="L221">    expireIfDue(game);</span>
+<span class="fc" id="L222">    return view(gameId, null);</span>
+  }
+
+  /** Jugadores de la mesa con su frente y puntos guardados (aplica el reloj como state). */
+  @Transactional
+  public List&lt;PlayerSummary&gt; players(UUID gameId) {
+<span class="fc" id="L228">    GameView v = state(gameId);</span>
+<span class="fc" id="L229">    return v.players().stream()</span>
+<span class="fc" id="L230">        .map(p -&gt; new PlayerSummary(p.id(), p.name(), p.seat(),</span>
+<span class="fc" id="L231">            p.id().equals(v.currentPlayerId()),</span>
+<span class="fc" id="L232">            v.fronts().get(p.id()),</span>
+<span class="fc" id="L233">            v.stashed().get(p.id()).sum()))</span>
+<span class="fc" id="L234">        .toList();</span>
+  }
+
+  // ---------- acciones (con idempotencia) ----------
+
+  @Transactional
+  public GameView stash(UUID gameId, UUID playerId, String key) {
+<span class="fc" id="L241">    return guarded(gameId, playerId, key, (t, turn, rows) -&gt; {</span>
+<span class="fc" id="L242">      int count = t.stashCurrent();</span>
+<span class="fc" id="L243">      frontRows(rows, playerId).forEach(c -&gt; c.setLocation(&quot;STASHED&quot;));</span>
+<span class="fc" id="L244">      turn.setStashed(true);</span>
+<span class="fc" id="L245">      Map&lt;String, Object&gt; ev = event(&quot;STASH&quot;, Map.of(&quot;count&quot;, count, &quot;playerId&quot;, playerId.toString()));</span>
+<span class="fc" id="L246">      turn.setDetail(toJson(ev));</span>
+<span class="fc" id="L247">      return ev;</span>
+    });
+  }
+
+  @Transactional
+  public GameView draw(UUID gameId, UUID playerId, String key) {
+<span class="fc" id="L253">    return guarded(gameId, playerId, key, (t, turn, rows) -&gt; {</span>
+<span class="fc" id="L254">      CardEntity top = topDust(rows)</span>
+<span class="fc" id="L255">          .orElseThrow(() -&gt; new DomainException(&quot;DECK_EMPTY&quot;, &quot;El mazo está vacío&quot;));</span>
+<span class="fc" id="L256">      DrawResult r = t.drawCurrent();</span>
+<span class="fc" id="L257">      top.setLocation(&quot;FRONT&quot;);</span>
+<span class="fc" id="L258">      top.setOwnerPlayerId(playerId);</span>
+<span class="fc" id="L259">      turn.setActed(true);</span>
+<span class="fc" id="L260">      turn.setLastDrawnValue(r.drawn().value());</span>
+<span class="fc" id="L261">      Map&lt;String, Object&gt; ev = event(&quot;DRAW&quot;, Map.of(&quot;value&quot;, r.drawn().value(), &quot;bust&quot;, r.bust()));</span>
+<span class="fc" id="L262">      turn.setDetail(toJson(ev));</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">      if (r.bust()) {</span>
+<span class="fc" id="L264">        frontRows(rows, playerId).forEach(c -&gt; c.setLocation(&quot;DISCARDED&quot;));</span>
+      }
+<span class="fc bfc" id="L266" title="All 2 branches covered.">      if (r.gameFinished()) {</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">        return finishGame(gameId, turn, t, rows, ev, r.bust() ? &quot;BUST&quot; : &quot;AUTO_FINISH&quot;);</span>
+      }
+<span class="fc bfc" id="L269" title="All 2 branches covered.">      if (r.bust()) {</span>
+<span class="fc" id="L270">        closeAndRotate(gameId, turn, playerId, t, &quot;BUST&quot;);</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">      } else if (turn.getDeadlineAt() != null) {</span>
+        // ONLINE: cada carta sacada renueva los 15 s para decidir el siguiente paso.
+<span class="fc" id="L273">        turn.setDeadlineAt(OffsetDateTime.now().plusSeconds(TURN_SECONDS));</span>
+      }
+<span class="fc" id="L275">      return ev;</span>
+    });
+  }
+
+  @Transactional
+  public GameView stand(UUID gameId, UUID playerId, String key) {
+<span class="fc" id="L281">    return guarded(gameId, playerId, key, (t, turn, rows) -&gt; {</span>
+<span class="fc" id="L282">      t.standCurrent();</span>
+<span class="fc" id="L283">      closeAndRotate(gameId, turn, playerId, t, &quot;STAND&quot;);</span>
+<span class="fc" id="L284">      return event(&quot;STAND&quot;, Map.of(&quot;playerId&quot;, playerId.toString()));</span>
+    });
+  }
+
+  @Transactional
+  public GameView steal(UUID gameId, UUID playerId, String key, int value) {
+<span class="fc" id="L290">    return guarded(gameId, playerId, key, (t, turn, rows) -&gt; {</span>
+<span class="fc" id="L291">      StealResult r = t.stealCurrent(value);</span>
+<span class="fc" id="L292">      rows.stream()</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">          .filter(c -&gt; &quot;FRONT&quot;.equals(c.getLocation())</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">              &amp;&amp; c.getValue() == value</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">              &amp;&amp; !playerId.equals(c.getOwnerPlayerId()))</span>
+<span class="fc" id="L296">          .forEach(c -&gt; c.setOwnerPlayerId(playerId));</span>
+      // turns.acted ya es true: robar exige haber sacado este turno (ADR-014).
+<span class="fc" id="L298">      Map&lt;String, Object&gt; ev = event(&quot;STEAL&quot;,</span>
+<span class="fc" id="L299">          Map.of(&quot;value&quot;, value, &quot;count&quot;, r.count(), &quot;fromPlayerIds&quot;, r.fromPlayerIds()));</span>
+<span class="fc" id="L300">      turn.setDetail(toJson(ev));</span>
+<span class="fc" id="L301">      return ev;</span>
+    });
+  }
+
+  // ---------- histórico / resultado ----------
+
+  @Transactional(readOnly = true)
+  public Page&lt;GameView&gt; history(Pageable pageable) {
+<span class="fc bfc" id="L309" title="All 2 branches covered.">    if (pageable.getPageSize() &gt; 50) {</span>
+<span class="fc" id="L310">      throw new IllegalArgumentException(&quot;size máximo 50&quot;);</span>
+    }
+<span class="fc" id="L312">    return games.findByStatusOrderByFinishedAtDesc(&quot;FINISHED&quot;, pageable).map(g -&gt; view(g.getId(), null));</span>
+  }
+
+  @Transactional(readOnly = true)
+  public GameView result(UUID gameId) {
+<span class="fc" id="L317">    GameEntity game = gameOr404(gameId);</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">    if (!&quot;FINISHED&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L319">      throw new DomainException(&quot;GAME_NOT_FINISHED&quot;, &quot;La partida no terminó&quot;);</span>
+    }
+<span class="fc" id="L321">    return view(gameId, null);</span>
+  }
+
+  // ---------- internas ----------
+
+  private interface Action {
+    Map&lt;String, Object&gt; run(Table table, TurnEntity turn, List&lt;CardEntity&gt; rows);
+  }
+
+  private GameView guarded(UUID gameId, UUID playerId, String key, Action action) {
+<span class="fc bfc" id="L331" title="All 6 branches covered.">    if (key != null &amp;&amp; (key.isBlank() || key.length() &gt; MAX_KEY_LENGTH)) {</span>
+<span class="fc" id="L332">      throw new IllegalArgumentException(&quot;Idempotency-Key inválida (1-64 caracteres)&quot;);</span>
+    }
+    // OPTIMISTIC_FORCE_INCREMENT: toda acción sube games.version aunque solo
+    // cambie cartas o turnos. Dos acciones concurrentes sobre la misma versión
+    // → la segunda falla al commitear → 409 CONCURRENT_TURN (ADR-006).
+<span class="fc" id="L337">    GameEntity game = games.findLockedById(gameId)</span>
+<span class="fc" id="L338">        .orElseThrow(() -&gt; new DomainException(&quot;GAME_NOT_FOUND&quot;, &quot;La partida no existe&quot;));</span>
+<span class="fc" id="L339">    UUID expiredPlayer = expireIfDue(game);</span>
+    // Reintento con la misma clave: se devuelve el estado actual ANTES de
+    // validar el turno, porque la acción original pudo haberlo rotado o
+    // terminado la partida (si no, reintentar un stand daría 409).
+<span class="fc bfc" id="L343" title="All 4 branches covered.">    if (key != null &amp;&amp; keys.existsByGameIdAndKey(gameId, key)) {</span>
+<span class="fc" id="L344">      return view(gameId, null);</span>
+    }
+<span class="fc bfc" id="L346" title="All 2 branches covered.">    if (&quot;FINISHED&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L347">      throw new DomainException(&quot;GAME_FINISHED&quot;, &quot;La partida ya terminó&quot;);</span>
+    }
+<span class="fc" id="L349">    List&lt;PlayerEntity&gt; ps = players.findByGameIdOrderBySeatAsc(gameId);</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">    if (ps.stream().noneMatch(p -&gt; p.getId().equals(playerId))) {</span>
+<span class="fc" id="L351">      throw new DomainException(&quot;INVALID_PLAYER&quot;, &quot;Ese jugador no está en la partida&quot;);</span>
+    }
+<span class="fc bfc" id="L353" title="All 2 branches covered.">    if (!game.getCurrentPlayerId().equals(playerId)) {</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">      if (playerId.equals(expiredPlayer)) {</span>
+<span class="fc" id="L355">        throw new DomainException(&quot;TURN_EXPIRED&quot;, &quot;Se acabó el tiempo de tu turno&quot;);</span>
+      }
+<span class="fc" id="L357">      throw new DomainException(&quot;NOT_YOUR_TURN&quot;, &quot;No es tu turno&quot;);</span>
+    }
+<span class="fc bfc" id="L359" title="All 2 branches covered.">    if (key != null) {</span>
+      try {
+        // Se registra ANTES de actuar y con flush inmediato: si otro request con
+        // la misma clave ganó la carrera, el UNIQUE salta aquí y no se actúa dos veces.
+<span class="fc" id="L363">        keys.saveAndFlush(new ActionKeyEntity(gameId, key));</span>
+<span class="fc" id="L364">      } catch (DataIntegrityViolationException race) {</span>
+<span class="fc" id="L365">        throw new DomainException(&quot;CONCURRENT_TURN&quot;, &quot;Esa acción ya se está procesando, reintenta&quot;);</span>
+<span class="fc" id="L366">      }</span>
+    }
+<span class="fc" id="L368">    List&lt;CardEntity&gt; rows = cards.findByGameId(gameId);</span>
+    // IN_PROGRESS siempre tiene un turno abierto: lo abren start/closeAndRotate/expireIfDue.
+<span class="fc" id="L370">    TurnEntity turn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId).orElseThrow();</span>
+<span class="fc" id="L371">    Table table = rebuild(game, ps, rows, turn);</span>
+<span class="fc" id="L372">    Map&lt;String, Object&gt; lastEvent = action.run(table, turn, rows);</span>
+<span class="fc" id="L373">    return view(gameId, lastEvent);</span>
+  }
+
+  private Table rebuild(GameEntity game, List&lt;PlayerEntity&gt; ps, List&lt;CardEntity&gt; rows, TurnEntity open) {
+<span class="fc" id="L377">    List&lt;UUID&gt; order = ps.stream().map(PlayerEntity::getId).toList();</span>
+<span class="fc" id="L378">    List&lt;Card&gt; deck =</span>
+<span class="fc" id="L379">        rows.stream()</span>
+<span class="fc" id="L380">            .filter(c -&gt; &quot;DECK&quot;.equals(c.getLocation()))</span>
+<span class="fc" id="L381">            .sorted(Comparator.comparingInt(CardEntity::getPileOrder))</span>
+<span class="fc" id="L382">            .map(c -&gt; new Card(c.getValue()))</span>
+<span class="fc" id="L383">            .toList();</span>
+<span class="fc" id="L384">    int first = 0;</span>
+<span class="fc" id="L385">    UUID current = game.getCurrentPlayerId();</span>
+<span class="fc bfc" id="L386" title="All 2 branches covered.">    for (int i = 0; i &lt; order.size(); i++) {</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">      if (order.get(i).equals(current)) {</span>
+<span class="fc" id="L388">        first = i;</span>
+      }
+    }
+<span class="fc" id="L391">    Table table = new Table(order, deck, first);</span>
+<span class="fc" id="L392">    Map&lt;UUID, List&lt;Card&gt;&gt; fronts = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L393">    Map&lt;UUID, List&lt;Card&gt;&gt; saved = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L394">    List&lt;Card&gt; discarded = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">    for (CardEntity c : rows) {</span>
+<span class="fc bfc" id="L396" title="All 4 branches covered.">      switch (c.getLocation()) {</span>
+<span class="fc" id="L397">        case &quot;FRONT&quot; -&gt; fronts.computeIfAbsent(c.getOwnerPlayerId(), k -&gt; new ArrayList&lt;&gt;()).add(new Card(c.getValue()));</span>
+<span class="fc" id="L398">        case &quot;STASHED&quot; -&gt; saved.computeIfAbsent(c.getOwnerPlayerId(), k -&gt; new ArrayList&lt;&gt;()).add(new Card(c.getValue()));</span>
+<span class="fc" id="L399">        case &quot;DISCARDED&quot; -&gt; discarded.add(new Card(c.getValue()));</span>
+        default -&gt; {}
+      }
+<span class="fc" id="L402">    }</span>
+    // Flags del turno en curso persistidos en turns (V2/V5): sin ellos la mesa
+    // reconstruida &quot;olvidaría&quot; si ya sacaste, guardaste o qué valor podés robar.
+<span class="fc" id="L405">    table.hydrate(fronts, saved, discarded, open.isActed(), open.isStashed(), open.getLastDrawnValue());</span>
+<span class="fc" id="L406">    return table;</span>
+  }
+
+  /** Filas gestionadas del frente de un jugador (dirty checking las persiste). */
+  private static List&lt;CardEntity&gt; frontRows(List&lt;CardEntity&gt; rows, UUID owner) {
+<span class="fc" id="L411">    return rows.stream()</span>
+<span class="fc bfc" id="L412" title="All 4 branches covered.">        .filter(c -&gt; &quot;FRONT&quot;.equals(c.getLocation()) &amp;&amp; owner.equals(c.getOwnerPlayerId()))</span>
+<span class="fc" id="L413">        .toList();</span>
+  }
+
+  /** Primera carta del mazo por pile_order (ya cargada, sin query extra). */
+  private static java.util.Optional&lt;CardEntity&gt; topDust(List&lt;CardEntity&gt; rows) {
+<span class="fc" id="L418">    return rows.stream()</span>
+<span class="fc" id="L419">        .filter(c -&gt; &quot;DECK&quot;.equals(c.getLocation()))</span>
+<span class="fc" id="L420">        .min(Comparator.comparingInt(CardEntity::getPileOrder));</span>
+  }
+
+  private void closeAndRotate(UUID gameId, TurnEntity turn, UUID playerId, Table table, String outcome) {
+<span class="fc" id="L424">    OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="fc" id="L425">    turn.setEndedAt(now);</span>
+<span class="fc" id="L426">    turn.setOutcome(outcome);</span>
+    // La Table rotó en memoria: hay que persistir la rotación o el turno
+    // quedaría congelado en el jugador anterior (bug real cazado por CI).
+<span class="fc" id="L429">    GameEntity game = games.getReferenceById(gameId);</span>
+<span class="fc" id="L430">    game.setCurrentPlayerId(table.currentPlayerId());</span>
+<span class="fc" id="L431">    openTurn(gameId, table.currentPlayerId(), game, now);</span>
+<span class="fc" id="L432">  }</span>
+
+  /** Abre turno; en ONLINE le pone plazo. En hotseat no hay reloj. */
+  private void openTurn(UUID gameId, UUID playerId, GameEntity game, OffsetDateTime now) {
+<span class="fc" id="L436">    TurnEntity turn = new TurnEntity(UUID.randomUUID(), gameId, playerId);</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">    if (&quot;ONLINE&quot;.equals(game.getMode())) {</span>
+<span class="fc" id="L438">      turn.setDeadlineAt(now.plusSeconds(TURN_SECONDS));</span>
+    }
+<span class="fc" id="L440">    turns.save(turn);</span>
+<span class="fc" id="L441">  }</span>
+
+  /**
+   * Expiración perezosa: si el turno ONLINE abierto pasó su plazo, lo cierra
+   * como STAND con evento TURN_EXPIRED y abre el siguiente. Devuelve el
+   * jugador que perdió el turno (null si no expiró nada). El cliente nunca
+   * decide el tiempo: cualquier lectura/acción aplica el paso del reloj.
+   */
+  private UUID expireIfDue(GameEntity game) {
+<span class="fc bfc" id="L450" title="All 4 branches covered.">    if (!&quot;ONLINE&quot;.equals(game.getMode()) || !&quot;IN_PROGRESS&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L451">      return null;</span>
+    }
+    // ONLINE + IN_PROGRESS ⇒ hay turno abierto y con plazo (openTurn lo fija;
+    // V7 rellenó los turnos abiertos existentes al migrar).
+<span class="fc" id="L455">    TurnEntity open = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(game.getId()).orElseThrow();</span>
+<span class="fc" id="L456">    OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="fc bfc" id="L457" title="All 2 branches covered.">    if (now.isBefore(open.getDeadlineAt())) {</span>
+<span class="fc" id="L458">      return null;</span>
+    }
+<span class="fc" id="L460">    UUID expired = open.getPlayerId();</span>
+<span class="fc" id="L461">    open.setEndedAt(now);</span>
+<span class="fc" id="L462">    open.setOutcome(&quot;STAND&quot;);</span>
+<span class="fc" id="L463">    open.setDetail(toJson(event(&quot;TURN_EXPIRED&quot;, Map.of(&quot;playerId&quot;, expired.toString()))));</span>
+<span class="fc" id="L464">    List&lt;PlayerEntity&gt; ps = players.findByGameIdOrderBySeatAsc(game.getId());</span>
+<span class="fc" id="L465">    int index = 0;</span>
+<span class="fc bfc" id="L466" title="All 2 branches covered.">    for (int i = 0; i &lt; ps.size(); i++) {</span>
+<span class="fc bfc" id="L467" title="All 2 branches covered.">      if (ps.get(i).getId().equals(expired)) {</span>
+<span class="fc" id="L468">        index = i;</span>
+      }
+    }
+<span class="fc" id="L471">    UUID next = ps.get((index + 1) % ps.size()).getId();</span>
+<span class="fc" id="L472">    game.setCurrentPlayerId(next);</span>
+<span class="fc" id="L473">    openTurn(game.getId(), next, game, now);</span>
+<span class="fc" id="L474">    return expired;</span>
+  }
+
+  private Map&lt;String, Object&gt; finishGame(UUID gameId, TurnEntity turn, Table table,
+      List&lt;CardEntity&gt; rows, Map&lt;String, Object&gt; lastEvent, String outcome) {
+<span class="fc" id="L479">    rows.stream()</span>
+<span class="fc" id="L480">        .filter(c -&gt; &quot;FRONT&quot;.equals(c.getLocation()))</span>
+<span class="fc" id="L481">        .forEach(c -&gt; c.setLocation(&quot;STASHED&quot;));</span>
+<span class="fc" id="L482">    GameEntity game = games.getReferenceById(gameId);</span>
+<span class="fc" id="L483">    game.setStatus(&quot;FINISHED&quot;);</span>
+<span class="fc" id="L484">    game.setFinishedAt(OffsetDateTime.now());</span>
+<span class="fc" id="L485">    game.setWinnerId(table.winnerId());</span>
+<span class="fc" id="L486">    turn.setEndedAt(OffsetDateTime.now());</span>
+<span class="fc" id="L487">    turn.setOutcome(outcome);</span>
+<span class="fc" id="L488">    return lastEvent;</span>
+  }
+
+  private String toJson(Map&lt;String, Object&gt; event) {
+    try {
+<span class="fc" id="L493">      return json.writeValueAsString(event);</span>
+<span class="fc" id="L494">    } catch (Exception e) {</span>
+<span class="fc" id="L495">      throw new IllegalStateException(&quot;No se pudo serializar el evento&quot;, e);</span>
+    }
+  }
+
+  private Map&lt;String, Object&gt; event(String type, Map&lt;String, Object&gt; data) {
+<span class="fc" id="L500">    Map&lt;String, Object&gt; e = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L501">    e.put(&quot;type&quot;, type);</span>
+<span class="fc" id="L502">    e.putAll(data);</span>
+<span class="fc" id="L503">    return e;</span>
+  }
+
+  private GameEntity gameOr404(UUID gameId) {
+<span class="fc" id="L507">    return games.findById(gameId)</span>
+<span class="fc" id="L508">        .orElseThrow(() -&gt; new DomainException(&quot;GAME_NOT_FOUND&quot;, &quot;La partida no existe&quot;));</span>
+  }
+
+  /** Mazo inicial: el mismo origen para partida local y sala online (DRY). */
+  private void seedDeck(UUID gameId) {
+<span class="fc" id="L513">    List&lt;Card&gt; deck = DeckFactory.shuffledDeck(shuffle);</span>
+<span class="fc" id="L514">    List&lt;CardEntity&gt; rows = new ArrayList&lt;&gt;(deck.size());</span>
+<span class="fc bfc" id="L515" title="All 2 branches covered.">    for (int i = 0; i &lt; deck.size(); i++) {</span>
+<span class="fc" id="L516">      rows.add(new CardEntity(UUID.randomUUID(), gameId, deck.get(i).value(), &quot;DECK&quot;, null, i));</span>
+    }
+<span class="fc" id="L518">    cards.saveAll(rows);</span>
+<span class="fc" id="L519">  }</span>
+
+  private static void validateSingleName(String name) {
+<span class="fc bfc" id="L522" title="All 6 branches covered.">    if (name == null || name.isBlank() || name.trim().length() &gt; 60) {</span>
+<span class="fc" id="L523">      throw new IllegalArgumentException(&quot;Nombre inválido (1-60 caracteres)&quot;);</span>
+    }
+<span class="fc" id="L525">  }</span>
+
+  private static void validateNames(List&lt;String&gt; names) {
+<span class="fc bfc" id="L528" title="All 6 branches covered.">    if (names == null || names.size() &lt; 2 || names.size() &gt; 6) {</span>
+<span class="fc" id="L529">      throw new IllegalArgumentException(&quot;La partida necesita de 2 a 6 nombres&quot;);</span>
+    }
+<span class="fc bfc" id="L531" title="All 2 branches covered.">    for (String n : names) {</span>
+<span class="fc bfc" id="L532" title="All 6 branches covered.">      if (n == null || n.isBlank() || n.trim().length() &gt; 60) {</span>
+<span class="fc" id="L533">        throw new IllegalArgumentException(&quot;Nombre inválido (1-60 caracteres)&quot;);</span>
+      }
+<span class="fc" id="L535">    }</span>
+<span class="fc" id="L536">    long distinct = names.stream().map(String::trim).distinct().count();</span>
+<span class="fc bfc" id="L537" title="All 2 branches covered.">    if (distinct != names.size()) {</span>
+<span class="fc" id="L538">      throw new IllegalArgumentException(&quot;Los nombres no pueden repetirse&quot;);</span>
+    }
+<span class="fc" id="L540">  }</span>
+
+  private GameView view(UUID gameId, Map&lt;String, Object&gt; lastEvent) {
+<span class="fc" id="L543">    GameEntity game = games.getReferenceById(gameId);</span>
+<span class="fc" id="L544">    List&lt;PlayerEntity&gt; ps = players.findByGameIdOrderBySeatAsc(gameId);</span>
+<span class="fc" id="L545">    List&lt;CardEntity&gt; rows = cards.findByGameId(gameId);</span>
+<span class="fc" id="L546">    int deck = 0;</span>
+<span class="fc" id="L547">    Map&lt;UUID, List&lt;Integer&gt;&gt; fronts = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L548">    Map&lt;UUID, List&lt;Integer&gt;&gt; stashValues = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L549" title="All 2 branches covered.">    for (PlayerEntity p : ps) {</span>
+<span class="fc" id="L550">      fronts.put(p.getId(), new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L551">      stashValues.put(p.getId(), new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L552">    }</span>
+<span class="fc bfc" id="L553" title="All 2 branches covered.">    for (CardEntity c : rows) {</span>
+<span class="fc bfc" id="L554" title="All 4 branches covered.">      switch (c.getLocation()) {</span>
+<span class="fc" id="L555">        case &quot;DECK&quot; -&gt; deck++;</span>
+<span class="fc" id="L556">        case &quot;FRONT&quot; -&gt; fronts.get(c.getOwnerPlayerId()).add(c.getValue());</span>
+<span class="fc" id="L557">        case &quot;STASHED&quot; -&gt; stashValues.get(c.getOwnerPlayerId()).add(c.getValue());</span>
+        default -&gt; {}
+      }
+<span class="fc" id="L560">    }</span>
+<span class="fc" id="L561">    Map&lt;UUID, StashView&gt; stashed = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L562" title="All 2 branches covered.">    for (var e : stashValues.entrySet()) {</span>
+<span class="fc" id="L563">      int sum = e.getValue().stream().mapToInt(Integer::intValue).sum();</span>
+<span class="fc" id="L564">      Map&lt;Integer, Long&gt; counts = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L565" title="All 2 branches covered.">      for (int v : e.getValue()) {</span>
+<span class="fc" id="L566">        counts.merge(v, 1L, Long::sum);</span>
+<span class="fc" id="L567">      }</span>
+<span class="fc" id="L568">      stashed.put(e.getKey(), new StashView(sum, counts));</span>
+<span class="fc" id="L569">    }</span>
+<span class="fc" id="L570">    Map&lt;String, Object&gt; event = lastEvent;</span>
+<span class="fc bfc" id="L571" title="All 2 branches covered.">    if (event == null) {</span>
+<span class="fc" id="L572">      event = turns.findByGameIdOrderByStartedAtDesc(gameId).stream()</span>
+<span class="fc bfc" id="L573" title="All 2 branches covered.">          .filter(t -&gt; t.getDetail() != null)</span>
+<span class="fc" id="L574">          .findFirst()</span>
+<span class="fc" id="L575">          .map(t -&gt; {</span>
+            try {
+<span class="fc" id="L577">              return json.readValue(t.getDetail(), MAP_TYPE);</span>
+<span class="fc" id="L578">            } catch (Exception ex) {</span>
+<span class="fc" id="L579">              return null;</span>
+            }
+          })
+<span class="fc" id="L582">          .orElse(null);</span>
+    }
+<span class="fc" id="L584">    ResultView result = null;</span>
+<span class="fc bfc" id="L585" title="All 2 branches covered.">    if (&quot;FINISHED&quot;.equals(game.getStatus())) {</span>
+<span class="fc" id="L586">      Map&lt;UUID, String&gt; names = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L587" title="All 2 branches covered.">      for (PlayerEntity p : ps) {</span>
+<span class="fc" id="L588">        names.put(p.getId(), p.getName());</span>
+<span class="fc" id="L589">      }</span>
+<span class="fc" id="L590">      List&lt;ScoreView&gt; scores = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L591" title="All 2 branches covered.">      for (PlayerEntity p : ps) {</span>
+<span class="fc" id="L592">        StashView s = stashed.get(p.getId());</span>
+<span class="fc" id="L593">        scores.add(new ScoreView(p.getId(), p.getName(), s.sum(), s.countsByValue()));</span>
+<span class="fc" id="L594">      }</span>
+      // Ranking con la MISMA regla que decide el ganador (suma + desempate 1→10):
+      // ordenar solo por suma podía dejar al ganador segundo con sumas iguales.
+<span class="fc" id="L597">      scores.sort((a, b) -&gt; ScoringService.compare(</span>
+<span class="fc" id="L598">          new Score(b.sum(), b.countsByValue()), new Score(a.sum(), a.countsByValue())));</span>
+<span class="fc bfc" id="L599" title="All 2 branches covered.">      result = new ResultView(game.getWinnerId(), game.getWinnerId() == null, &quot;DECK_EMPTY&quot;, scores);</span>
+    }
+<span class="fc" id="L601">    List&lt;PlayerView&gt; playerViews =</span>
+<span class="fc" id="L602">        ps.stream().map(p -&gt; new PlayerView(p.getId(), p.getName(), p.getSeat())).toList();</span>
+    // R-01/ADR-014: valor robable este turno = última carta sacada (null si no hay).
+    // La próxima carta del mazo NO se expone (§11 del contrato): filtra estrategia.
+<span class="fc" id="L605">    var openTurn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId);</span>
+<span class="fc" id="L606">    Integer lastDrawn = openTurn.map(TurnEntity::getLastDrawnValue).orElse(null);</span>
+<span class="fc" id="L607">    OffsetDateTime turnDeadline = openTurn.map(TurnEntity::getDeadlineAt).orElse(null);</span>
+<span class="fc" id="L608">    return new GameView(game.getId(), game.getStatus(), game.getCurrentPlayerId(),</span>
+<span class="fc" id="L609">        game.getHostPlayerId(), game.getCode(), game.getMode(), game.getCapacity(),</span>
+<span class="fc" id="L610">        deck, deck, lastDrawn, turnDeadline, game.getCreatedAt(), game.getStartedAt(),</span>
+<span class="fc" id="L611">        game.getFinishedAt(), playerViews, fronts, stashed, event, result);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>RandomShuffleAdapter.java</h1>
+
+<table class="src">
+
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package com.pelusa.infrastructure.shuffle;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.pelusa.domain.model.Card;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.pelusa.domain.port.ShufflePort;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.security.SecureRandom;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Collections;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.List;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Component;</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Aleatoriedad real de producci&#243;n. Los tests usan seed fijo (ver domain tests).</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Component</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public class RandomShuffleAdapter implements ShufflePort {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private final SecureRandom random = new SecureRandom();</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Override</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public void shuffle(List&#60;Card&#62; cards) {</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_19'/>
+19
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_19'>1</a>
+<span>
+
+1. shuffle : removed call to java/util/Collections::shuffle &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    Collections.shuffle(cards, random);</span></pre></td></tr>
+
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@680b73cf_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@680b73cf_19'>19</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@680b73cf_19'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>shuffle<br/><b>Killed by : </b>com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest]/[method:shuffleChangesOrderButKeepsTheCards()]</span></span> removed call to java/util/Collections::shuffle &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+
+<li class='mutator'>EMPTY_RETURNS</li>
+
+<li class='mutator'>FALSE_RETURNS</li>
+
+<li class='mutator'>INCREMENTS</li>
+
+<li class='mutator'>INVERT_NEGS</li>
+
+<li class='mutator'>MATH</li>
+
+<li class='mutator'>NULL_RETURNS</li>
+
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_EQUAL_ELSE</li>
+
+<li class='mutator'>REMOVE_CONDITIONALS_ORDER_ELSE</li>
+
+<li class='mutator'>TRUE_RETURNS</li>
+
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest.[engine:junit-jupiter]/[class:com.pelusa.infrastructure.shuffle.RandomShuffleAdapterTest]/[method:shuffleChangesOrderButKeepsTheCards()] (34 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotencyKeyLongerThanColumnIs400()] (55 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:nonJsonContentTypeIs415()] (88 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:lobbyPollingDoesNotOpenTurnsOrClock()] (87 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinNormalizesCodeAndSeatsNextPlayer()] (89 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:createValidatesPlayerCountNamesAndFirstPlayer()] (133 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:corruptedEventDetailDoesNotBreakStateRead()] (121 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:hotseatStartHasNoDeadlineAndAcceptsEmptyBody()] (153 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsFullRoom()] (155 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:hotseatStartWithAPlayerIdIsNotHost()] (161 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinAndCreateValidateRequiredFields()] (177 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:resultInNotFinishedGame()] (197 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:joinRejectsDuplicateName()] (200 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:eachDrawRestartsTheFifteenSecondClock()] (194 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:repeatWithTwoCardsKeepsTurn()] (215 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotentRetryReturnsSameState()] (242 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:lateJoinBecomesSpectatorWithoutSeat()] (266 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:onlineStartWithoutPlayerIdCannotBypassHost()] (274 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:playersEndpointShowsTurnFrontAndPoints()] (246 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:everyActionBumpsOptimisticVersion()] (261 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:historyKeepsDatesPlayersScoresAndWinner()] (244 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiredTurnRotatesAndRejectsLateAction()] (278 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:drawAndStandRotateTurn()] (265 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:createOnlineReturnsLobbyWithCodeAndHost()] (321 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:actionWithinDeadlineIsAcceptedAndKeepsTurn()] (290 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stashMovesPreviousTurnFrontToPoints()] (281 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:startRequiresHostAndTwoPlayers()] (317 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:validationBoundariesAcceptTheLimits()] (307 ms)</li><li>com.pelusa.OnlineApiTest.[engine:junit-jupiter]/[class:com.pelusa.OnlineApiTest]/[method:expiryRotatesToTheNextSeatAndClosesTheOldTurn()] (377 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:standWithoutDrawingIsRejected()] (402 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:idempotentRetryOfStandAfterRotationReturnsState()] (391 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:finishDeclaresWinnerHistoryAndResult()] (384 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:startTwiceAndStartFinishedAreConflicts()] (455 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:actionByStrangerIs422AndDrawOnEmptyDeckIs422()] (558 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealValueMustMatchLastDrawnCard()] (571 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:askingForMoreCopiesThanTheDeckHasIs400()] (636 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:requestedValuesComeOutFirstAndCompositionIsKept()] (649 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:identicalStashesAreDeclaredTie()] (705 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:bustDiscardsFrontAndRotates()] (738 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:playContinuesAfterBustWithDiscardedCardsInTable()] (840 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:lastEventIsPersistedForLaterReads()] (1004 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:rankingUsesTiebreakWhenSumsAreEqual()] (1041 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:turnFlagsSurviveBetweenRequests()] (1091 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealMovesOnlyThatValueFromRivalFront()] (1156 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:truncateLeavesOnlyRequestedCards()] (1266 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:stealTakesAllOfValue()] (1342 ms)</li><li>com.pelusa.GameApiTest.[engine:junit-jupiter]/[class:com.pelusa.GameApiTest]/[method:bustOnLastCardFinishesGameWithoutScoringBustedCards()] (1643 ms)</li><li>com.pelusa.E2eDeckControllerTest.[engine:junit-jupiter]/[class:com.pelusa.E2eDeckControllerTest]/[method:rigOnlyReordersCardsStillInTheDeck()] (4808 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.30.1 <a href='https://github.com/sponsors/hcoles'>support</a>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>V4__DeckCheckFix.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">db.migration</a> &gt; <span class="el_source">V4__DeckCheckFix.java</span></div><h1>V4__DeckCheckFix.java</h1><pre class="source lang-java linenums">package db.migration;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
+
+/**
+ * V4: completa el rename DUST_PILE→DECK. V1 definía DOS checks sobre
+ * cards.location: el inline {@code CHECK (location IN (...))} (nombre
+ * autogenerado: distinto en Postgres y H2) y el nombrado {@code chk_owner}.
+ * V3 solo migró el nombrado; el inline seguía rechazando 'DECK' (500 en
+ * create). Esta migración descubre por information_schema todos los CHECK
+ * sobre cards(location), los elimina y recrea los canónicos con DECK.
+ */
+<span class="fc" id="L19">public class V4__DeckCheckFix extends BaseJavaMigration {</span>
+
+  private static final String FIND =
+      &quot;SELECT tc.constraint_name FROM information_schema.table_constraints tc &quot;
+          + &quot;JOIN information_schema.constraint_column_usage ccu &quot;
+          + &quot;ON ccu.constraint_name = tc.constraint_name &quot;
+          + &quot;WHERE UPPER(tc.table_name) = 'CARDS' &quot;
+          + &quot;AND UPPER(ccu.column_name) = 'LOCATION' &quot;
+          + &quot;AND tc.constraint_type = 'CHECK'&quot;;
+
+  private static final String LOCATION_CHECK =
+      &quot;ALTER TABLE cards ADD CONSTRAINT cards_location_check &quot;
+          + &quot;CHECK (location IN ('DECK','FRONT','STASHED','DISCARDED'))&quot;;
+
+  private static final String OWNER_CHECK =
+      &quot;ALTER TABLE cards ADD CONSTRAINT chk_owner CHECK (&quot;
+          + &quot;(location = 'DECK' AND owner_player_id IS NULL) OR &quot;
+          + &quot;(location IN ('FRONT','STASHED','DISCARDED') AND owner_player_id IS NOT NULL))&quot;;
+
+  @Override
+  public void migrate(Context context) throws Exception {
+<span class="fc" id="L40">    Connection c = context.getConnection();</span>
+<span class="fc" id="L41">    List&lt;String&gt; names = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L42">    try (Statement s = c.createStatement();</span>
+<span class="fc" id="L43">        ResultSet rs = s.executeQuery(FIND)) {</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">      while (rs.next()) {</span>
+<span class="fc" id="L45">        names.add(rs.getString(1));</span>
+      }
+    }
+<span class="fc" id="L48">    try (Statement s = c.createStatement()) {</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">      for (String name : names) {</span>
+<span class="fc" id="L50">        s.execute(&quot;ALTER TABLE cards DROP CONSTRAINT &quot; + name);</span>
+<span class="fc" id="L51">      }</span>
+<span class="fc" id="L52">      s.execute(LOCATION_CHECK);</span>
+<span class="fc" id="L53">      s.execute(OWNER_CHECK);</span>
+    }
+<span class="fc" id="L55">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

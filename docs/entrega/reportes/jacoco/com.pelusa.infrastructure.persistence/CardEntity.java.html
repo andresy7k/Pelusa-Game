@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CardEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pelusa-game</a> &gt; <a href="index.source.html" class="el_package">com.pelusa.infrastructure.persistence</a> &gt; <span class="el_source">CardEntity.java</span></div><h1>CardEntity.java</h1><pre class="source lang-java linenums">package com.pelusa.infrastructure.persistence;
+
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;cards&quot;, indexes = {
+  @Index(name = &quot;ix_cards_game_location&quot;, columnList = &quot;game_id,location&quot;),
+  @Index(name = &quot;ix_cards_game_owner_location&quot;, columnList = &quot;game_id,owner_player_id,location&quot;),
+  @Index(name = &quot;ix_cards_deck_order&quot;, columnList = &quot;game_id,pile_order&quot;)})
+public class CardEntity {
+  @Id
+  private UUID id;
+
+  @Column(name = &quot;game_id&quot;, nullable = false)
+  private UUID gameId;
+
+  @Column(name = &quot;card_value&quot;, nullable = false)
+  private int value;
+
+  @Column(nullable = false, length = 12)
+  private String location;
+
+  @Column(name = &quot;owner_player_id&quot;)
+  private UUID ownerPlayerId;
+
+  @Column(name = &quot;pile_order&quot;, nullable = false)
+  private int pileOrder;
+
+  @Column(name = &quot;created_at&quot;, nullable = false)
+  private OffsetDateTime createdAt;
+
+<span class="fc" id="L34">  protected CardEntity() {}</span>
+
+<span class="fc" id="L36">  public CardEntity(UUID id, UUID gameId, int value, String location, UUID ownerPlayerId, int pileOrder) {</span>
+<span class="fc" id="L37">    this.id = id;</span>
+<span class="fc" id="L38">    this.gameId = gameId;</span>
+<span class="fc" id="L39">    this.value = value;</span>
+<span class="fc" id="L40">    this.location = location;</span>
+<span class="fc" id="L41">    this.ownerPlayerId = ownerPlayerId;</span>
+<span class="fc" id="L42">    this.pileOrder = pileOrder;</span>
+<span class="fc" id="L43">    this.createdAt = OffsetDateTime.now();</span>
+<span class="fc" id="L44">  }</span>
+
+<span class="fc" id="L46">  public int getValue() { return value; }</span>
+<span class="fc" id="L47">  public String getLocation() { return location; }</span>
+<span class="fc" id="L48">  public UUID getOwnerPlayerId() { return ownerPlayerId; }</span>
+<span class="fc" id="L49">  public int getPileOrder() { return pileOrder; }</span>
+<span class="fc" id="L50">  public void setLocation(String location) { this.location = location; }</span>
+<span class="fc" id="L51">  public void setOwnerPlayerId(UUID owner) { this.ownerPlayerId = owner; }</span>
+  /** Solo lo usa el soporte e2e para fijar el orden del mazo. */
+<span class="fc" id="L53">  public void setPileOrder(int pileOrder) { this.pileOrder = pileOrder; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
