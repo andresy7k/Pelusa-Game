@@ -28,7 +28,7 @@ mvn spring-boot:run \
   -Dspring-boot.run.arguments="--spring.datasource.url=jdbc:h2:mem:pelusa;MODE=PostgreSQL;DB_CLOSE_DELAY=-1 --spring.datasource.driver-class-name=org.h2.Driver --spring.datasource.username=sa"
 ```
 
-- Salud: `GET /actuator/health` (DataSource real) y `GET /api/ping` (204, keep-alive gratuito).
+- Salud: `GET /api/health` (200, sin DB; health check de Render), `GET /actuator/health` (DataSource real) y `GET /api/ping` (204, keep-alive gratuito).
 - Tests: `mvn verify` con JDK 17 (el CI los corre en cada push).
 - Migraciones Flyway V1…V7 en `backend/src/main/resources/db/migration/`.
 
@@ -59,10 +59,11 @@ En setup se elige **Un dispositivo** (hotseat) u **Online**.
 
 ## Deploy (gratis)
 
-Vercel (front) + Render Free (backend Docker) + Neon Free (Postgres).
-Pasos, variables (`VITE_API_URL`, `CORS_ALLOWED_ORIGINS`, `BACKEND_URL`) y
-blueprints (`render.yaml`, `backend/Dockerfile`, `frontend/vercel.json`):
-ver **`docs/DEPLOY.md`**. El backend expone `$PORT` y el CI valida con JDK 17.
+Render Free: **frontend static + backend Docker en un mismo Blueprint**
+(`render.yaml`) y Neon Free (Postgres). Render autoconecta `VITE_API_URL` y
+`CORS_ALLOWED_ORIGINS`; `BACKEND_URL` activa el keep-alive.
+Pasos, la alternativa con Vercel y troubleshooting: ver **`docs/DEPLOY.md`**.
+El backend expone `$PORT` y el CI valida con JDK 17.
 
 ## Reglas cerradas
 
