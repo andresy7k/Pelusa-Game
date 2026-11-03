@@ -139,6 +139,7 @@ Luego New → Static Site → root `frontend`, build
 | `Uncaught TypeError: Failed to fetch` | backend dormido o URL mal formada | abrir `/api/health`; revisar `VITE_API_URL` en el bundle |
 | 404 al recargar `/game/<id>` | falta el rewrite SPA | agregar `/*` → `/index.html` en el static site |
 | `Connection refused` a Postgres | URL JDBC mal formada | debe empezar con `jdbc:postgresql://` y llevar `sslmode=require` |
+| `Unsupported Database: PostgreSQL 18.6` | falta el módulo `flyway-database-postgresql` (Flyway 10+ separa el soporte por motor) | el `pom.xml` ya incluye el módulo con Flyway 11.20.3; verificá que el jar tenga `BOOT-INF/lib/flyway-database-postgresql-*.jar` |
 | Flyway falla al boot | migración no portable o pooler | usar conexión directa de Neon; correr `mvn verify` (H2, JDK 17) antes de mergear |
 | Neon deja de responder | se agotaron los 100 CU-hours/mes | evitar health checks que consulten la DB; `/api/health` no la toca |
 | Render duerme igual | workflow sin `BACKEND_URL` | definir la variable y correr el workflow a mano una vez |

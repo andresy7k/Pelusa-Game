@@ -2,7 +2,7 @@
 
 > Decisión madre: ADR-001. Monolito modular. El dominio no sabe que existe Spring ni JPA. Todo lo que el tribunal te pida cambiar (desempate, robo, bust) vive en 1 clase pura + tests.
 
-**Stack confirmado 2026-10-06:** Java 17 + Spring Boot 3.3 + Data JPA + Flyway + PostgreSQL 16 (Docker) / H2 (tests) · React 18 + Vite + TS + GSAP · Playwright.
+**Stack confirmado 2026-10-06:** Java 17 + Spring Boot 3.3 + Data JPA + Flyway + PostgreSQL 16 local (Docker) / Neon PostgreSQL 18 (deploy) / H2 (tests) · React 18 + Vite + TS + GSAP · Playwright.
 
 ---
 
