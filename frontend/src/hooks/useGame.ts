@@ -31,8 +31,10 @@ export function useGame(id: string | undefined) {
   useEffect(() => {
     if (!id) return;
     let alive = true;
+    let polling = false;
     const tick = () => {
-      if (document.hidden) return;
+      if (document.hidden || polling) return;
+      polling = true;
       api
         .state(id)
         .then((next) => {
@@ -40,6 +42,9 @@ export function useGame(id: string | undefined) {
         })
         .catch(() => {
           // Un fallo de red transitorio no debe borrar la mesa en pantalla.
+        })
+        .finally(() => {
+          polling = false;
         });
     };
     const poll = window.setInterval(tick, 2500);
