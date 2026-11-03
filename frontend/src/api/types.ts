@@ -30,12 +30,25 @@ export interface GameState {
   id: string;
   status: 'CREATED' | 'IN_PROGRESS' | 'FINISHED';
   currentPlayerId: string | null;
+  hostPlayerId: string | null;
+  code: string | null;
+  mode: 'HOTSEAT' | 'ONLINE';
+  capacity: number;
+  deckRemaining: number;
   dustRemaining: number;
+  lastDrawnValue: number | null;
+  turnDeadlineAt: string | null;
   players: PlayerView[];
   fronts: Record<string, number[]>;
   stashed: Record<string, StashView>;
   lastEvent: Record<string, unknown> | null;
   result: ResultView | null;
+}
+
+export interface JoinResult {
+  game: GameState;
+  playerId: string | null;
+  spectator: boolean;
 }
 
 /** Error canónico RFC7807 con errorCode de dominio. */
