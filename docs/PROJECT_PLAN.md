@@ -78,7 +78,7 @@ Turno dentro de IN_PROGRESS: `START_TURN [stash opcional] → DRAW* → {STAND |
 Monolito modular, 3 capas: `domain` (Java puro: `DeckFactory`, `GameEngine`, `TurnPolicy`, `ScoringService` — sin anotaciones Spring), `application` (`GameService` transaccional, puertos `ShufflePort`, `ClockPort`), `infrastructure` (`RestController`, DTOs + Bean Validation, JPA entities + repositories, Flyway, GlobalExceptionHandler RFC7807, `requestId` filter). Frontend desacoplado vía REST, nunca decide reglas.
 
 ### Stack propuesto (resumen — detalle en DECISIONS ADR-002/003/004)
-Backend: Java 25 LTS, Spring Boot 3.3, Data JPA/Hibernate, Flyway, PostgreSQL 16 (Docker) + H2 (tests), JUnit5+Mockito+AssertJ, MockMvc, JaCoCo, Pitest. Frontend: React 18 + Vite + TypeScript, React Query o fetch tipado, GSAP 3 timelines, Playwright. CI: GitHub Actions. Todo versionado, sin secretos.
+Backend: Java 25 LTS, Spring Boot 3.5, Data JPA/Hibernate, Flyway, PostgreSQL 16 (Docker) + H2 (tests), JUnit5+Mockito+AssertJ, MockMvc, JaCoCo, Pitest. Frontend: React 18 + Vite + TypeScript, React Query o fetch tipado, GSAP 3 timelines, Playwright. CI: GitHub Actions. Todo versionado, sin secretos.
 
 ### Estructura de repositorio propuesta
 ```

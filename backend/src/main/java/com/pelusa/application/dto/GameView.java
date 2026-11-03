@@ -19,6 +19,7 @@ public record GameView(
     String mode,
     int capacity,
     int deckRemaining,
+    int dustRemaining,
     Integer lastDrawnValue,
     /** Plazo del turno ONLINE (ISO-8601 UTC); null en hotseat o sin turno abierto. */
     OffsetDateTime turnDeadlineAt,
