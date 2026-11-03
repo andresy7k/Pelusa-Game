@@ -95,8 +95,8 @@ export function TableCanvasR3F({
     <div className="mesa3d-host" data-cam={activeCam}>
       <Canvas
         shadows
-        dpr={[1, 2]}
-        gl={{ antialias: true, alpha: false }}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         camera={CAMERA}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping
