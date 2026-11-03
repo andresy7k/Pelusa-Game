@@ -43,12 +43,12 @@ public class CardEntity {
     this.createdAt = OffsetDateTime.now();
   }
 
-  public UUID getId() { return id; }
-  public UUID getGameId() { return gameId; }
   public int getValue() { return value; }
   public String getLocation() { return location; }
   public UUID getOwnerPlayerId() { return ownerPlayerId; }
   public int getPileOrder() { return pileOrder; }
   public void setLocation(String location) { this.location = location; }
   public void setOwnerPlayerId(UUID owner) { this.ownerPlayerId = owner; }
+  /** Solo lo usa el soporte e2e para fijar el orden del mazo. */
+  public void setPileOrder(int pileOrder) { this.pileOrder = pileOrder; }
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Errores consistentes RFC7807 (API_CONTRACT §error canónico).
@@ -43,8 +44,6 @@ public class GlobalExceptionHandler {
       status = HttpStatus.NOT_FOUND;
     } else if (CONFLICT.contains(e.getCode())) {
       status = HttpStatus.CONFLICT;
-    } else if ("VALIDATION_FAILED".equals(e.getCode())) {
-      status = HttpStatus.BAD_REQUEST;
     }
     return problem(status, e.getCode(), e.getMessage(), req);
   }
@@ -82,8 +81,10 @@ public class GlobalExceptionHandler {
     return problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", e.getMessage(), req);
   }
 
-  @ExceptionHandler(NoHandlerFoundException.class)
-  public ProblemDetail notFound(NoHandlerFoundException e, HttpServletRequest req) {
+  // Spring Boot 3.2+ lanza NoResourceFoundException para rutas inexistentes;
+  // sin este handler caía en el genérico y respondía 500 + log de error.
+  @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+  public ProblemDetail notFound(Exception e, HttpServletRequest req) {
     return problem(HttpStatus.NOT_FOUND, "NOT_FOUND", "Recurso no existe", req);
   }
 

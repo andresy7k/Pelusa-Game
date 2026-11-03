@@ -36,7 +36,6 @@ public class PlayerEntity {
   }
 
   public UUID getId() { return id; }
-  public UUID getGameId() { return gameId; }
   public String getName() { return name; }
   public int getSeat() { return seat; }
 }

@@ -164,6 +164,113 @@ class OnlineApiTest {
   }
 
   @Test
+  void onlineStartWithoutPlayerIdCannotBypassHost() throws Exception {
+    JsonNode created = createOnline("Ana", 2);
+    UUID gameId = id(created.get("game"), "id");
+    joinOk(created.get("game").get("code").asText(), "Beto");
+
+    // Regresión: con body {} el service salteaba la verificación de host.
+    MvcResult r = startAs(gameId, null);
+    assertThat(r.getResponse().getStatus()).isEqualTo(409);
+    assertThat(json.readTree(r.getResponse().getContentAsString()).get("errorCode").asText())
+        .isEqualTo("NOT_HOST");
+  }
+
+  @Test
+  void actionWithinDeadlineIsAcceptedAndKeepsTurn() throws Exception {
+    JsonNode created = createOnline("Ana", 2);
+    UUID gameId = id(created.get("game"), "id");
+    UUID hostId = id(created, "playerId");
+    joinOk(created.get("game").get("code").asText(), "Beto");
+    startAs(gameId, hostId.toString());
+
+    mvc.perform(post("/api/games/" + gameId + "/draw")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(Map.of("playerId", hostId))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.currentPlayerId").value(hostId.toString()))
+        .andExpect(jsonPath("$.lastEvent.type").value("DRAW"))
+        .andExpect(jsonPath("$.turnDeadlineAt").exists());
+  }
+
+  @Test
+  void expiryRotatesToTheNextSeatAndClosesTheOldTurn() throws Exception {
+    JsonNode created = createOnline("Ana", 6); // 6 = cupo máximo válido
+    UUID gameId = id(created.get("game"), "id");
+    UUID hostId = id(created, "playerId");
+    String code = created.get("game").get("code").asText();
+    UUID beto = id(joinOk(code, "Beto"), "playerId");
+    UUID ceci = id(joinOk(code, "Ceci"), "playerId");
+    startAs(gameId, hostId.toString());
+
+    for (UUID expected : List.of(beto, ceci, hostId)) {
+      jdbc.update("UPDATE turns SET deadline_at = ? WHERE game_id = ? AND ended_at IS NULL",
+          OffsetDateTime.now().minusSeconds(1), gameId);
+      mvc.perform(get("/api/games/" + gameId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.currentPlayerId").value(expected.toString()));
+      // Siempre hay exactamente UN turno abierto: el vencido quedó cerrado.
+      assertThat(jdbc.queryForObject(
+          "SELECT COUNT(*) FROM turns WHERE game_id = ? AND ended_at IS NULL", Integer.class, gameId))
+          .isEqualTo(1);
+    }
+  }
+
+  @Test
+  void eachDrawRestartsTheFifteenSecondClock() throws Exception {
+    JsonNode created = createOnline("Ana", 2);
+    UUID gameId = id(created.get("game"), "id");
+    UUID hostId = id(created, "playerId");
+    joinOk(created.get("game").get("code").asText(), "Beto");
+    startAs(gameId, hostId.toString());
+    // Simulamos que pasaron 12 s: quedan 3 s de turno.
+    jdbc.update("UPDATE turns SET deadline_at = ? WHERE game_id = ? AND ended_at IS NULL",
+        OffsetDateTime.now().plusSeconds(3), gameId);
+
+    MvcResult r = mvc.perform(post("/api/games/" + gameId + "/draw")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(Map.of("playerId", hostId))))
+        .andExpect(status().isOk()).andReturn();
+
+    // Tras sacar, el plazo vuelve a ~15 s desde ahora (no los 3 que quedaban).
+    OffsetDateTime deadline = OffsetDateTime.parse(
+        json.readTree(r.getResponse().getContentAsString()).get("turnDeadlineAt").asText());
+    assertThat(deadline).isAfter(OffsetDateTime.now().plusSeconds(13));
+    assertThat(deadline).isBefore(OffsetDateTime.now().plusSeconds(16));
+  }
+
+  @Test
+  void lobbyPollingDoesNotOpenTurnsOrClock() throws Exception {
+    JsonNode created = createOnline("Ana", 3);
+    UUID gameId = id(created.get("game"), "id");
+
+    mvc.perform(get("/api/games/" + gameId)).andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("CREATED"))
+        .andExpect(jsonPath("$.turnDeadlineAt").doesNotExist());
+    assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM turns WHERE game_id = ?", Integer.class, gameId))
+        .isZero();
+  }
+
+  @Test
+  void joinAndCreateValidateRequiredFields() throws Exception {
+    // Regresión: sin "code" el service hacía code.trim() sobre null → 500.
+    mvc.perform(post("/api/games/join").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Beto\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
+    mvc.perform(post("/api/games/online").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"Ana\",\"capacity\":7}"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(post("/api/games/online").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"capacity\":3}"))
+        .andExpect(status().isBadRequest());
+    // Borde válido: 60 caracteres exactos se aceptan (61 no, lo cubre GameServiceTest).
+    mvc.perform(post("/api/games/online").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"name\":\"" + "H".repeat(60) + "\",\"capacity\":2}"))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
   void lateJoinBecomesSpectatorWithoutSeat() throws Exception {
     JsonNode created = createOnline("Ana", 2);
     UUID gameId = id(created.get("game"), "id");

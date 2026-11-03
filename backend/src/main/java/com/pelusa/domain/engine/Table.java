@@ -114,9 +114,16 @@ public class Table {
     return new DrawResult(drawn, false, false);
   }
 
-  /** Plantarse voluntariamente y pasar el turno. */
+  /**
+   * Plantarse voluntariamente y pasar el turno. Exige haber sacado al menos una
+   * carta este turno: si se pudiera pasar sin sacar, todos podrían plantarse
+   * para siempre y el mazo nunca se agotaría (la partida no terminaría).
+   */
   public void standCurrent() {
     requireInProgress();
+    if (lastDrawnValue == null) {
+      throw new DomainException("MUST_DRAW_FIRST", "Tenés que sacar al menos una carta antes de plantarte");
+    }
     nextTurn();
   }
 

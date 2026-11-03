@@ -59,6 +59,14 @@ class DeckFactoryTest {
     assertThat(counts.get(10)).isEqualTo(9L);
   }
 
+  @Test
+  void shuffledDeckReallyAppliesThePort() {
+    // Puerto que invierte: si DeckFactory no llamara al puerto, el primer valor sería 1.
+    List<Card> deck = DeckFactory.shuffledDeck(java.util.Collections::reverse);
+    assertThat(deck.get(0).value()).isEqualTo(10);
+    assertThat(deck.get(109).value()).isEqualTo(1);
+  }
+
   private static void Collections2Shuffle(List<Card> cards, long seed) {
     java.util.Collections.shuffle(cards, new Random(seed));
   }
