@@ -29,7 +29,10 @@ import com.pelusa.infrastructure.persistence.PlayerEntity;
 import com.pelusa.infrastructure.persistence.PlayerRepository;
 import com.pelusa.infrastructure.persistence.TurnEntity;
 import com.pelusa.infrastructure.persistence.TurnRepository;
+import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -57,6 +60,8 @@ public class GameService {
   private static final int TURN_SECONDS = 15;
   /** Largo de action_keys.action_key (V2): una clave más larga rompía el INSERT con 500. */
   private static final int MAX_KEY_LENGTH = 64;
+  /** Zona del juego para filtrar el histórico por día ("terminó el 3 de noviembre"). */
+  private static final ZoneId GAME_ZONE = ZoneId.of("America/Bogota");
 
   private final GameRepository games;
   private final PlayerRepository players;
@@ -283,12 +288,35 @@ public class GameService {
 
   // ---------- histórico / resultado ----------
 
+  /**
+   * Histórico de partidas terminadas. Filtro opcional, uno u otro (si llegan los
+   * dos, manda el jugador): nombre parcial sin mayúsculas ni tildes, o el día en
+   * que terminó la partida, en hora de Colombia.
+   */
   @Transactional(readOnly = true)
-  public Page<GameView> history(Pageable pageable) {
+  public Page<GameView> history(String player, LocalDate date, Pageable pageable) {
     if (pageable.getPageSize() > 50) {
       throw new IllegalArgumentException("size máximo 50");
     }
-    return games.findByStatusOrderByFinishedAtDesc("FINISHED", pageable).map(g -> view(g.getId(), null));
+    Page<GameEntity> page;
+    if (player != null) {
+      page = games.findFinishedWithPlayer("%" + searchable(player.trim()) + "%", pageable);
+    } else if (date != null) {
+      // [00:00 de ese día, 00:00 del siguiente) en Bogotá: sin la zona, una partida
+      // que terminó a las 23:30 caería en el día siguiente (la BD guarda en UTC).
+      OffsetDateTime start = date.atStartOfDay(GAME_ZONE).toOffsetDateTime();
+      OffsetDateTime end = date.plusDays(1).atStartOfDay(GAME_ZONE).toOffsetDateTime();
+      page = games.findFinishedBetween(start, end, pageable);
+    } else {
+      page = games.findByStatusOrderByFinishedAtDesc("FINISHED", pageable);
+    }
+    return page.map(g -> view(g.getId(), null));
+  }
+
+  /** Minúsculas y sin tildes ("Andrés" → "andres"), igual que la consulta en la BD. */
+  private static String searchable(String text) {
+    String noMarks = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+    return noMarks.toLowerCase(Locale.ROOT);
   }
 
   @Transactional(readOnly = true)

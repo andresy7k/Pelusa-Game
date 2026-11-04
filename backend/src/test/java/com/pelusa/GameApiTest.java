@@ -537,6 +537,34 @@ class GameApiTest {
   }
 
   @Test
+  void historyFiltersByPlayerNameOrByFinishDate() throws Exception {
+    // Nombre único: otras pruebas también terminan partidas con "Ana" y "Beto".
+    String tag = UUID.randomUUID().toString().substring(0, 6);
+    JsonNode g = createGame("Andrés" + tag, "Beto" + tag);
+    UUID id = UUID.fromString(g.get("id").asText());
+    start(id);
+    rigDust(id, 5, 1);
+    act(id, "draw", playerId(g, 0), null, null);
+    act(id, "stand", playerId(g, 0), null, null);
+    act(id, "draw", playerId(g, 1), null, null); // última carta → FINISHED
+    // 23:30 del 3/feb en Colombia = 04:30 del 4/feb en UTC: tiene que contar como día 3.
+    jdbc.update("UPDATE games SET finished_at = ? WHERE id = ?",
+        java.time.OffsetDateTime.parse("2001-02-03T23:30:00-05:00"), id);
+
+    // Por jugador: parcial, sin mayúsculas y sin tilde ("ANDRES…" encuentra a "Andrés…").
+    mvc.perform(get("/api/games/history").param("player", "ANDRES" + tag))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(id.toString()));
+
+    // Por fecha en que terminó.
+    mvc.perform(get("/api/games/history").param("date", "2001-02-03"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(id.toString()));
+  }
+
+  @Test
   void historyRejectsPageSizeOver50() throws Exception {
     mvc.perform(get("/api/games/history?size=51")).andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));

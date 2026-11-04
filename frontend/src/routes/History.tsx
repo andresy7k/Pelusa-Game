@@ -3,20 +3,73 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import type { GameState } from '../api/types';
 
+type Filter = 'player' | 'date';
+
 // Histórico: el backend devuelve la partida completa ya terminada (fechas,
-// jugadores, puntos y conteo por valor). Aquí solo se presenta.
+// jugadores, puntos y conteo por valor) y hace el filtrado. Aquí solo se presenta.
 export function History() {
   const [items, setItems] = useState<GameState[]>([]);
+  const [filter, setFilter] = useState<Filter>('player');
+  const [player, setPlayer] = useState('');
+  const [date, setDate] = useState('');
 
+  // Busca mientras escribís: espera 300 ms desde la última tecla para no mandar
+  // un pedido por letra. `alive` descarta respuestas viejas que lleguen tarde.
   useEffect(() => {
-    api.history().then((p) => setItems(p.content)).catch(() => setItems([]));
-  }, []);
+    let alive = true;
+    const query = filter === 'player' ? { player: player.trim() } : { date };
+    const timer = window.setTimeout(
+      () => {
+        api
+          .history(query)
+          .then((p) => alive && setItems(p.content))
+          .catch(() => alive && setItems([]));
+      },
+      filter === 'player' ? 300 : 0,
+    );
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [filter, player, date]);
+
+  const filtering = filter === 'player' ? player.trim() !== '' : date !== '';
 
   return (
     <main className="page narrow">
       <p className="kicker">Archivo</p>
       <h1>Juegos anteriores</h1>
-      {items.length === 0 && <p>Todavía no hay partidas terminadas en esta mesa.</p>}
+
+      <div className="mode-tabs" role="tablist" aria-label="Filtrar historial">
+        <button type="button" role="tab" className="ghost" aria-selected={filter === 'player'}
+          onClick={() => setFilter('player')}>
+          Por jugador
+        </button>
+        <button type="button" role="tab" className="ghost" aria-selected={filter === 'date'}
+          onClick={() => setFilter('date')}>
+          Por fecha
+        </button>
+      </div>
+      {filter === 'player' ? (
+        <label>
+          Jugador
+          <input value={player} onChange={(e) => setPlayer(e.target.value)}
+            placeholder="Ej: Andrés" maxLength={60} />
+        </label>
+      ) : (
+        <label>
+          Día en que terminó
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+      )}
+
+      {items.length === 0 && (
+        <p>
+          {filtering
+            ? 'No hay partidas que coincidan con el filtro.'
+            : 'Todavía no hay partidas terminadas en esta mesa.'}
+        </p>
+      )}
       <ul className="history-list">
         {items.map((g) => (
           <li key={g.id} className="panel" data-testid="history-item">

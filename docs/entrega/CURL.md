@@ -93,6 +93,9 @@ curl -s -X POST $API/api/games/$GAME/stash -H 'Content-Type: application/json' -
 curl -i $API/api/games/$GAME/result                # 409 GAME_NOT_FINISHED mientras se juega
 curl -s "$API/api/games/history?page=0&size=20"    # partidas FINISHED (máx size=50)
 curl -i "$API/api/games/history?size=51"           # 400
+curl -s "$API/api/games/history?player=andres"     # partidas donde jugó alguien cuyo nombre contiene "andres" (sin mayúsculas ni tildes)
+curl -s "$API/api/games/history?date=2026-11-03"   # partidas que terminaron ese día (hora de Colombia)
+curl -i "$API/api/games/history?date=2026-13-40"   # 400: fecha inválida
 ```
 
 Cada elemento del histórico trae `id`, `createdAt`, `startedAt`, `finishedAt`,

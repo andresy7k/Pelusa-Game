@@ -1,15 +1,42 @@
 package com.pelusa.infrastructure.persistence;
 
 import jakarta.persistence.LockModeType;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface GameRepository extends JpaRepository<GameEntity, UUID> {
   Page<GameEntity> findByStatusOrderByFinishedAtDesc(String status, Pageable pageable);
+
+  /** Terminadas en [start, end): el histórico filtrado por el día en que terminaron. */
+  @Query("""
+      select g from GameEntity g
+      where g.status = 'FINISHED' and g.finishedAt >= :start and g.finishedAt < :end
+      order by g.finishedAt desc""")
+  Page<GameEntity> findFinishedBetween(
+      @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end, Pageable pageable);
+
+  /**
+   * Terminadas donde jugó alguien cuyo nombre, en minúsculas y sin tildes, encaja con
+   * el patrón (like). Las tildes se quitan con replace(): funciona igual en H2 y PostgreSQL.
+   */
+  @Query("""
+      select g from GameEntity g
+      where g.status = 'FINISHED'
+        and exists (
+          select 1 from PlayerEntity p
+          where p.gameId = g.id
+            and replace(replace(replace(replace(replace(replace(replace(lower(p.name),
+                'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ü', 'u'), 'ñ', 'n')
+                like :pattern)
+      order by g.finishedAt desc""")
+  Page<GameEntity> findFinishedWithPlayer(@Param("pattern") String pattern, Pageable pageable);
 
   /** ¿Existe ya una sala con este código? (Spring Data escribe el SQL por su nombre). */
   boolean existsByCode(String code);
