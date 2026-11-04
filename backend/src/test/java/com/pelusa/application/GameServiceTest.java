@@ -161,7 +161,7 @@ class GameServiceTest {
 
   @Test
   void historyRejectsPagesLargerThan50() {
-    assertThatThrownBy(() -> service.history(PageRequest.of(0, 51)))
+    assertThatThrownBy(() -> service.history(null, null, PageRequest.of(0, 51)))
         .isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).findByStatusOrderByFinishedAtDesc(any(), any());
   }

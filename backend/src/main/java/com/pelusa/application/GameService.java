@@ -29,7 +29,10 @@ import com.pelusa.infrastructure.persistence.PlayerEntity;
 import com.pelusa.infrastructure.persistence.PlayerRepository;
 import com.pelusa.infrastructure.persistence.TurnEntity;
 import com.pelusa.infrastructure.persistence.TurnRepository;
+import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -57,6 +60,8 @@ public class GameService {
   private static final int TURN_SECONDS = 15;
   /** Largo de action_keys.action_key (V2): una clave más larga rompía el INSERT con 500. */
   private static final int MAX_KEY_LENGTH = 64;
+  /** Zona del juego para filtrar el histórico por día ("terminó el 3 de noviembre"). */
+  private static final ZoneId GAME_ZONE = ZoneId.of("America/Bogota");
 
   private final GameRepository games;
   private final PlayerRepository players;
@@ -98,10 +103,6 @@ public class GameService {
     for (int i = 0; i < names.size(); i++) {
       ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));
     }
-    // Orden obligatorio: primero el padre (games), luego los hijos (players).
-    // Al revés, la FK players.game_id apunta a una fila que aún no existe → 500.
-    // Los nombres repetidos ya los rechazó validateNames: aquí no hay carrera
-    // posible (la partida es nueva), así que no hace falta capturar UNIQUE.
     games.save(game);
     players.saveAll(ps);
     game.setCurrentPlayerId(ps.get(first).getId());
@@ -111,11 +112,6 @@ public class GameService {
     return view(gameId, null);
   }
 
-  /**
-   * Sala online: el host abre la mesa (modo ONLINE, cupo que él elige), queda
-   * como jugador asiento 0 y recibe un código único para invitar. La partida
-   * nace en CREATED = lobby de espera; el turno recién existe al hacer start.
-   */
   @Transactional
   public JoinResult createOnline(String name, int capacity) {
     validateSingleName(name);
@@ -139,11 +135,6 @@ public class GameService {
     return new JoinResult(view(gameId, null), host.getId(), false);
   }
 
-  /**
-   * Código único con reintento. La ventana de carrera entre "buscar" y "guardar"
-   * la cierra el índice UNIQUE de la migración V6: Java evita el error común
-   * (defensa amable) y la BD impide el imposible (defensa dura).
-   */
   private String availableCode() {
     for (int attempt = 0; attempt < 5; attempt++) {
       String code = RoomCode.generate();
@@ -154,13 +145,6 @@ public class GameService {
     throw new DomainException("CODE_COLLISION", "No se pudo generar un código único, reintenta");
   }
 
-  /**
-   * Unirse a una sala por código. Tres desenlaces:
-   * - lobby abierto con cupo: entra como jugador en el siguiente asiento;
-   * - lobby abierto pero lleno: GAME_FULL;
-   * - partida ya empezada/terminada: ESPECTADOR (no se crea jugador).
-   * El código es una llave: se normaliza a mayúsculas para tolerar cómo lo tecleen.
-   */
   @Transactional
   public JoinResult join(String code, String name) {
     validateSingleName(name);
@@ -304,12 +288,35 @@ public class GameService {
 
   // ---------- histórico / resultado ----------
 
+  /**
+   * Histórico de partidas terminadas. Filtro opcional, uno u otro (si llegan los
+   * dos, manda el jugador): nombre parcial sin mayúsculas ni tildes, o el día en
+   * que terminó la partida, en hora de Colombia.
+   */
   @Transactional(readOnly = true)
-  public Page<GameView> history(Pageable pageable) {
+  public Page<GameView> history(String player, LocalDate date, Pageable pageable) {
     if (pageable.getPageSize() > 50) {
       throw new IllegalArgumentException("size máximo 50");
     }
-    return games.findByStatusOrderByFinishedAtDesc("FINISHED", pageable).map(g -> view(g.getId(), null));
+    Page<GameEntity> page;
+    if (player != null) {
+      page = games.findFinishedWithPlayer("%" + searchable(player.trim()) + "%", pageable);
+    } else if (date != null) {
+      // [00:00 de ese día, 00:00 del siguiente) en Bogotá: sin la zona, una partida
+      // que terminó a las 23:30 caería en el día siguiente (la BD guarda en UTC).
+      OffsetDateTime start = date.atStartOfDay(GAME_ZONE).toOffsetDateTime();
+      OffsetDateTime end = date.plusDays(1).atStartOfDay(GAME_ZONE).toOffsetDateTime();
+      page = games.findFinishedBetween(start, end, pageable);
+    } else {
+      page = games.findByStatusOrderByFinishedAtDesc("FINISHED", pageable);
+    }
+    return page.map(g -> view(g.getId(), null));
+  }
+
+  /** Minúsculas y sin tildes ("Andrés" → "andres"), igual que la consulta en la BD. */
+  private static String searchable(String text) {
+    String noMarks = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+    return noMarks.toLowerCase(Locale.ROOT);
   }
 
   @Transactional(readOnly = true)
@@ -345,6 +352,10 @@ public class GameService {
     }
     if ("FINISHED".equals(game.getStatus())) {
       throw new DomainException("GAME_FINISHED", "La partida ya terminó");
+    }
+    // Sin start no hay turno abierto: actuar sobre una partida CREATED era un 500.
+    if ("CREATED".equals(game.getStatus())) {
+      throw new DomainException("GAME_NOT_STARTED", "La partida todavía no empezó");
     }
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
     if (ps.stream().noneMatch(p -> p.getId().equals(playerId))) {

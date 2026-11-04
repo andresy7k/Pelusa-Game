@@ -93,8 +93,17 @@ export const api = {
   result(id: string): Promise<GameState> {
     return request<GameState>(`/api/games/${id}/result`);
   },
-  history(page = 0, size = 20): Promise<{ content: GameState[]; totalElements: number }> {
-    return request(`/api/games/history?page=${page}&size=${size}`);
+  /** Histórico: sin filtro, por jugador (nombre parcial) o por día en que terminó (AAAA-MM-DD). */
+  history(
+    filter: { player?: string; date?: string } = {},
+    page = 0,
+    size = 20,
+  ): Promise<{ content: GameState[]; totalElements: number }> {
+    // URLSearchParams codifica espacios y tildes ("Andrés" → Andr%C3%A9s).
+    const q = new URLSearchParams({ page: String(page), size: String(size) });
+    if (filter.player) q.set('player', filter.player);
+    if (filter.date) q.set('date', filter.date);
+    return request(`/api/games/history?${q}`);
   },
 };
 

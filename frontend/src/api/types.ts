@@ -80,6 +80,8 @@ export function friendlyMessage(code: string): string {
       return 'La partida ya terminó.';
     case 'GAME_NOT_FOUND':
       return 'Esa partida no existe.';
+    case 'GAME_NOT_STARTED':
+      return 'La partida todavía no empezó.';
     case 'MUST_DRAW_FIRST':
       return 'Primero sacá al menos una carta; después podés plantarte.';
     case 'DECK_EMPTY':
