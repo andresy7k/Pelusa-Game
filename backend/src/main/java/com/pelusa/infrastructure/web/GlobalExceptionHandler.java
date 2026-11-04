@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
   private static final Set<String> NOT_FOUND =
       Set.of("GAME_NOT_FOUND", "CODE_NOT_FOUND");
   private static final Set<String> CONFLICT =
-      Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "NOT_YOUR_TURN", "ALREADY_STARTED",
+      Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "GAME_NOT_STARTED", "NOT_YOUR_TURN", "ALREADY_STARTED",
           "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN", "CODE_COLLISION",
           "GAME_FULL", "NAME_TAKEN", "NOT_HOST", "NOT_ENOUGH_PLAYERS", "TURN_EXPIRED");
   // Cualquier otro código de dominio cae en el default 422 (regla violada):

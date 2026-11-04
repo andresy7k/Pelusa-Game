@@ -134,7 +134,7 @@ Con el perfil por defecto esa ruta responde 404: el bean no existe.
 ```powershell
 $api = "http://localhost:8080"
 $g = Invoke-RestMethod -Method Post "$api/api/games" -ContentType "application/json" -Body '{"names":["Ana","Beto"]}'
-Invoke-RestMethod -Method Post "$api/api/games/$($g.id)/start"
+Invoke-RestMethod -Method Post "$api/api/games/$($g.id)/start" -ContentType "application/json" -Body '{}'
 $ana = $g.players[0].id
 Invoke-RestMethod -Method Post "$api/api/games/$($g.id)/draw" -ContentType "application/json" -Body (@{playerId=$ana} | ConvertTo-Json)
 ```

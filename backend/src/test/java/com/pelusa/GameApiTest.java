@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 /**
  * Contrato REST (API_CONTRACT §10): status + errorCode + transiciones contra
@@ -100,6 +101,7 @@ class GameApiTest {
   void createRejectsDuplicateNames() throws Exception {
     String body = "{\"names\":[\"Ana\",\"Ana\"]}";
     mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andDo(print())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
   }
@@ -120,7 +122,7 @@ class GameApiTest {
 
     // Fuera de turno → 409
     mvc.perform(post("/api/games/" + gameId + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + beto + "\"}"))
+        .content("{\"playerId\":\"" + beto + "\"}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("NOT_YOUR_TURN"));
 
@@ -174,7 +176,8 @@ class GameApiTest {
     assertThat(end.get("stashed").get(beto.toString()).get("sum").asInt()).isZero();
     assertThat(jdbc.queryForObject(
         "SELECT outcome FROM turns WHERE game_id = ? AND player_id = ? AND ended_at IS NOT NULL "
-            + "ORDER BY started_at DESC LIMIT 1", String.class, gameId, beto)).isEqualTo("BUST");
+            + "ORDER BY started_at DESC LIMIT 1",
+        String.class, gameId, beto)).isEqualTo("BUST");
   }
 
   @Test
@@ -208,7 +211,7 @@ class GameApiTest {
   @Test
   void actionOnUnknownGameIs404() throws Exception {
     mvc.perform(post("/api/games/" + UUID.randomUUID() + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + UUID.randomUUID() + "\"}"))
+        .content("{\"playerId\":\"" + UUID.randomUUID() + "\"}"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.errorCode").value("GAME_NOT_FOUND"));
   }
@@ -230,7 +233,7 @@ class GameApiTest {
 
     act(gameId, "draw", ana, null, null); // Ana 6: ya actuó este turno
     mvc.perform(post("/api/games/" + gameId + "/stash").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\"}"))
+        .content("{\"playerId\":\"" + ana + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STASHABLE_CARDS"));
     act(gameId, "stand", ana, null, null);
@@ -239,7 +242,7 @@ class GameApiTest {
     act(gameId, "draw", beto, null, null); // Beto 4
     act(gameId, "steal", beto, null, "{\"playerId\":\"" + beto + "\",\"value\":4}");
     mvc.perform(post("/api/games/" + gameId + "/stash").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + beto + "\"}"))
+        .content("{\"playerId\":\"" + beto + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STASHABLE_CARDS"));
   }
@@ -291,7 +294,7 @@ class GameApiTest {
     // Límites válidos: 6 jugadores, nombre de 60 caracteres, clave de 64.
     String sixty = "N".repeat(60);
     MvcResult r = mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"names\":[\"" + sixty + "\",\"B\",\"C\",\"D\",\"E\",\"F\"]}"))
+        .content("{\"names\":[\"" + sixty + "\",\"B\",\"C\",\"D\",\"E\",\"F\"]}"))
         .andExpect(status().isCreated()).andReturn();
     JsonNode g = json.readTree(r.getResponse().getContentAsString());
     assertThat(g.get("players")).hasSize(6);
@@ -306,7 +309,7 @@ class GameApiTest {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     mvc.perform(post("/api/games/" + gameId + "/start").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + playerId(created, 0) + "\"}"))
+        .content("{\"playerId\":\"" + playerId(created, 0) + "\"}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("NOT_HOST"));
   }
@@ -314,8 +317,25 @@ class GameApiTest {
   @Test
   void testSupportEndpointDoesNotExistOutsideE2eProfile() throws Exception {
     mvc.perform(post("/api/test/games/" + UUID.randomUUID() + "/deck").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"values\":[1]}"))
+        .content("{\"values\":[1]}"))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void actionsBeforeStartAreConflictNot500() throws Exception {
+    // Regresión: sin turno abierto (partida CREATED) el draw lanzaba
+    // NoSuchElementException → 500.
+    JsonNode created = createGame("Ana", "Beto");
+    UUID gameId = UUID.fromString(created.get("id").asText());
+    UUID ana = playerId(created, 0);
+    for (String action : List.of("draw", "stand", "stash")) {
+      mvc.perform(post("/api/games/" + gameId + "/" + action).contentType(MediaType.APPLICATION_JSON)
+          .content("{\"playerId\":\"" + ana + "\"}"))
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.errorCode").value("GAME_NOT_STARTED"));
+    }
+    // Nada cambió: sigue con las 110 cartas en el mazo.
+    mvc.perform(get("/api/games/" + gameId)).andExpect(jsonPath("$.deckRemaining").value(110));
   }
 
   @Test
@@ -326,7 +346,7 @@ class GameApiTest {
     UUID ana = playerId(created, 0);
 
     mvc.perform(post("/api/games/" + gameId + "/stand").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\"}"))
+        .content("{\"playerId\":\"" + ana + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("MUST_DRAW_FIRST"));
     // El turno no se movió.
@@ -361,7 +381,7 @@ class GameApiTest {
     act(gameId, "stand", ana, null, null);
     // Beto no tiene frente: no hay nada que guardar.
     mvc.perform(post("/api/games/" + gameId + "/stash").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + beto + "\"}"))
+        .content("{\"playerId\":\"" + beto + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STASHABLE_CARDS"));
     act(gameId, "draw", beto, null, null); // 3
@@ -373,7 +393,7 @@ class GameApiTest {
     assertThat(stashed.get("lastEvent").get("type").asText()).isEqualTo("STASH");
     // Una vez por turno.
     mvc.perform(post("/api/games/" + gameId + "/stash").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\"}"))
+        .content("{\"playerId\":\"" + ana + "\"}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("ALREADY_STASHED_THIS_TURN"));
     // Las cartas del frente de Beto siguen boca arriba (no se guardan solas).
@@ -393,11 +413,11 @@ class GameApiTest {
     act(gameId, "stand", ana, null, null);
     act(gameId, "draw", beto, null, null); // Beto 5: Ana tiene un 4, no un 5
     mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + beto + "\",\"value\":4}"))
+        .content("{\"playerId\":\"" + beto + "\",\"value\":4}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("STEAL_VALUE_MISMATCH"));
     mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + beto + "\",\"value\":11}"))
+        .content("{\"playerId\":\"" + beto + "\",\"value\":11}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
   }
@@ -426,8 +446,8 @@ class GameApiTest {
     UUID ana = playerId(created, 0);
 
     mvc.perform(post("/api/games/" + gameId + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .header("Idempotency-Key", "k".repeat(65))
-            .content("{\"playerId\":\"" + ana + "\"}"))
+        .header("Idempotency-Key", "k".repeat(65))
+        .content("{\"playerId\":\"" + ana + "\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
   }
@@ -561,7 +581,7 @@ class GameApiTest {
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
     mvc.perform(post("/api/games/" + gameId + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + UUID.randomUUID() + "\"}"))
+        .content("{\"playerId\":\"" + UUID.randomUUID() + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("INVALID_PLAYER"));
 
@@ -569,7 +589,7 @@ class GameApiTest {
     // defensa del service responde 422 en vez de romper.
     rigDust(gameId);
     mvc.perform(post("/api/games/" + gameId + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + playerId(created, 0) + "\"}"))
+        .content("{\"playerId\":\"" + playerId(created, 0) + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("DECK_EMPTY"));
   }
@@ -577,19 +597,19 @@ class GameApiTest {
   @Test
   void createValidatesPlayerCountNamesAndFirstPlayer() throws Exception {
     mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"names\":[\"Solo\"]}"))
+        .content("{\"names\":[\"Solo\"]}"))
         .andExpect(status().isBadRequest());
     mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"names\":[\"Ana\",\"Beto\"],\"firstPlayerIndex\":2}"))
+        .content("{\"names\":[\"Ana\",\"Beto\"],\"firstPlayerIndex\":2}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"));
     mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"names\":[\"Ana\",\"   \"]}"))
+        .content("{\"names\":[\"Ana\",\"   \"]}"))
         .andExpect(status().isBadRequest());
 
     // Jugador inicial elegido: Beto (índice 1) tiene el primer turno.
     MvcResult r = mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"names\":[\"Ana\",\"Beto\"],\"firstPlayerIndex\":1}"))
+        .content("{\"names\":[\"Ana\",\"Beto\"],\"firstPlayerIndex\":1}"))
         .andExpect(status().isCreated()).andReturn();
     JsonNode g = json.readTree(r.getResponse().getContentAsString());
     assertThat(g.get("currentPlayerId").asText()).isEqualTo(g.get("players").get(1).get("id").asText());
@@ -664,7 +684,7 @@ class GameApiTest {
 
     // Agotadas las cartas robables de ese valor → 422
     mvc.perform(post("/api/games/" + gameId + "/steal").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
+        .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errorCode").value("NO_STEALABLE_CARDS"));
   }
@@ -700,7 +720,7 @@ class GameApiTest {
 
     // Acción post-fin → 409
     mvc.perform(post("/api/games/" + gameId + "/draw").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"playerId\":\"" + ana + "\"}"))
+        .content("{\"playerId\":\"" + ana + "\"}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("GAME_FINISHED"));
 
@@ -716,12 +736,13 @@ class GameApiTest {
     mvc.perform(get("/api/games/" + UUID.randomUUID())).andExpect(status().isNotFound())
         .andExpect(jsonPath("$.errorCode").value("GAME_NOT_FOUND"));
   }
+
   @Test
   void resultInNotFinishedGame() throws Exception {
     JsonNode created = createGame("Ana", "Beto");
     UUID gameId = UUID.fromString(created.get("id").asText());
     start(gameId);
-    
+
     mvc.perform(get("/api/games/" + gameId + "/result")).andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("GAME_NOT_FINISHED"));
   }

@@ -18,6 +18,20 @@ if (-not (Test-Path $Repo)) {
 $tmp = "C:\Temp\pelusa-pit"
 New-Item -ItemType Directory -Force $tmp | Out-Null
 
+# El JDK también debe estar en una ruta ASCII (ej. ~/.jdks con "é" en el usuario).
+if (-not $env:JAVA_HOME) {
+  Write-Host "Falta JAVA_HOME (JDK 25). Corré antes: . .\scripts\dev-env.ps1" -ForegroundColor Red
+  exit 1
+}
+if ($env:JAVA_HOME -match '[^\x00-\x7F]') {
+  $jdkLink = "C:\Temp\jdk25"
+  if (-not (Test-Path $jdkLink)) {
+    cmd /c mklink /J $jdkLink "$env:JAVA_HOME" | Out-Null
+  }
+  $env:JAVA_HOME = $jdkLink
+  $env:PATH = "$jdkLink\bin;$env:PATH"
+}
+
 if (Test-Path $Work) { Remove-Item -Recurse -Force $Work }
 New-Item -ItemType Directory -Force $Work | Out-Null
 Copy-Item "$backend\pom.xml" $Work

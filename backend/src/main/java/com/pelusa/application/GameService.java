@@ -98,10 +98,6 @@ public class GameService {
     for (int i = 0; i < names.size(); i++) {
       ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));
     }
-    // Orden obligatorio: primero el padre (games), luego los hijos (players).
-    // Al revés, la FK players.game_id apunta a una fila que aún no existe → 500.
-    // Los nombres repetidos ya los rechazó validateNames: aquí no hay carrera
-    // posible (la partida es nueva), así que no hace falta capturar UNIQUE.
     games.save(game);
     players.saveAll(ps);
     game.setCurrentPlayerId(ps.get(first).getId());
@@ -111,11 +107,6 @@ public class GameService {
     return view(gameId, null);
   }
 
-  /**
-   * Sala online: el host abre la mesa (modo ONLINE, cupo que él elige), queda
-   * como jugador asiento 0 y recibe un código único para invitar. La partida
-   * nace en CREATED = lobby de espera; el turno recién existe al hacer start.
-   */
   @Transactional
   public JoinResult createOnline(String name, int capacity) {
     validateSingleName(name);
@@ -139,11 +130,6 @@ public class GameService {
     return new JoinResult(view(gameId, null), host.getId(), false);
   }
 
-  /**
-   * Código único con reintento. La ventana de carrera entre "buscar" y "guardar"
-   * la cierra el índice UNIQUE de la migración V6: Java evita el error común
-   * (defensa amable) y la BD impide el imposible (defensa dura).
-   */
   private String availableCode() {
     for (int attempt = 0; attempt < 5; attempt++) {
       String code = RoomCode.generate();
@@ -154,13 +140,6 @@ public class GameService {
     throw new DomainException("CODE_COLLISION", "No se pudo generar un código único, reintenta");
   }
 
-  /**
-   * Unirse a una sala por código. Tres desenlaces:
-   * - lobby abierto con cupo: entra como jugador en el siguiente asiento;
-   * - lobby abierto pero lleno: GAME_FULL;
-   * - partida ya empezada/terminada: ESPECTADOR (no se crea jugador).
-   * El código es una llave: se normaliza a mayúsculas para tolerar cómo lo tecleen.
-   */
   @Transactional
   public JoinResult join(String code, String name) {
     validateSingleName(name);
@@ -345,6 +324,10 @@ public class GameService {
     }
     if ("FINISHED".equals(game.getStatus())) {
       throw new DomainException("GAME_FINISHED", "La partida ya terminó");
+    }
+    // Sin start no hay turno abierto: actuar sobre una partida CREATED era un 500.
+    if ("CREATED".equals(game.getStatus())) {
+      throw new DomainException("GAME_NOT_STARTED", "La partida todavía no empezó");
     }
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
     if (ps.stream().noneMatch(p -> p.getId().equals(playerId))) {
