@@ -238,6 +238,12 @@ export function Board() {
 
         {!finished && <TurnTimer deadline={state.turnDeadlineAt} />}
 
+        {/* Recién repartido (todavía nadie actuó): se anuncia el resultado del sorteo. */}
+        {!ev && !finished && state.deckRemaining === 110 && (
+          <div className="event-chip" role="status">
+            Sorteo: empieza <strong>{nameOf(state.players, state.currentPlayerId)}</strong>
+          </div>
+        )}
         {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH' || ev?.type === 'TURN_EXPIRED') && (
           <div className="event-chip">
             {ev?.type === 'DRAW' && (

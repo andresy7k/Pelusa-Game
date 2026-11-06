@@ -16,6 +16,7 @@ import com.pelusa.domain.engine.Table.DrawResult;
 import com.pelusa.domain.engine.Table.StealResult;
 import com.pelusa.domain.model.Card;
 import com.pelusa.domain.port.ShufflePort;
+import com.pelusa.domain.port.StarterPort;
 import com.pelusa.domain.service.DeckFactory;
 import com.pelusa.domain.service.RoomCode;
 import com.pelusa.domain.service.ScoringService;
@@ -71,6 +72,8 @@ public class GameService {
   private final TurnRepository turns;
   private final ActionKeyRepository keys;
   private final ShufflePort shuffle;
+  /** Sorteo de quién empieza (SecureRandom en prod, asiento 0 en pruebas). */
+  private final StarterPort starter;
   private final ObjectMapper json;
   /** Exigir el token de asiento en cada acción (ver SeatTokens). Solo se apaga en el perfil test. */
   private final boolean requireSeatToken;
@@ -82,6 +85,7 @@ public class GameService {
       TurnRepository turns,
       ActionKeyRepository keys,
       ShufflePort shuffle,
+      StarterPort starter,
       ObjectMapper json,
       @Value("${pelusa.security.require-seat-token:true}") boolean requireSeatToken) {
     this.games = games;
@@ -90,6 +94,7 @@ public class GameService {
     this.turns = turns;
     this.keys = keys;
     this.shuffle = shuffle;
+    this.starter = starter;
     this.json = json;
     this.requireSeatToken = requireSeatToken;
   }
@@ -103,7 +108,8 @@ public class GameService {
   @Transactional
   public IssuedGame create(List<String> names, Integer firstPlayerIndex, boolean startNow) {
     validateNames(names);
-    int first = firstPlayerIndex == null ? 0 : firstPlayerIndex;
+    // Sin jugador inicial explícito, lo decide un sorteo (la UI ya no lo pregunta).
+    int first = firstPlayerIndex == null ? starter.pick(names.size()) : firstPlayerIndex;
     if (first < 0 || first >= names.size()) {
       throw new IllegalArgumentException("firstPlayerIndex fuera de rango");
     }
@@ -206,8 +212,12 @@ public class GameService {
     }
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
     requireSeat(game, ps, playerId, token);
-    if ("ONLINE".equals(game.getMode()) && ps.size() < 2) {
-      throw new DomainException("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores");
+    if ("ONLINE".equals(game.getMode())) {
+      if (ps.size() < 2) {
+        throw new DomainException("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores");
+      }
+      // En una sala el sorteo es al empezar: recién ahí se sabe quiénes se sentaron.
+      game.setCurrentPlayerId(ps.get(starter.pick(ps.size())).getId());
     }
     return begin(game);
   }
