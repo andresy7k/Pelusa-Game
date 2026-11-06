@@ -31,17 +31,19 @@ curl -i $API/actuator/health     # 200 con chequeo real de la BD
 ```bash
 # -D guarda las cabeceras de la respuesta: de ahí sale el token de la partida.
 curl -s -D /tmp/headers.txt -X POST $API/api/games -H 'Content-Type: application/json' \
-  -d '{"names":["Ana","Beto"],"firstPlayerIndex":0}' | tee /tmp/game.json
+  -d '{"names":["Ana","Beto"],"avatars":[4,9],"firstPlayerIndex":0}' | tee /tmp/game.json
 TOKEN=$(grep -i '^x-game-token:' /tmp/headers.txt | cut -d' ' -f2 | tr -d '\r')
 GAME=$(sed -E 's/.*"id":"([^"]+)".*/\1/;q' /tmp/game.json)
 ANA=$(grep -o '"players":\[{"id":"[^"]*' /tmp/game.json | sed 's/.*"id":"//')
-BETO=$(grep -o '"seat":0},{"id":"[^"]*' /tmp/game.json | sed 's/.*"id":"//')
+BETO=$(grep -o '"seat":0,"avatar":[0-9]*},{"id":"[^"]*' /tmp/game.json | sed 's/.*"id":"//')
 echo "$GAME $ANA $BETO $TOKEN"
 ```
 
-Respuesta: `status: CREATED`, `deckRemaining: 110`, `players[]`, frentes vacíos.
+Respuesta: `status: CREATED`, `deckRemaining: 110`, `players[]` (cada uno con su `avatar`), frentes vacíos.
+`avatars` (opcional): el monstruo 1–10 de cada jugador, en el orden de `names`; sin él, uno distinto por asiento.
+`firstPlayerIndex` (opcional): sin él, quién empieza se sortea.
 Errores: 400 `VALIDATION_FAILED` (menos de 2 o más de 6 nombres, nombres repetidos,
-`firstPlayerIndex` fuera de rango).
+`firstPlayerIndex` fuera de rango, `avatars` con otro largo que `names` o fuera de 1–10).
 
 ```bash
 curl -i -X POST $API/api/games -H 'Content-Type: application/json' -d '{"names":["Ana","Ana"]}'   # 400
@@ -117,7 +119,7 @@ Cada elemento del histórico trae `id`, `createdAt`, `startedAt`, `finishedAt`,
 
 ```bash
 curl -s -X POST $API/api/games/online -H 'Content-Type: application/json' \
-  -d '{"name":"Ana","capacity":2}' | tee /tmp/room.json      # 201: {game:{code,...}, playerId, playerToken}
+  -d '{"name":"Ana","capacity":2,"avatar":4}' | tee /tmp/room.json      # 201: {game:{code,...}, playerId, playerToken}
 CODE=$(grep -o '"code":"[^"]*' /tmp/room.json | sed 's/"code":"//')
 ROOM=$(grep -o '"game":{"id":"[^"]*' /tmp/room.json | sed 's/.*"id":"//')
 HOST=$(grep -o '"playerId":"[^"]*' /tmp/room.json | tail -1 | sed 's/"playerId":"//')

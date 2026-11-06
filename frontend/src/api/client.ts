@@ -49,10 +49,15 @@ async function request<T>(path: string, init?: RequestInit, key?: string, gameId
 
 export const api = {
   /** Crear partida; con `start` vuelve ya iniciada (un request en vez de dos). */
-  async create(names: string[], firstPlayerIndex: number | null, start = false): Promise<GameState> {
+  async create(
+    names: string[],
+    firstPlayerIndex: number | null,
+    start = false,
+    avatars?: number[],
+  ): Promise<GameState> {
     const { data, res } = await send<GameState>('/api/games', {
       method: 'POST',
-      body: JSON.stringify({ names, firstPlayerIndex, start }),
+      body: JSON.stringify({ names, firstPlayerIndex, start, avatars }),
     });
     // El token llega en cabecera (el cuerpo es el estado público de la partida).
     const token = res.headers.get('X-Game-Token');
@@ -60,17 +65,17 @@ export const api = {
     return data;
   },
   /** Abrir sala online: devuelve el código y mi playerId (host). */
-  createOnline(name: string, capacity: number): Promise<JoinResult> {
+  createOnline(name: string, capacity: number, avatar?: number | null): Promise<JoinResult> {
     return request<JoinResult>('/api/games/online', {
       method: 'POST',
-      body: JSON.stringify({ name, capacity }),
+      body: JSON.stringify({ name, capacity, avatar: avatar ?? null }),
     });
   },
-  /** Entrar por código: jugador nuevo o espectador si ya empezó. */
-  join(code: string, name: string): Promise<JoinResult> {
+  /** Entrar por código: jugador nuevo o espectador si ya empezó. Sin avatar → el primero libre. */
+  join(code: string, name: string, avatar?: number | null): Promise<JoinResult> {
     return request<JoinResult>('/api/games/join', {
       method: 'POST',
-      body: JSON.stringify({ code, name }),
+      body: JSON.stringify({ code, name, avatar: avatar ?? null }),
     });
   },
   /** Hotseat: cuerpo {}. Online: el playerId prueba quién pide empezar. */

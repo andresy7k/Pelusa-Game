@@ -217,9 +217,58 @@
   left: clamp(12px, 2vw, 24px);
   top: calc(var(--topbar-h, 70px) + 6px); /* bajo el navbar (flota sobre él) */
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
   margin: 0;
   text-align: left;
   pointer-events: none;
+}
+
+/* El avatar de quien juega: entra con un saltito cada vez que cambia el
+   turno (key = id del jugador) y respira con un halo ámbar. */
+.felt-turn-avatar {
+  position: relative;
+  display: inline-grid;
+  border-radius: 50%;
+  animation: turn-avatar-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.felt-turn-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--amber);
+  opacity: 0.6;
+  animation: turn-avatar-halo 2.4s ease-in-out infinite;
+}
+
+@keyframes turn-avatar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+}
+
+@keyframes turn-avatar-halo {
+  50% {
+    opacity: 0.15;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .felt-turn-avatar .avatar {
+    --av: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .felt-turn-avatar,
+  .felt-turn-avatar::after {
+    animation: none;
+  }
 }
 
 .felt-turn-k {
@@ -853,12 +902,12 @@
 
 .player-head {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s2);
   background: oklch(0.1 0.035 290 / 85%);
   border: 1px solid oklch(0.7 0.12 300 / 22%);
   border-radius: 999px;
-  padding: var(--s1) var(--s3);
+  padding: var(--s1) var(--s3) var(--s1) var(--s1);
   backdrop-filter: blur(4px);
   box-shadow: 0 4px 14px oklch(0 0 0 / 40%);
 }
@@ -1216,4 +1265,92 @@
 .lobby-list .who {
   color: var(--parchment-dim);
   font-size: 0.85rem;
+}
+
+/* --- Avatares en el setup y el lobby ------------------------------------- */
+
+.player-row {
+  display: grid;
+  gap: var(--s2);
+}
+
+.player-row-main {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s3);
+}
+
+.player-row-main > label {
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar-trigger {
+  position: relative;
+  flex: none;
+  padding: 0;
+  margin-bottom: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.avatar-trigger:hover {
+  transform: scale(1.06) rotate(-4deg);
+}
+
+.avatar-trigger:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 4px;
+}
+
+.avatar-trigger-edit {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  color: oklch(0.18 0.04 292);
+  background: var(--amber);
+  box-shadow: 0 1px 4px oklch(0 0 0 / 40%);
+}
+
+.player-row-picker {
+  padding: var(--s2);
+  border-radius: var(--r-control);
+  background: oklch(1 0 0 / 4%);
+  animation: picker-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.online-avatar {
+  margin: var(--s3) 0;
+}
+
+.lobby-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-row-picker {
+    animation: none;
+  }
+
+  .avatar-trigger {
+    transition: none;
+  }
 }
