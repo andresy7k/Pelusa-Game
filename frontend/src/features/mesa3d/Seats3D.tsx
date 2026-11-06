@@ -206,9 +206,10 @@ function NamePlate({
   )
 }
 
-/** El anfitrión: Pelusa 10 rosa a escala de juguete, junto al mazo. */
-function HostMascot() {
-  const value = HOST.monster
+/** El anfitrión: Pelusa 10 rosa a escala de juguete, junto al mazo. Si un
+ *  jugador ya la eligió, el crupier es otro monstruo que nadie tenga. */
+function HostMascot({ taken }: { taken: number[] }) {
+  const value = ([HOST.monster, 9, 8, 7, 6, 5, 4, 3, 2, 1] as HeroValue[]).find((v) => !taken.includes(v)) ?? HOST.monster
   const feet = feetRadius(HERO.monsters[value].scale) * HERO.character.scale * HOST.scale
   return (
     <group position={[HOST.x, feet, HOST.z]} rotation={[0, HOST.rot, 0]} scale={HOST.scale}>
@@ -228,7 +229,10 @@ export function Seats3D({ seats }: { seats: MesaSeatView[] }) {
           const a = seatAngle(s.seat, n)
           const x = Math.cos(a) * CHAIR.rx
           const z = Math.sin(a) * CHAIR.rz
-          const value = MESA3D.players.roster[s.seat % MESA3D.players.roster.length]
+          // Su monstruo elegido; sin dato, el del roster por asiento.
+          const value = (s.avatar && s.avatar >= 1 && s.avatar <= 10
+            ? s.avatar
+            : MESA3D.players.roster[s.seat % MESA3D.players.roster.length]) as HeroValue
           // Pies sobre el cojín; la cabeza llega ≈ 2·feet sobre el asiento.
           const feet = feetRadius(HERO.monsters[value].scale) * HERO.character.scale
           return (
@@ -245,7 +249,7 @@ export function Seats3D({ seats }: { seats: MesaSeatView[] }) {
             </group>
           )
         })}
-      <HostMascot />
+      <HostMascot taken={seats.map((s) => s.avatar ?? 0)} />
     </group>
   )
 }

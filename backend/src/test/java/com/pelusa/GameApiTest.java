@@ -45,6 +45,9 @@ class GameApiTest {
   @Autowired
   JdbcTemplate jdbc;
 
+  @Autowired
+  com.pelusa.infrastructure.persistence.ActionKeyRepository keys;
+
   private JsonNode createGame(String... names) throws Exception {
     String body = json.writeValueAsString(java.util.Map.of("names", List.of(names)));
     MvcResult r = mvc.perform(post("/api/games").contentType(MediaType.APPLICATION_JSON).content(body))
@@ -729,6 +732,8 @@ class GameApiTest {
     JsonNode second = act(gameId, "draw", ana, key, null);
     assertThat(second.get("dustRemaining").asInt()).isEqualTo(first.get("dustRemaining").asInt());
     assertThat(second.get("fronts").get(ana.toString()).size()).isEqualTo(1);
+    // La clave quedó registrada UNA vez: el reintento no insertó otra fila.
+    assertThat(keys.findByGameId(gameId)).hasSize(1);
   }
 
   @Test

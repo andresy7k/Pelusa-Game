@@ -55,14 +55,14 @@ class GameServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new GameService(games, players, cards, turns, keys, noShuffle, json);
+    service = new GameService(games, players, cards, turns, keys, noShuffle, seats -> 0, json, true);
   }
 
   @Test
   void createOnlineGivesUpAfterFiveCodeCollisions() {
     when(games.existsByCode(anyString())).thenReturn(true);
 
-    assertThatThrownBy(() -> service.createOnline("Ana", 4))
+    assertThatThrownBy(() -> service.createOnline("Ana", null, 4))
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())
         .isEqualTo("CODE_COLLISION");
@@ -79,7 +79,7 @@ class GameServiceTest {
     when(players.findByGameIdOrderBySeatAsc(lobby.getId())).thenReturn(new ArrayList<>());
     when(players.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uq_game_name"));
 
-    assertThatThrownBy(() -> service.join(" abc234 ", "Beto"))
+    assertThatThrownBy(() -> service.join(" abc234 ", "Beto", null))
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())
         .isEqualTo("CONCURRENT_TURN");
@@ -97,7 +97,7 @@ class GameServiceTest {
     when(keys.existsByGameIdAndKey(gameId, "k1")).thenReturn(false);
     when(keys.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uq_game_key"));
 
-    assertThatThrownBy(() -> service.draw(gameId, ana, "k1"))
+    assertThatThrownBy(() -> service.draw(gameId, ana, "k1", null))
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())
         .isEqualTo("CONCURRENT_TURN");
@@ -119,42 +119,52 @@ class GameServiceTest {
         .thenReturn(Optional.of(new TurnEntity(UUID.randomUUID(), gameId, ana)));
     when(json.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
 
-    assertThatThrownBy(() -> service.draw(gameId, ana, null))
+    assertThatThrownBy(() -> service.draw(gameId, ana, null, null))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("serializar");
   }
 
   @Test
   void createValidatesNamesEvenWithoutHttpLayer() {
-    assertThatThrownBy(() -> service.create(null, null)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana"), null)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("A", "B", "C", "D", "E", "F", "G"), null))
+    assertThatThrownBy(() -> service.create(null, null, null, false)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("Ana"), null, null, false)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("A", "B", "C", "D", "E", "F", "G"), null, null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(Arrays.asList("Ana", null), null))
+    assertThatThrownBy(() -> service.create(Arrays.asList("Ana", null), null, null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana", "x".repeat(61)), null))
+    assertThatThrownBy(() -> service.create(List.of("Ana", "x".repeat(61)), null, null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana", " Ana "), null))
+    assertThatThrownBy(() -> service.create(List.of("Ana", " Ana "), null, null, false))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("repetirse");
-    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), -1))
+    // Avatares: uno por jugador y cada uno entre 1 y 10.
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), List.of(3), null, false))
+        .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("avatar");
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), Arrays.asList(3, null), null, false))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), List.of(0, 2), null, false))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), List.of(1, 11), null, false))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), null, -1, false))
         .isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).save(any());
   }
 
   @Test
   void onlineRoomValidatesNameAndCapacity() {
-    assertThatThrownBy(() -> service.createOnline(null, 4)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.createOnline("  ", 4)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.createOnline("x".repeat(61), 4)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.createOnline("Ana", 1)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.createOnline("Ana", 7)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline(null, null, 4)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline("  ", null, 4)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline("x".repeat(61), null, 4)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline("Ana\u0007", null, 4)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline("Ana", null, 1)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.createOnline("Ana", null, 7)).isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).save(any());
   }
 
   @Test
   void joinValidatesNameBeforeLookingUpTheRoom() {
-    assertThatThrownBy(() -> service.join("ABC234", " "))
+    assertThatThrownBy(() -> service.join("ABC234", " ", null))
         .isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).findByCode(any());
   }
@@ -168,7 +178,7 @@ class GameServiceTest {
 
   @Test
   void blankIdempotencyKeyIsRejectedBeforeTouchingTheGame() {
-    assertThatThrownBy(() -> service.stand(UUID.randomUUID(), UUID.randomUUID(), "  "))
+    assertThatThrownBy(() -> service.stand(UUID.randomUUID(), UUID.randomUUID(), "  ", null))
         .isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).findLockedById(any());
   }

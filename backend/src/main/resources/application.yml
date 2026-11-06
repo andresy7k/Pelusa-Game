@@ -16,6 +16,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Agrupa INSERT/UPDATE en lotes de hasta 50 por viaje a la BD: crear una
+        # partida inserta 110 cartas. Sin order_inserts a propósito: las tablas se
+        # relacionan por columnas UUID (no por asociaciones JPA), así que Hibernate
+        # no sabría que games debe ir antes que players.
+        jdbc:
+          batch_size: 50
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -25,7 +31,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Solo salud: info/metrics/env exponen versiones y configuración.
+        include: health
   endpoint:
     health:
       show-details: when-authorized
@@ -41,6 +48,22 @@ server:
   error:
     include-message: never
     include-binding-errors: never
+    include-stacktrace: never
+    whitelabel:
+      enabled: false
+  tomcat:
+    # Cabeceras enormes = petición maliciosa; el juego usa unas pocas y cortas.
+    max-http-request-header-size: 8KB
+
+# Seguridad (ver infrastructure/security y application/SeatTokens).
+pelusa:
+  security:
+    require-seat-token: true # cada acción debe traer el token secreto del dispositivo
+    max-body-bytes: 16384 # ninguna petición válida del juego pesa más de unos cientos de bytes
+  rate-limit: # pedidos por minuto y por IP
+    create-per-minute: 20 # crear partida / abrir sala / unirse
+    action-per-minute: 240 # sacar, plantarse, robar, guardar…
+    read-per-minute: 600 # GET (incluye el sondeo de las salas online cada 2,5 s)
 
 logging:
   pattern:

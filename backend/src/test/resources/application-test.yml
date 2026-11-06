@@ -8,5 +8,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    # Contar sentencias SQL en las pruebas de rendimiento (PerformanceBudgetTest).
+    properties:
+      hibernate:
+        generate_statistics: true
   flyway:
     enabled: true
+
+# Las pruebas de reglas juegan sin token y sin límite de pedidos; la seguridad
+# se prueba aparte, encendida, en SecurityTest.
+pelusa:
+  security:
+    require-seat-token: false
+  rate-limit:
+    create-per-minute: 100000
+    action-per-minute: 100000
+    read-per-minute: 100000

@@ -10,9 +10,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "action_keys", uniqueConstraints = @UniqueConstraint(name = "uq_game_key", columnNames = {"game_id", "action_key"}))
-public class ActionKeyEntity {
-  @Id
-  private UUID id;
+public class ActionKeyEntity extends AssignedIdEntity {
 
   @Column(name = "game_id", nullable = false)
   private UUID gameId;

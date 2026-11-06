@@ -2,71 +2,85 @@
    Cada valor define su paleta (--c-bg, --c-bg2, --c-accent, --c-monster) vía
    .card[data-v]; el resto (forma, costura, tipografía, motion) es común. */
 
+:root {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
 /* Paleta por valor (referencia: cartas físicas) */
-.card[data-v='1'] {
+.card[data-v='1'],
+.avatar[data-v='1'] {
   --c-bg: #a9d6f5;
   --c-bg2: #8fc6ec;
   --c-accent: #1f6fb8;
   --c-monster: #6fb4e8;
 }
 
-.card[data-v='2'] {
+.card[data-v='2'],
+.avatar[data-v='2'] {
   --c-bg: #474c87;
   --c-bg2: #3a3f75;
   --c-accent: #1e2150;
   --c-monster: #5a5fa0;
 }
 
-.card[data-v='3'] {
+.card[data-v='3'],
+.avatar[data-v='3'] {
   --c-bg: #e08a5c;
   --c-bg2: #d07a4c;
   --c-accent: #d9332f;
   --c-monster: #d93a30;
 }
 
-.card[data-v='4'] {
+.card[data-v='4'],
+.avatar[data-v='4'] {
   --c-bg: #b78fd0;
   --c-bg2: #a97cc4;
   --c-accent: #7a3e9e;
   --c-monster: #a83b90;
 }
 
-.card[data-v='5'] {
+.card[data-v='5'],
+.avatar[data-v='5'] {
   --c-bg: #9ed37a;
   --c-bg2: #8cc468;
   --c-accent: #2f8e44;
   --c-monster: #6fbc57;
 }
 
-.card[data-v='6'] {
+.card[data-v='6'],
+.avatar[data-v='6'] {
   --c-bg: #efa23f;
   --c-bg2: #df9432;
   --c-accent: #e87830;
   --c-monster: #f08a2e;
 }
 
-.card[data-v='7'] {
+.card[data-v='7'],
+.avatar[data-v='7'] {
   --c-bg: #f2e06e;
   --c-bg2: #e8d45a;
   --c-accent: #c9a61e;
   --c-monster: #e8c84a;
 }
 
-.card[data-v='8'] {
+.card[data-v='8'],
+.avatar[data-v='8'] {
   --c-bg: #7a79d0;
   --c-bg2: #6a69b8;
   --c-accent: #33368c;
   --c-monster: #2e2e6e;
 }
 
-.card[data-v='9'] {
+.card[data-v='9'],
+.avatar[data-v='9'] {
   --c-bg: #7ed4cb;
   --c-bg2: #6ac4ba;
   --c-accent: #25857a;
   --c-monster: #46b4a6;
 }
 
-.card[data-v='10'] {
+.card[data-v='10'],
+.avatar[data-v='10'] {
   --c-bg: #f291c4;
   --c-bg2: #e87fb6;
   --c-accent: #be2f7a;
@@ -85,10 +99,16 @@
   width: 76px;
   height: 104px;
   border-radius: var(--r-card);
+  /* Papel de acuarela: grano fino (SVG en data URI, permitido por la CSP)
+     + manchas de luz y sombra sobre el degradé del valor. */
   background:
+    var(--paper-grain),
     radial-gradient(70% 55% at 20% 12%, rgb(255 255 255 / 30%), transparent 70%),
+    radial-gradient(45% 35% at 78% 38%, rgb(255 255 255 / 12%), transparent 70%),
     radial-gradient(80% 60% at 92% 100%, rgb(20 26 48 / 18%), transparent 72%),
     linear-gradient(160deg, var(--c-bg), var(--c-bg2));
+  background-size: 160px 160px, auto, auto, auto, auto;
+  background-blend-mode: soft-light, normal, normal, normal, normal;
   box-shadow: var(--shadow-card), inset 0 1px 0 rgb(255 255 255 / 55%);
   overflow: hidden;
   transition: transform var(--t-med) var(--ease-out), box-shadow var(--t-med) var(--ease-out);
@@ -139,6 +159,8 @@
   letter-spacing: -0.02em;
   color: transparent;
   -webkit-text-stroke: 6px #fff;
+  /* El sticker del número se despega apenas del papel. */
+  filter: drop-shadow(0 1.5px 0 rgb(20 26 48 / 22%));
 }
 
 .card-value::after {

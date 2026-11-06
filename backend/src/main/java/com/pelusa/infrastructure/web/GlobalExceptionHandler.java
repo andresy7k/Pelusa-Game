@@ -29,6 +29,7 @@ public class GlobalExceptionHandler {
 
   private static final Set<String> NOT_FOUND =
       Set.of("GAME_NOT_FOUND", "CODE_NOT_FOUND");
+  private static final Set<String> FORBIDDEN = Set.of("SEAT_FORBIDDEN");
   private static final Set<String> CONFLICT =
       Set.of("GAME_FINISHED", "GAME_NOT_FINISHED", "GAME_NOT_STARTED", "NOT_YOUR_TURN", "ALREADY_STARTED",
           "ALREADY_STASHED_THIS_TURN", "CONCURRENT_TURN", "CODE_COLLISION",
@@ -42,6 +43,8 @@ public class GlobalExceptionHandler {
     HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
     if (NOT_FOUND.contains(e.getCode())) {
       status = HttpStatus.NOT_FOUND;
+    } else if (FORBIDDEN.contains(e.getCode())) {
+      status = HttpStatus.FORBIDDEN;
     } else if (CONFLICT.contains(e.getCode())) {
       status = HttpStatus.CONFLICT;
     }

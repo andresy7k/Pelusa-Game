@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { GameState } from '../api/types';
 import { ApiException } from '../api/types';
@@ -6,10 +6,23 @@ import { ApiException } from '../api/types';
 // Hook de estado del servidor: la única fuente es GET /api/games/{id}.
 // Después de cada mutación se reemplaza el estado con lo que el backend
 // devuelve (reconciliación, nunca predicción local de reglas).
-export function useGame(id: string | undefined) {
-  const [state, setState] = useState<GameState | null>(null);
+//
+// `initial`: el estado que ya trajo la pantalla anterior (crear/iniciar). Si
+// llega, el tablero se pinta al instante y no repite el GET al montarse.
+// (Board borra ese estado del historial apenas lo usa: si no, recargar la
+// página volvería a pintar la mesa recién creada.)
+
+/** Errores que indican que la pantalla quedó atrás del servidor. */
+const STALE_CODES = new Set(['CONCURRENT_TURN', 'NOT_YOUR_TURN', 'GAME_FINISHED', 'GAME_NOT_STARTED']);
+
+export function useGame(id: string | undefined, initial?: GameState) {
+  const seeded = initial && initial.id === id ? initial : null;
+  const [state, setState] = useState<GameState | null>(seeded);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Cada mutación sube este contador. Un sondeo que salió ANTES de la mutación
+  // y vuelve DESPUÉS traería un estado viejo: se descarta en vez de pisar el nuevo.
+  const mutations = useRef(0);
 
   const refresh = useCallback(async () => {
     if (!id) return;
@@ -22,23 +35,28 @@ export function useGame(id: string | undefined) {
   }, [id]);
 
   useEffect(() => {
-    void refresh();
+    if (!seeded) void refresh();
+    // Solo al cambiar de partida; `seeded` es el estado inicial de esta misma.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh]);
 
-  // Salas ONLINE: el estado cambia por otros jugadores, así que se sondea.
-  // (En hotseat es un request barato cada 2.5 s; con la pestaña oculta, nada.)
+  // Solo las salas ONLINE cambian por otros jugadores, así que solo ahí se sondea.
+  // En hotseat todo pasa en este dispositivo y cada acción ya trae el estado:
+  // sondear sería tráfico (y consultas a la BD) sin ninguna información nueva.
   // Cada minuto, un ping sin BD para que Render Free no duerma la instancia.
+  const online = state?.mode === 'ONLINE';
   useEffect(() => {
     if (!id) return;
     let alive = true;
     let polling = false;
     const tick = () => {
-      if (document.hidden || polling) return;
+      if (!online || document.hidden || polling) return;
       polling = true;
+      const seq = mutations.current;
       api
         .state(id)
         .then((next) => {
-          if (alive) setState(next);
+          if (alive && seq === mutations.current) setState(next);
         })
         .catch(() => {
           // Un fallo de red transitorio no debe borrar la mesa en pantalla.
@@ -56,9 +74,10 @@ export function useGame(id: string | undefined) {
       window.clearInterval(poll);
       window.clearInterval(keepAlive);
     };
-  }, [id]);
+  }, [id, online]);
 
   async function act(fn: () => Promise<GameState>): Promise<GameState | null> {
+    mutations.current += 1;
     setBusy(true);
     setError(null);
     try {
@@ -67,8 +86,9 @@ export function useGame(id: string | undefined) {
       return next;
     } catch (e) {
       setError(e instanceof ApiException ? e.apiError.errorCode : 'UNKNOWN');
-      // 409 de concurrencia: releer para mostrar lo último
-      if (e instanceof ApiException && e.apiError.errorCode === 'CONCURRENT_TURN') {
+      // El servidor ve otra mesa que la pantalla (otro movimiento se adelantó,
+      // o el turno/partida ya cambió): releer para mostrar lo último.
+      if (e instanceof ApiException && STALE_CODES.has(e.apiError.errorCode)) {
         await refresh();
       }
       return null;

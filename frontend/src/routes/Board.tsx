@@ -1,17 +1,23 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recall } from '../api/identity';
-import { friendlyMessage } from '../api/types';
+import { friendlyMessage, type GameState } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
+import { Avatar, avatarOf } from '../components/Avatar';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
 import type { MesaFlight } from '../features/mesa3d/TableCanvasR3F';
 import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
 
-const TableCanvasR3F = lazy(() =>
-  import('../features/mesa3d/TableCanvasR3F').then((module) => ({ default: module.TableCanvasR3F }))
-);
+const loadMesa3D = () => import('../features/mesa3d/TableCanvasR3F');
+const TableCanvasR3F = lazy(() => loadMesa3D().then((module) => ({ default: module.TableCanvasR3F })));
+/** Con el puntero o el foco sobre "Vista 3D" ya se baja el código 3D: al
+ *  hacer click casi todo llegó. Solo por intención: quien juega en 2D no paga
+ *  la descarga. */
+const prefetchMesa3D = () => {
+  void loadMesa3D();
+};
 
 // Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
 // es "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado
@@ -28,7 +34,18 @@ const ARC_HALF = ARC_DEG / 2;
 
 export function Board() {
   const { id } = useParams();
-  const { state, error, busy, act } = useGame(id);
+  // Estado que trajo la pantalla anterior (crear/iniciar): pinta sin esperar otro GET.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const seed = (location.state as { game?: GameState } | null)?.game;
+  const { state, error, busy, act } = useGame(id, seed);
+  // El historial guarda `state` entre recargas: una vez usado, se borra para
+  // que F5 pida la mesa al servidor en vez de repintar la recién creada.
+  useEffect(() => {
+    if (seed) navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    // Solo al montar: después ya no hay semilla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Identidad online de ESTE navegador (el backend no tiene login).
   const identity = useMemo(() => (id ? recall(id) : null), [id]);
   // Vista 3D del paso 2: ?vista=3d la activa y ?cam= elige la vista fija.
@@ -100,6 +117,7 @@ export function Board() {
   const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
   const stealValue = state.lastDrawnValue;
   const rivals = state.players.filter((p) => p.id !== meId);
+  const turnPlayer = state.players.find((p) => p.id === state.currentPlayerId) ?? null;
   // Asiento de quien tiene el turno (constante por render): con él disparamos
   // el vuelo 3D, porque `meId` cambia apenas se muta el estado.
   const drawerSeat = state.players.find((p) => p.id === meId)?.seat ?? 0;
@@ -230,12 +248,27 @@ export function Board() {
         {/* Texto del turno: plano, arriba a la izquierda, sobre el fondo
             (sin recuadro). El estado de turno también vive en cada chapa. */}
         <p className="felt-turn" role="status">
-          <span className="felt-turn-k">{finished ? 'Mesa cerrada' : 'Turno de'}</span>
-          <strong>{finished ? 'Partida terminada' : nameOf(state.players, state.currentPlayerId)}</strong>
+          {turnPlayer && !finished && (
+            <span className="felt-turn-avatar" key={turnPlayer.id}>
+              <Avatar value={avatarOf(turnPlayer)} size="lg" />
+            </span>
+          )}
+          <span className="felt-turn-text">
+            <span className="felt-turn-k">
+              {finished ? 'Mesa cerrada' : online && turnPlayer?.id === meId ? 'Tu turno' : 'Turno de'}
+            </span>
+            <strong>{finished ? 'Partida terminada' : nameOf(state.players, state.currentPlayerId)}</strong>
+          </span>
         </p>
 
         {!finished && <TurnTimer deadline={state.turnDeadlineAt} />}
 
+        {/* Recién repartido (todavía nadie actuó): se anuncia el resultado del sorteo. */}
+        {!ev && !finished && state.deckRemaining === 110 && (
+          <div className="event-chip" role="status">
+            Sorteo: empieza <strong>{nameOf(state.players, state.currentPlayerId)}</strong>
+          </div>
+        )}
         {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH' || ev?.type === 'TURN_EXPIRED') && (
           <div className="event-chip">
             {ev?.type === 'DRAW' && (
@@ -267,6 +300,8 @@ export function Board() {
           <TableCanvasR3F
             seatCount={state.players.length}
             cam={cam}
+            mySeat={online ? (state.players.find((p) => p.id === meId)?.seat ?? null) : (turnPlayer?.seat ?? null)}
+            turnSeat={turnPlayer?.seat ?? null}
             canAct={myTurn && !busy}
             onDraw={() => {
               void draw()
@@ -283,7 +318,9 @@ export function Board() {
                 .map((p) => ({
                   seat: p.seat,
                   name: p.name,
-                  isTurn: p.id === meId && !finished,
+                  avatar: avatarOf(p),
+                  // Quien tiene el turno (no "yo": online veo los turnos ajenos).
+                  isTurn: p.id === state.currentPlayerId && !finished,
                   values: state.fronts[p.id] ?? [],
                 })),
             }}
@@ -329,6 +366,7 @@ export function Board() {
                     data-player={p.id}
                   >
                     <header className="player-head">
+                      <Avatar value={avatarOf(p)} size="sm" />
                       <h2>
                         {p.name}
                         {active && <span className="turn-dot" role="img" aria-label="en turno" />}
@@ -351,7 +389,13 @@ export function Board() {
         </div>
         )}
 
-        <button type="button" className="vista-toggle" onClick={toggleVista}>
+        <button
+          type="button"
+          className="vista-toggle"
+          onClick={toggleVista}
+          onPointerEnter={vista3d ? undefined : prefetchMesa3D}
+          onFocus={vista3d ? undefined : prefetchMesa3D}
+        >
           {vista3d ? 'Vista clásica' : 'Vista 3D · WIP'}
         </button>
       </div>

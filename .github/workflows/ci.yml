@@ -5,6 +5,10 @@ on:
     branches: ["**"]
   pull_request:
 
+# Mínimo privilegio: el CI solo lee el código (no puede escribir en el repo).
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest

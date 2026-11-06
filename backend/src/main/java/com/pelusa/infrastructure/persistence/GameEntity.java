@@ -10,9 +10,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "games")
-public class GameEntity {
-  @Id
-  private UUID id;
+public class GameEntity extends AssignedIdEntity {
 
   @Column(nullable = false, length = 16)
   private String status;
@@ -44,6 +42,10 @@ public class GameEntity {
   @Column(name = "capacity")
   private int capacity = 6;
 
+  /** SHA-256 del token del dispositivo que creó una partida LOCAL (V8). */
+  @Column(name = "control_token_hash", length = 64)
+  private String controlTokenHash;
+
   @Version
   private long version;
 
@@ -55,7 +57,6 @@ public class GameEntity {
     this.createdAt = OffsetDateTime.now();
   }
 
-  public UUID getId() { return id; }
   public String getStatus() { return status; }
   public UUID getCurrentPlayerId() { return currentPlayerId; }
   public UUID getWinnerId() { return winnerId; }
@@ -64,6 +65,8 @@ public class GameEntity {
   public String getMode() { return mode; }
   public int getCapacity() { return capacity; }
   public OffsetDateTime getCreatedAt() { return createdAt; }
+  public String getControlTokenHash() { return controlTokenHash; }
+  public void setControlTokenHash(String hash) { this.controlTokenHash = hash; }
   public OffsetDateTime getStartedAt() { return startedAt; }
   public OffsetDateTime getFinishedAt() { return finishedAt; }
   public void setStatus(String status) { this.status = status; }

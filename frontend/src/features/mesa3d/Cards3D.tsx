@@ -23,6 +23,8 @@ const { w: CW, h: CH, t: CT, cornerR: CR } = CARD.size
 export interface MesaSeatView {
   seat: number
   name: string
+  /** Monstruo elegido (1..10): es el personaje sentado en esa silla. */
+  avatar?: number
   values: number[]
   isTurn: boolean
 }

@@ -33,7 +33,8 @@ public record GameView(
     Map<String, Object> lastEvent,
     ResultView result) {
 
-  public record PlayerView(UUID id, String name, int seat) {}
+  /** {@code avatar}: monstruo 1..10 que eligió el jugador. */
+  public record PlayerView(UUID id, String name, int seat, int avatar) {}
 
   public record StashView(int sum, Map<Integer, Long> countsByValue) {}
 
