@@ -45,7 +45,7 @@ public class GameController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public GameView create(@Valid @RequestBody CreateGameRequest req) {
-    return service.create(req.names(), req.firstPlayerIndex());
+    return service.create(req.names(), req.firstPlayerIndex(), req.start());
   }
 
   /** Abrir sala online: devuelve 201 con el código de invitación y el playerId del host. */

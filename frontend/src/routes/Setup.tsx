@@ -15,6 +15,11 @@ import { ApiException, friendlyMessage, type GameState } from '../api/types';
 //   /setup?game=<uuid>  → lobby de esa sala (reload-safe vía localStorage)
 export function Setup() {
   const [search] = useSearchParams();
+  // Mientras se escriben los nombres, se baja en segundo plano el código del
+  // tablero: al tocar "Crear y empezar" ya está listo y no hay espera extra.
+  useEffect(() => {
+    void import('./Board');
+  }, []);
   const gameId = search.get('game');
   const codeParam = search.get('code') ?? '';
 
@@ -93,9 +98,10 @@ function LocalSetup() {
     setBusy(true);
     setError(null);
     try {
-      const game = await api.create(list, first);
-      await api.start(game.id);
-      navigate(`/game/${game.id}`);
+      // Un solo request: el backend la crea ya iniciada. El estado viaja con la
+      // navegación para que el tablero se pinte sin volver a pedirlo.
+      const game = await api.create(list, first, true);
+      navigate(`/game/${game.id}`, { state: { game } });
     } catch (err) {
       setError(err instanceof ApiException ? friendlyMessage(err.apiError.errorCode) : 'Error');
     } finally {
@@ -186,7 +192,7 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
         const r = await api.join(code.trim().toUpperCase(), clean);
         if (r.spectator) {
           // La partida ya empezó: se mira, no se juega.
-          navigate(`/game/${r.game.id}`);
+          navigate(`/game/${r.game.id}`, { state: { game: r.game } });
           return;
         }
         if (!r.playerId) throw new Error('sin playerId');
@@ -313,7 +319,7 @@ function Lobby({ gameId }: { gameId: string }) {
         if (!alive) return;
         setState(next);
         setError(null);
-        if (next.status !== 'CREATED') navigate(`/game/${gameId}`);
+        if (next.status !== 'CREATED') navigate(`/game/${gameId}`, { state: { game: next } });
       } catch (err) {
         if (alive && err instanceof ApiException) setError(err.apiError.errorCode);
       }
@@ -350,8 +356,8 @@ function Lobby({ gameId }: { gameId: string }) {
     setBusy(true);
     setError(null);
     try {
-      await api.start(gameId, me.playerId);
-      navigate(`/game/${gameId}`);
+      const game = await api.start(gameId, me.playerId);
+      navigate(`/game/${gameId}`, { state: { game } });
     } catch (err) {
       setError(err instanceof ApiException ? err.apiError.errorCode : 'UNKNOWN');
     } finally {

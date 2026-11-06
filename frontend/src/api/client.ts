@@ -32,10 +32,11 @@ async function request<T>(path: string, init?: RequestInit, key?: string): Promi
 }
 
 export const api = {
-  create(names: string[], firstPlayerIndex: number | null): Promise<GameState> {
+  /** Crear partida; con `start` vuelve ya iniciada (un request en vez de dos). */
+  create(names: string[], firstPlayerIndex: number | null, start = false): Promise<GameState> {
     return request<GameState>('/api/games', {
       method: 'POST',
-      body: JSON.stringify({ names, firstPlayerIndex }),
+      body: JSON.stringify({ names, firstPlayerIndex, start }),
     });
   },
   /** Abrir sala online: devuelve el código y mi playerId (host). */

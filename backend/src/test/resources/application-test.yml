@@ -8,5 +8,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    # Contar sentencias SQL en las pruebas de rendimiento (PerformanceBudgetTest).
+    properties:
+      hibernate:
+        generate_statistics: true
   flyway:
     enabled: true

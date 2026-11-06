@@ -90,8 +90,12 @@ public class GameService {
 
   // ---------- creación ----------
 
+  /**
+   * Crear (y opcionalmente iniciar) en una sola transacción: el hotseat crea y
+   * empieza enseguida, así se ahorra un viaje navegador → servidor → BD.
+   */
   @Transactional
-  public GameView create(List<String> names, Integer firstPlayerIndex) {
+  public GameView create(List<String> names, Integer firstPlayerIndex, boolean startNow) {
     validateNames(names);
     int first = firstPlayerIndex == null ? 0 : firstPlayerIndex;
     if (first < 0 || first >= names.size()) {
@@ -106,10 +110,9 @@ public class GameService {
     games.save(game);
     players.saveAll(ps);
     game.setCurrentPlayerId(ps.get(first).getId());
-    games.save(game);
 
     seedDeck(gameId);
-    return view(gameId, null);
+    return startNow ? start(gameId, null) : view(gameId, null);
   }
 
   @Transactional
@@ -381,7 +384,7 @@ public class GameService {
     TurnEntity turn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId).orElseThrow();
     Table table = rebuild(game, ps, rows, turn);
     Map<String, Object> lastEvent = action.run(table, turn, rows);
-    return view(gameId, lastEvent);
+    return view(game, ps, rows, lastEvent);
   }
 
   private Table rebuild(GameEntity game, List<PlayerEntity> ps, List<CardEntity> rows, TurnEntity open) {
@@ -551,9 +554,18 @@ public class GameService {
   }
 
   private GameView view(UUID gameId, Map<String, Object> lastEvent) {
-    GameEntity game = games.getReferenceById(gameId);
-    List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
-    List<CardEntity> rows = cards.findByGameId(gameId);
+    return view(games.getReferenceById(gameId), players.findByGameIdOrderBySeatAsc(gameId),
+        cards.findByGameId(gameId), lastEvent);
+  }
+
+  /**
+   * Vista a partir de datos ya cargados: tras una acción, guarded() ya tiene la
+   * partida, los jugadores y las 110 cartas (gestionadas, con los cambios hechos),
+   * así que no se vuelven a pedir a la BD.
+   */
+  private GameView view(GameEntity game, List<PlayerEntity> ps, List<CardEntity> rows,
+      Map<String, Object> lastEvent) {
+    UUID gameId = game.getId();
     int deck = 0;
     Map<UUID, List<Integer>> fronts = new HashMap<>();
     Map<UUID, List<Integer>> stashValues = new HashMap<>();
@@ -580,9 +592,8 @@ public class GameService {
     }
     Map<String, Object> event = lastEvent;
     if (event == null) {
-      event = turns.findByGameIdOrderByStartedAtDesc(gameId).stream()
-          .filter(t -> t.getDetail() != null)
-          .findFirst()
+      // Solo el último turno con evento (antes se traían TODOS los turnos de la partida).
+      event = turns.findFirstByGameIdAndDetailIsNotNullOrderByStartedAtDesc(gameId)
           .map(t -> {
             try {
               return json.readValue(t.getDetail(), MAP_TYPE);
@@ -594,10 +605,6 @@ public class GameService {
     }
     ResultView result = null;
     if ("FINISHED".equals(game.getStatus())) {
-      Map<UUID, String> names = new HashMap<>();
-      for (PlayerEntity p : ps) {
-        names.put(p.getId(), p.getName());
-      }
       List<ScoreView> scores = new ArrayList<>();
       for (PlayerEntity p : ps) {
         StashView s = stashed.get(p.getId());

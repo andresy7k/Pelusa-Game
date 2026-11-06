@@ -6,9 +6,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "turns")
-public class TurnEntity {
-  @Id
-  private UUID id;
+public class TurnEntity extends AssignedIdEntity {
 
   @Column(name = "game_id", nullable = false)
   private UUID gameId;

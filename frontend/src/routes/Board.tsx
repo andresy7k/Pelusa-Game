@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recall } from '../api/identity';
-import { friendlyMessage } from '../api/types';
+import { friendlyMessage, type GameState } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
@@ -28,7 +28,9 @@ const ARC_HALF = ARC_DEG / 2;
 
 export function Board() {
   const { id } = useParams();
-  const { state, error, busy, act } = useGame(id);
+  // Estado que trajo la pantalla anterior (crear/iniciar): pinta sin esperar otro GET.
+  const seed = (useLocation().state as { game?: GameState } | null)?.game;
+  const { state, error, busy, act } = useGame(id, seed);
   // Identidad online de ESTE navegador (el backend no tiene login).
   const identity = useMemo(() => (id ? recall(id) : null), [id]);
   // Vista 3D del paso 2: ?vista=3d la activa y ?cam= elige la vista fija.

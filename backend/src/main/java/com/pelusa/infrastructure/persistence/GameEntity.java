@@ -10,9 +10,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "games")
-public class GameEntity {
-  @Id
-  private UUID id;
+public class GameEntity extends AssignedIdEntity {
 
   @Column(nullable = false, length = 16)
   private String status;
@@ -55,7 +53,6 @@ public class GameEntity {
     this.createdAt = OffsetDateTime.now();
   }
 
-  public UUID getId() { return id; }
   public String getStatus() { return status; }
   public UUID getCurrentPlayerId() { return currentPlayerId; }
   public UUID getWinnerId() { return winnerId; }

@@ -126,18 +126,18 @@ class GameServiceTest {
 
   @Test
   void createValidatesNamesEvenWithoutHttpLayer() {
-    assertThatThrownBy(() -> service.create(null, null)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana"), null)).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("A", "B", "C", "D", "E", "F", "G"), null))
+    assertThatThrownBy(() -> service.create(null, null, false)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("Ana"), null, false)).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.create(List.of("A", "B", "C", "D", "E", "F", "G"), null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(Arrays.asList("Ana", null), null))
+    assertThatThrownBy(() -> service.create(Arrays.asList("Ana", null), null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana", "x".repeat(61)), null))
+    assertThatThrownBy(() -> service.create(List.of("Ana", "x".repeat(61)), null, false))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> service.create(List.of("Ana", " Ana "), null))
+    assertThatThrownBy(() -> service.create(List.of("Ana", " Ana "), null, false))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("repetirse");
-    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), -1))
+    assertThatThrownBy(() -> service.create(List.of("Ana", "Beto"), -1, false))
         .isInstanceOf(IllegalArgumentException.class);
     verify(games, never()).save(any());
   }
