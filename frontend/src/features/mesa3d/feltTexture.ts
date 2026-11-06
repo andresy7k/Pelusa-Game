@@ -89,12 +89,111 @@ function roundRectPath(g: CanvasRenderingContext2D, x: number, y: number, w: num
 }
 
 const cache = new Map<number, THREE.Texture>()
+/** Capa común a cualquier cantidad de jugadores (pelaje, ojo, bordados,
+ *  etiqueta): es lo caro (~70 000 hebras) y se pinta UNA vez por sesión. */
+let baseLayer: Promise<HTMLCanvasElement> | null = null
+
+/**
+ * Canvas rasterizado en CPU (`willReadFrequently`). Para miles de trazos
+ * chicos y semitransparentes es bastante más rápido que el canvas acelerado
+ * por GPU, y la subida a WebGL es una copia directa (sin leer de vuelta de
+ * la GPU).
+ */
+function cpuCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const cv = document.createElement('canvas')
+  cv.width = w
+  cv.height = h
+  return [cv, cv.getContext('2d', { willReadFrequently: true })!]
+}
 
 /** Construye (o reusa) la textura del tapete para `seatCount` jugadores. */
 export async function buildFeltTexture(seatCount: number): Promise<THREE.Texture> {
   const hit = cache.get(seatCount)
   if (hit) return hit
 
+  baseLayer ??= paintBase()
+  const base = await baseLayer
+  // Otra llamada con la misma cantidad pudo terminar mientras esperábamos.
+  const again = cache.get(seatCount)
+  if (again) return again
+
+  const [W, H] = MESA3D.felt.size
+  const rx = MESA3D.table.rx
+  const ry = MESA3D.table.ry
+  const c = MESA3D.colors
+  const [cv, g] = cpuCanvas(W, H)
+  g.drawImage(base, 0, 0)
+  const cx = W / 2
+  const cy = H / 2
+  const pxPerUnit = W / (rx * 2)
+
+  // 5) Nidos por jugador: pelo aplastado + aro cosido + botón cosido afuera.
+  const nidoPx = MESA3D.seats.nido * pxPerUnit
+  for (let i = 0; i < seatCount; i++) {
+    const p = seatPoint(i, seatCount)
+    const px = ux(p.x, W)
+    const py = vz(p.z, H)
+    const flat = g.createRadialGradient(px, py, 0, px, py, nidoPx)
+    flat.addColorStop(0, 'rgba(10,7,26,0.5)')
+    flat.addColorStop(0.78, 'rgba(10,7,26,0.28)')
+    flat.addColorStop(1, 'rgba(10,7,26,0)')
+    g.fillStyle = flat
+    g.beginPath()
+    g.arc(px, py, nidoPx, 0, Math.PI * 2)
+    g.fill()
+    stitchCircle(g, px, py, nidoPx, c.thread, 6, [22, 14], 0.85)
+    // Botón cosido en el borde externo del nido (hacia afuera de la mesa).
+    const dx = px - cx
+    const dy = py - cy
+    const dl = Math.hypot(dx, dy) || 1
+    const bx = px + (dx / dl) * nidoPx * 0.88
+    const by = py + (dy / dl) * nidoPx * 0.88
+    g.fillStyle = '#3B2E63'
+    g.beginPath()
+    g.arc(bx, by, 26, 0, Math.PI * 2)
+    g.fill()
+    stitchCircle(g, bx, by, 30, c.thread, 3.5, [8, 7], 0.7)
+    g.fillStyle = 'rgba(8,5,20,0.9)'
+    for (const [hx, hy] of [
+      [-8, -8],
+      [8, -8],
+      [-8, 8],
+      [8, 8],
+    ] as const) {
+      g.beginPath()
+      g.arc(bx + hx, by + hy, 3.6, 0, Math.PI * 2)
+      g.fill()
+    }
+  }
+
+  // 8) Viñeta perimetral: el fieltro se hunde bajo la cenefa.
+  g.save()
+  g.translate(cx, cy)
+  g.scale(1, H / W)
+  const edge = g.createRadialGradient(0, 0, W * 0.5 * 0.82, 0, 0, W * 0.5)
+  edge.addColorStop(0, 'rgba(0,0,0,0)')
+  edge.addColorStop(0.55, 'rgba(0,0,0,0.22)')
+  edge.addColorStop(1, 'rgba(0,0,0,0.55)')
+  g.fillStyle = edge
+  g.fillRect(-W / 2, -W / 2, W, W)
+  g.restore()
+
+  // UVs: ShapeGeometry usa las coords de mundo como UV; repeat/offset llevan
+  // [-rx..rx, -ry..ry] a [0..1] (flipY: el borde lejano cae arriba del canvas).
+  const tex = new THREE.CanvasTexture(cv)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.wrapS = THREE.ClampToEdgeWrapping
+  tex.wrapT = THREE.ClampToEdgeWrapping
+  tex.repeat.set(1 / (rx * 2), 1 / (ry * 2))
+  tex.offset.set(0.5, 0.5)
+  tex.anisotropy = 8
+  tex.needsUpdate = true
+  cache.set(seatCount, tex)
+  return tex
+}
+
+/** Pinta la capa común del tapete (todo menos los nidos y la viñeta). */
+async function paintBase(): Promise<HTMLCanvasElement> {
   // Fuentes del juego (si aún no cargaron, el canvas usa su fallback).
   try {
     await Promise.all([
@@ -110,11 +209,8 @@ export async function buildFeltTexture(seatCount: number): Promise<THREE.Texture
   const rx = MESA3D.table.rx
   const ry = MESA3D.table.ry
   const c = MESA3D.colors
-  const cv = document.createElement('canvas')
-  cv.width = W
-  cv.height = H
-  const g = cv.getContext('2d')!
-  const rnd = mulberry32(0x51ce ^ (seatCount * 7919))
+  const [cv, g] = cpuCanvas(W, H)
+  const rnd = mulberry32(0x51ce)
   const cx = W / 2
   const cy = H / 2
   const pxPerUnit = W / (rx * 2)
@@ -198,45 +294,6 @@ export async function buildFeltTexture(seatCount: number): Promise<THREE.Texture
   stitchCircle(g, cx, cy, hemPx, c.thread, 7, [26, 15], 0.9)
   stitchCircle(g, cx, cy, hemPx * 0.9, c.thread, 4, [14, 12], 0.55)
 
-  // 5) Nidos por jugador: pelo aplastado + aro cosido + botón cosido afuera.
-  const nidoPx = MESA3D.seats.nido * pxPerUnit
-  for (let i = 0; i < seatCount; i++) {
-    const p = seatPoint(i, seatCount)
-    const px = ux(p.x, W)
-    const py = vz(p.z, H)
-    const flat = g.createRadialGradient(px, py, 0, px, py, nidoPx)
-    flat.addColorStop(0, 'rgba(10,7,26,0.5)')
-    flat.addColorStop(0.78, 'rgba(10,7,26,0.28)')
-    flat.addColorStop(1, 'rgba(10,7,26,0)')
-    g.fillStyle = flat
-    g.beginPath()
-    g.arc(px, py, nidoPx, 0, Math.PI * 2)
-    g.fill()
-    stitchCircle(g, px, py, nidoPx, c.thread, 6, [22, 14], 0.85)
-    // Botón cosido en el borde externo del nido (hacia afuera de la mesa).
-    const dx = px - cx
-    const dy = py - cy
-    const dl = Math.hypot(dx, dy) || 1
-    const bx = px + (dx / dl) * nidoPx * 0.88
-    const by = py + (dy / dl) * nidoPx * 0.88
-    g.fillStyle = '#3B2E63'
-    g.beginPath()
-    g.arc(bx, by, 26, 0, Math.PI * 2)
-    g.fill()
-    stitchCircle(g, bx, by, 30, c.thread, 3.5, [8, 7], 0.7)
-    g.fillStyle = 'rgba(8,5,20,0.9)'
-    for (const [hx, hy] of [
-      [-8, -8],
-      [8, -8],
-      [-8, 8],
-      [8, 8],
-    ] as const) {
-      g.beginPath()
-      g.arc(bx + hx, by + hy, 3.6, 0, Math.PI * 2)
-      g.fill()
-    }
-  }
-
   // 6) Chispas bordadas (✦): hilo lila y algún acento ámbar.
   for (let i = 0; i < 14; i++) {
     const a = rnd() * Math.PI * 2
@@ -296,28 +353,6 @@ export async function buildFeltTexture(seatCount: number): Promise<THREE.Texture
   g.stroke()
   g.restore()
 
-  // 8) Viñeta perimetral: el fieltro se hunde bajo la cenefa.
-  g.save()
-  g.translate(cx, cy)
-  g.scale(1, H / W)
-  const edge = g.createRadialGradient(0, 0, W * 0.5 * 0.82, 0, 0, W * 0.5)
-  edge.addColorStop(0, 'rgba(0,0,0,0)')
-  edge.addColorStop(0.55, 'rgba(0,0,0,0.22)')
-  edge.addColorStop(1, 'rgba(0,0,0,0.55)')
-  g.fillStyle = edge
-  g.fillRect(-W / 2, -W / 2, W, W)
-  g.restore()
-
-  // UVs: ShapeGeometry usa las coords de mundo como UV; repeat/offset llevan
-  // [-rx..rx, -ry..ry] a [0..1] (flipY: el borde lejano cae arriba del canvas).
-  const tex = new THREE.CanvasTexture(cv)
-  tex.colorSpace = THREE.SRGBColorSpace
-  tex.wrapS = THREE.ClampToEdgeWrapping
-  tex.wrapT = THREE.ClampToEdgeWrapping
-  tex.repeat.set(1 / (rx * 2), 1 / (ry * 2))
-  tex.offset.set(0.5, 0.5)
-  tex.anisotropy = 8
-  tex.needsUpdate = true
-  cache.set(seatCount, tex)
-  return tex
+  return cv
 }
+

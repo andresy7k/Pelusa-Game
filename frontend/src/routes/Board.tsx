@@ -10,9 +10,14 @@ import { FlightLayer, type Flight, type FlightPoint } from '../components/Flight
 import type { MesaFlight } from '../features/mesa3d/TableCanvasR3F';
 import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
 
-const TableCanvasR3F = lazy(() =>
-  import('../features/mesa3d/TableCanvasR3F').then((module) => ({ default: module.TableCanvasR3F }))
-);
+const loadMesa3D = () => import('../features/mesa3d/TableCanvasR3F');
+const TableCanvasR3F = lazy(() => loadMesa3D().then((module) => ({ default: module.TableCanvasR3F })));
+/** Con el puntero o el foco sobre "Vista 3D" ya se baja el código 3D: al
+ *  hacer click casi todo llegó. Solo por intención: quien juega en 2D no paga
+ *  la descarga. */
+const prefetchMesa3D = () => {
+  void loadMesa3D();
+};
 
 // Mesa cósmica en arco: el activo vive SIEMPRE abajo al centro (su asiento
 // es "tú", frente a la mesa) y los rivales ocupan un ARCO en el lado
@@ -384,7 +389,13 @@ export function Board() {
         </div>
         )}
 
-        <button type="button" className="vista-toggle" onClick={toggleVista}>
+        <button
+          type="button"
+          className="vista-toggle"
+          onClick={toggleVista}
+          onPointerEnter={vista3d ? undefined : prefetchMesa3D}
+          onFocus={vista3d ? undefined : prefetchMesa3D}
+        >
           {vista3d ? 'Vista clásica' : 'Vista 3D · WIP'}
         </button>
       </div>
