@@ -56,7 +56,7 @@ public class GameController {
    */
   @PostMapping
   public ResponseEntity<GameView> create(@Valid @RequestBody CreateGameRequest req) {
-    IssuedGame issued = service.create(req.names(), req.firstPlayerIndex(), req.start());
+    IssuedGame issued = service.create(req.names(), req.avatars(), req.firstPlayerIndex(), req.start());
     return ResponseEntity.status(HttpStatus.CREATED)
         .header(GAME_TOKEN_HEADER, issued.token())
         .body(issued.game());
@@ -66,7 +66,7 @@ public class GameController {
   @PostMapping("/online")
   @ResponseStatus(HttpStatus.CREATED)
   public JoinResult createOnline(@Valid @RequestBody CreateOnlineRequest req) {
-    return service.createOnline(req.name(), req.capacity());
+    return service.createOnline(req.name(), req.avatar(), req.capacity());
   }
 
   /**
@@ -75,7 +75,7 @@ public class GameController {
    */
   @PostMapping("/join")
   public JoinResult join(@Valid @RequestBody JoinRequest req) {
-    return service.join(req.code(), req.name());
+    return service.join(req.code(), req.name(), req.avatar());
   }
 
   @PostMapping("/{id}/start")

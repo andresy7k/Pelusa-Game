@@ -44,6 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -106,8 +107,12 @@ public class GameService {
    * empieza enseguida, así se ahorra un viaje navegador → servidor → BD.
    */
   @Transactional
-  public IssuedGame create(List<String> names, Integer firstPlayerIndex, boolean startNow) {
+  public IssuedGame create(List<String> names, List<Integer> avatars, Integer firstPlayerIndex,
+      boolean startNow) {
     validateNames(names);
+    if (avatars != null && avatars.size() != names.size()) {
+      throw new IllegalArgumentException("Tiene que haber un avatar por jugador");
+    }
     // Sin jugador inicial explícito, lo decide un sorteo (la UI ya no lo pregunta).
     int first = firstPlayerIndex == null ? starter.pick(names.size()) : firstPlayerIndex;
     if (first < 0 || first >= names.size()) {
@@ -117,7 +122,11 @@ public class GameService {
     GameEntity game = new GameEntity(gameId, "CREATED");
     List<PlayerEntity> ps = new ArrayList<>();
     for (int i = 0; i < names.size(); i++) {
-      ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));
+      PlayerEntity p = new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i);
+      if (avatars != null) {
+        p.setAvatar(validAvatar(avatars.get(i)));
+      }
+      ps.add(p);
     }
     // El dispositivo que crea una partida LOCAL juega por todos: un solo token.
     String token = SeatTokens.issue();
@@ -131,7 +140,7 @@ public class GameService {
   }
 
   @Transactional
-  public JoinResult createOnline(String name, int capacity) {
+  public JoinResult createOnline(String name, Integer avatar, int capacity) {
     validateSingleName(name);
     if (capacity < 2 || capacity > 6) {
       throw new IllegalArgumentException("El cupo va de 2 a 6");
@@ -145,6 +154,9 @@ public class GameService {
     games.save(game);
 
     PlayerEntity host = new PlayerEntity(UUID.randomUUID(), gameId, name.trim(), 0);
+    if (avatar != null) {
+      host.setAvatar(validAvatar(avatar));
+    }
     String token = SeatTokens.issue();
     host.setTokenHash(SeatTokens.hash(token));
     players.save(host);
@@ -166,7 +178,7 @@ public class GameService {
   }
 
   @Transactional
-  public JoinResult join(String code, String name) {
+  public JoinResult join(String code, String name, Integer avatar) {
     validateSingleName(name);
     GameEntity game = games.findByCode(code.trim().toUpperCase(Locale.ROOT))
         .orElseThrow(() -> new DomainException("CODE_NOT_FOUND", "Ese código no existe"));
@@ -182,6 +194,8 @@ public class GameService {
       throw new DomainException("NAME_TAKEN", "Ese nombre ya está en la mesa");
     }
     PlayerEntity player = new PlayerEntity(UUID.randomUUID(), game.getId(), clean, ps.size());
+    // Sin elección, el primer monstruo que nadie de la mesa tiene (así no se repiten).
+    player.setAvatar(avatar != null ? validAvatar(avatar) : firstFreeAvatar(ps));
     String token = SeatTokens.issue();
     player.setTokenHash(SeatTokens.hash(token));
     try {
@@ -261,7 +275,7 @@ public class GameService {
   public List<PlayerSummary> players(UUID gameId) {
     GameView v = state(gameId);
     return v.players().stream()
-        .map(p -> new PlayerSummary(p.id(), p.name(), p.seat(),
+        .map(p -> new PlayerSummary(p.id(), p.name(), p.seat(), p.avatar(),
             p.id().equals(v.currentPlayerId()),
             v.fronts().get(p.id()),
             v.stashed().get(p.id()).sum()))
@@ -580,6 +594,21 @@ public class GameService {
     cards.saveAll(rows);
   }
 
+  /** Monstruo 1..10 (el DTO ya lo valida; esto protege a quien llame al servicio directo). */
+  private static int validAvatar(Integer avatar) {
+    if (avatar == null || avatar < 1 || avatar > 10) {
+      throw new IllegalArgumentException("El avatar es un monstruo del 1 al 10");
+    }
+    return avatar;
+  }
+
+  /** Primer monstruo (1..10) que no usa nadie en la mesa (siempre hay: máx. 6 sillas, 10 monstruos). */
+  private static int firstFreeAvatar(List<PlayerEntity> seated) {
+    return IntStream.rangeClosed(1, 10)
+        .filter(a -> seated.stream().noneMatch(p -> p.getAvatar() == a))
+        .findFirst().orElse(1);
+  }
+
   /** Caracteres de control (saltos de línea, NUL, escapes de terminal) no son un nombre. */
   private static boolean hasControlChars(String text) {
     return text.codePoints().anyMatch(Character::isISOControl);
@@ -670,7 +699,7 @@ public class GameService {
       result = new ResultView(game.getWinnerId(), game.getWinnerId() == null, "DECK_EMPTY", scores);
     }
     List<PlayerView> playerViews =
-        ps.stream().map(p -> new PlayerView(p.getId(), p.getName(), p.getSeat())).toList();
+        ps.stream().map(p -> new PlayerView(p.getId(), p.getName(), p.getSeat(), p.getAvatar())).toList();
     // R-01/ADR-014: valor robable este turno = última carta sacada (null si no hay).
     // La próxima carta del mazo NO se expone (§11 del contrato): filtra estrategia.
     var openTurn = turns.findFirstByGameIdAndEndedAtIsNullOrderByStartedAtDesc(gameId);

@@ -5,7 +5,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-/** Abrir sala online: nombre del host (1-60) + cupo de 2 a 6. */
+/** Abrir sala online: nombre del host (1-60) + cupo de 2 a 6 + avatar opcional (1-10). */
 public record CreateOnlineRequest(
     @NotBlank @Size(min = 1, max = 60) String name,
-    @Min(2) @Max(6) int capacity) {}
+    @Min(2) @Max(6) int capacity,
+    @Min(1) @Max(10) Integer avatar) {}
