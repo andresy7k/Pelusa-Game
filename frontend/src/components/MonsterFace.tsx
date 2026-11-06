@@ -55,6 +55,7 @@ function Lienzo({
   className,
   gloss,
   shade,
+  fur = 5,
   children,
 }: {
   d: string
@@ -62,6 +63,8 @@ function Lienzo({
   className?: string
   gloss?: [number, number, number, number]
   shade?: [number, number, number, number]
+  /** Cuánto se despeina el borde (unidades del viewBox; 0 = liso). */
+  fur?: number
   children: ReactNode
 }) {
   const id = `mf-${uid}`
@@ -71,8 +74,21 @@ function Lienzo({
         <clipPath id={id}>
           <path d={d} />
         </clipPath>
+        {fur > 0 && (
+          // Pelaje: ruido fino que desplaza SOLO la silueta (y su contorno
+          // sticker): el borde se ve esponjoso; ojos y boca quedan nítidos.
+          <filter id={`${id}-fur`} x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.32" numOctaves="2" seed={uid.length} result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale={fur} xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        )}
       </defs>
-      <path className="monster-body" d={d} {...cuerpo} />
+      <path
+        className="monster-body"
+        d={d}
+        {...cuerpo}
+        filter={fur > 0 ? `url(#${id}-fur)` : undefined}
+      />
       <g clipPath={`url(#${id})`}>
         {shade && (
           <ellipse cx={shade[0]} cy={shade[1]} rx={shade[2]} ry={shade[3]} fill="#000" opacity="0.06" />
@@ -129,7 +145,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 4:
       // Bola ciruela MUY peluda: un ojo cíclope y sonrisa pícara.
       return (
-        <Lienzo uid={uid} className={className} d={CAMINOS[4]} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 28, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[4]} fur={7} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 28, 9]}>
           <Ojo cx={50} cy={46} r={15.5} dx={2} dy={1} />
           <path d="M 40 66 Q 52 75 63 63" fill="none" stroke={TINTA} strokeWidth="4.5" strokeLinecap="round" />
         </Lienzo>
@@ -137,7 +153,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 5:
       // Mango verde con picos: un ojo grande y boca abierta con lengua roja.
       return (
-        <Lienzo uid={uid} className={className} d={CAMINOS[5]} gloss={[33, 26, 12, 4]} shade={[50, 86, 27, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[5]} fur={3} gloss={[33, 26, 12, 4]} shade={[50, 86, 27, 8]}>
           <Ojo cx={47} cy={43} r={15} dx={2} dy={2} />
           <path d="M 33 61 Q 50 56 67 61 Q 65 80 50 80 Q 35 80 33 61 Z" fill={TINTA} />
           <ellipse cx="50" cy="76" rx="9" ry="4.5" fill={LENGUA} />
@@ -161,6 +177,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
           uid={uid}
           className={className}
           d={CAMINOS[7]}
+          fur={0}
           gloss={[36, 29, 14, 4.5]}
           shade={[50, 80, 30, 7]}
         >
@@ -181,7 +198,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 9:
       // Erizo turquesa: dos ojos (el derecho con anillo) y sonrisa con colmillo.
       return (
-        <Lienzo uid={uid} className={className} d={CAMINOS[9]} gloss={[32, 27, 12, 4]} shade={[50, 87, 27, 8]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[9]} fur={3} gloss={[32, 27, 12, 4]} shade={[50, 87, 27, 8]}>
           <Ojo cx={38} cy={47} r={10.5} dx={1.5} dy={1.5} />
           <circle className="monster-eye" cx={63} cy={49} r={8} fill="#fff" />
           <circle cx="64" cy="50" r="3.4" fill={TINTA} />
@@ -194,7 +211,7 @@ export function MonsterFace({ value, className }: { value: number; className?: s
     case 10:
       // Pelusa rosa MUY peluda: dos ojos y bocaza enorme gritando.
       return (
-        <Lienzo uid={uid} className={className} d={CAMINOS[10]} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 30, 9]}>
+        <Lienzo uid={uid} className={className} d={CAMINOS[10]} fur={7} gloss={[34, 24, 14, 4.5]} shade={[50, 86, 30, 9]}>
           <Ojo cx={39} cy={35} r={9} dx={1.5} dy={2} />
           <Ojo cx={61} cy={35} r={9} dx={-1.5} dy={2} />
           <path d="M 26 53 Q 50 45 74 53 Q 78 73 50 87 Q 22 73 26 53 Z" fill={TINTA} />
