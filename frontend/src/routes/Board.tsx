@@ -286,6 +286,8 @@ export function Board() {
           <TableCanvasR3F
             seatCount={state.players.length}
             cam={cam}
+            mySeat={online ? (state.players.find((p) => p.id === meId)?.seat ?? null) : (turnPlayer?.seat ?? null)}
+            turnSeat={turnPlayer?.seat ?? null}
             canAct={myTurn && !busy}
             onDraw={() => {
               void draw()
