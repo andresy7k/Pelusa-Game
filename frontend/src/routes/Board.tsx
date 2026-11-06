@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recall } from '../api/identity';
 import { friendlyMessage, type GameState } from '../api/types';
@@ -30,8 +30,17 @@ const ARC_HALF = ARC_DEG / 2;
 export function Board() {
   const { id } = useParams();
   // Estado que trajo la pantalla anterior (crear/iniciar): pinta sin esperar otro GET.
-  const seed = (useLocation().state as { game?: GameState } | null)?.game;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const seed = (location.state as { game?: GameState } | null)?.game;
   const { state, error, busy, act } = useGame(id, seed);
+  // El historial guarda `state` entre recargas: una vez usado, se borra para
+  // que F5 pida la mesa al servidor en vez de repintar la recién creada.
+  useEffect(() => {
+    if (seed) navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    // Solo al montar: después ya no hay semilla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Identidad online de ESTE navegador (el backend no tiene login).
   const identity = useMemo(() => (id ? recall(id) : null), [id]);
   // Vista 3D del paso 2: ?vista=3d la activa y ?cam= elige la vista fija.

@@ -9,6 +9,12 @@ import { ApiException } from '../api/types';
 //
 // `initial`: el estado que ya trajo la pantalla anterior (crear/iniciar). Si
 // llega, el tablero se pinta al instante y no repite el GET al montarse.
+// (Board borra ese estado del historial apenas lo usa: si no, recargar la
+// página volvería a pintar la mesa recién creada.)
+
+/** Errores que indican que la pantalla quedó atrás del servidor. */
+const STALE_CODES = new Set(['CONCURRENT_TURN', 'NOT_YOUR_TURN', 'GAME_FINISHED', 'GAME_NOT_STARTED']);
+
 export function useGame(id: string | undefined, initial?: GameState) {
   const seeded = initial && initial.id === id ? initial : null;
   const [state, setState] = useState<GameState | null>(seeded);
@@ -80,8 +86,9 @@ export function useGame(id: string | undefined, initial?: GameState) {
       return next;
     } catch (e) {
       setError(e instanceof ApiException ? e.apiError.errorCode : 'UNKNOWN');
-      // 409 de concurrencia: releer para mostrar lo último
-      if (e instanceof ApiException && e.apiError.errorCode === 'CONCURRENT_TURN') {
+      // El servidor ve otra mesa que la pantalla (otro movimiento se adelantó,
+      // o el turno/partida ya cambió): releer para mostrar lo último.
+      if (e instanceof ApiException && STALE_CODES.has(e.apiError.errorCode)) {
         await refresh();
       }
       return null;
