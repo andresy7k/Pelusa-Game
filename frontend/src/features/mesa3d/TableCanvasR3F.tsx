@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { MESA3D, type MesaCameraPreset } from './config'
+import { MESA3D, cameraPose, type MesaCameraPreset } from './config'
 import { buildFeltTexture } from './feltTexture'
 import { Table3D } from './Table3D'
 import { Lamp3D } from './Lamp3D'
@@ -20,10 +20,10 @@ export type { MesaFlight, MesaGameView, MesaSeatView } from './Cards3D'
 const CAMERA = { fov: MESA3D.camera.fov, near: MESA3D.camera.near, far: MESA3D.camera.far }
 
 /** Botones de cámara (esquina inferior izquierda del canvas). */
-const CAM_BUTTONS: Array<[MesaCameraPreset, string]> = [
-  ['seat', 'Mi asiento'],
-  ['wide', 'Vista general'],
-  ['top', 'Cenital'],
+const CAM_BUTTONS: Array<[MesaCameraPreset, string, string]> = [
+  ['seat', 'Mi vista', 'Siempre desde tu silla'],
+  ['wide', 'Vista general', 'Sigue al jugador que tiene el turno'],
+  ['top', 'Desde arriba', 'La mesa vista desde el techo'],
 ]
 
 /** Teclas 1-4 = presets de cámara. */
@@ -54,6 +54,10 @@ export interface TableCanvasR3FProps {
   onSteal?: (value: number) => void
   /** Mi turno y sin acciones pendientes: habilita los clicks de mesa. */
   canAct?: boolean
+  /** Mi asiento (Mi vista). Hotseat: el de quien juega; espectador: null. */
+  mySeat?: number | null
+  /** Asiento de quien tiene el turno (Vista general lo sigue). */
+  turnSeat?: number | null
 }
 
 export function TableCanvasR3F({
@@ -64,6 +68,8 @@ export function TableCanvasR3F({
   onDraw,
   onSteal,
   canAct = false,
+  mySeat = null,
+  turnSeat = null,
 }: TableCanvasR3FProps) {
   const [felt, setFelt] = useState<THREE.Texture | null>(null)
   // Vista inicial = la del URL (?cam=), por defecto "Mi asiento": el default
@@ -103,15 +109,27 @@ export function TableCanvasR3F({
           gl.toneMappingExposure = MESA3D.exposure
         }}
       >
-        <Scene cam={activeCam} felt={felt} game={game} flight={flight} onDraw={onDraw} onSteal={onSteal} canAct={canAct} />
+        <Scene
+          cam={activeCam}
+          followSeat={activeCam === 'seat' ? (mySeat ?? turnSeat) : turnSeat}
+          seatCount={seatCount}
+          felt={felt}
+          game={game}
+          flight={flight}
+          onDraw={onDraw}
+          onSteal={onSteal}
+          canAct={canAct}
+        />
       </Canvas>
       <div className="cam-group" role="group" aria-label="Vista de cámara">
-        {CAM_BUTTONS.map(([p, label]) => (
+        {CAM_BUTTONS.map(([p, label, hint]) => (
           <button
             key={p}
             type="button"
             className={p === activeCam ? 'cam-btn cam-btn--on' : 'cam-btn'}
             data-cam={p}
+            aria-pressed={p === activeCam}
+            title={hint}
             onClick={() => setActiveCam(p)}
           >
             {label}
@@ -124,6 +142,8 @@ export function TableCanvasR3F({
 
 function Scene({
   cam,
+  followSeat,
+  seatCount,
   felt,
   game,
   flight,
@@ -132,6 +152,8 @@ function Scene({
   canAct,
 }: {
   cam: MesaCameraPreset
+  followSeat: number | null
+  seatCount: number
   felt: THREE.Texture | null
   game?: MesaGameView
   flight?: MesaFlight | null
@@ -172,31 +194,35 @@ function Scene({
       {game && <Cards3D game={game} flight={flight} canAct={canAct} onDraw={onDraw} onSteal={onSteal} />}
       {game && <Seats3D seats={game.seats} />}
       <Lamp3D />
-      <CameraRig cam={cam} />
+      <CameraRig cam={cam} seat={followSeat} seatCount={seatCount} />
       <ReadyPing armed={felt !== null} />
     </>
   )
 }
 
 /** Cámara libre (paso 4): órbita/zoom/pan con límites + travelling suave
- *  entre presets (botones y teclas 1-4). Arrastrar cancela el travelling. */
-function CameraRig({ cam }: { cam: MesaCameraPreset }) {
+ *  entre vistas (botones y teclas 1-4). Mi vista y Vista general se paran
+ *  detrás de una silla (la mía / la del turno): al cambiar el turno la cámara
+ *  GIRA alrededor de la mesa (coordenadas cilíndricas, por el lado corto) en
+ *  vez de atravesarla. Arrastrar cancela el travelling. */
+function CameraRig({ cam, seat, seatCount }: { cam: MesaCameraPreset; seat: number | null; seatCount: number }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls) as unknown as ControlsLike | null
   const anim = useRef<{
-    fromPos: THREE.Vector3
+    from: { r: number; a: number; y: number }
+    to: { r: number; a: number; y: number }
     fromTgt: THREE.Vector3
-    toPos: THREE.Vector3
     toTgt: THREE.Vector3
     start: number
   } | null>(null)
   const booted = useRef(false)
 
   useLayoutEffect(() => {
-    const p = MESA3D.camera.presets[cam]
-    const toPos = new THREE.Vector3(p.pos[0], p.pos[1], p.pos[2])
-    const toTgt = new THREE.Vector3(p.target[0], p.target[1], p.target[2])
-    if (!booted.current || !controls) {
+    const p = cameraPose(cam, seat, seatCount)
+    const toPos = new THREE.Vector3(...p.pos)
+    const toTgt = new THREE.Vector3(...p.target)
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!booted.current || !controls || reduced) {
       // Colocación directa: primer frame (y hasta que exista el control).
       camera.position.copy(toPos)
       camera.lookAt(toTgt)
@@ -207,22 +233,30 @@ function CameraRig({ cam }: { cam: MesaCameraPreset }) {
       }
       return
     }
+    const cyl = (v: THREE.Vector3) => ({ r: Math.hypot(v.x, v.z), a: Math.atan2(v.z, v.x), y: v.y })
+    const from = cyl(camera.position)
+    const to = cyl(toPos)
+    // Giro por el camino corto (-pi..pi).
+    let d = to.a - from.a
+    d = Math.atan2(Math.sin(d), Math.cos(d))
     anim.current = {
-      fromPos: camera.position.clone(),
+      from,
+      to: { ...to, a: from.a + d },
       fromTgt: controls.target.clone(),
-      toPos,
       toTgt,
       start: performance.now(),
     }
-  }, [cam, camera, controls])
+  }, [cam, seat, seatCount, camera, controls])
 
-  // Travelling entre vistas (easeInOutCubic).
+  // Travelling entre vistas (easeInOutCubic) en cilíndricas.
   useFrame(() => {
     const a = anim.current
     if (!a || !controls) return
     const t = Math.min(1, (performance.now() - a.start) / MESA3D.camera.controls.tweenMs)
     const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-    camera.position.lerpVectors(a.fromPos, a.toPos, e)
+    const r = a.from.r + (a.to.r - a.from.r) * e
+    const ang = a.from.a + (a.to.a - a.from.a) * e
+    camera.position.set(Math.cos(ang) * r, a.from.y + (a.to.y - a.from.y) * e, Math.sin(ang) * r)
     controls.target.lerpVectors(a.fromTgt, a.toTgt, e)
     controls.update()
     if (t >= 1) anim.current = null

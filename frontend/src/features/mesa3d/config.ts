@@ -154,17 +154,29 @@ export const MESA3D = {
     fov: 42,
     near: 0.1,
     far: 80,
+    /** Vistas fijas. `seat` y `wide` acá son las del asiento 0; para otro
+     *  asiento las calcula `cameraPose` alrededor del anillo de sillas. */
     presets: {
-      seat: { pos: [0, 3.2, 2.6] as const, target: [0, 0, 0.1] as const },
-      wide: { pos: [0, 5.3, 5.8] as const, target: [0, 1.15, -0.9] as const },
+      seat: { pos: [0, 3.3, 3.23] as const, target: [0, 0, -0.25] as const },
+      wide: { pos: [0, 4.7, 4.68] as const, target: [0, 0.15, -0.35] as const },
       top: { pos: [0, 6.2, 3.0] as const, target: [0, 0, 0] as const },
       detail: { pos: [1.0, 1.8, 1.2] as const, target: [-0.15, 0, -0.6] as const },
     },
     /** Cámara libre (paso 4): límites de órbita/zoom/pan y duración del
      *  travelling entre vistas. */
+    /** Vistas que siguen a un asiento: la cámara se para DETRÁS de su silla
+     *  (`back` unidades más afuera del anillo), a altura `h`, mirando a un
+     *  punto `lead` más allá del centro. `seat` = Mi vista (más lejos que la
+     *  versión anterior: menos zoom); `wide` = Vista general del que juega. */
+    follow: {
+      seat: { back: 1.25, h: 3.3, lead: 0.25, ty: 0 },
+      wide: { back: 2.7, h: 4.7, lead: 0.35, ty: 0.15 },
+      /** Radio máximo en planta: la sala mide 6.2, la cámara no se mete en la pared. */
+      maxRadius: 5.6,
+    },
     controls: {
       minDistance: 2.2,
-      maxDistance: 7,
+      maxDistance: 8,
       minPolarAngle: 0.05, // casi en picada (cenital)
       maxPolarAngle: 1.05, // elevación mínima ≈30° sobre la mesa
       panLimit: 1.2,
@@ -203,4 +215,32 @@ export function seatAngle(i: number, n: number): number {
 export function seatPoint(i: number, n: number): { x: number; z: number } {
   const a = seatAngle(i, n)
   return { x: Math.cos(a) * MESA3D.seats.rx, z: Math.sin(a) * MESA3D.seats.rz }
+}
+
+export interface CameraPose {
+  pos: [number, number, number]
+  target: [number, number, number]
+}
+
+/**
+ * Pose de cámara para una vista. `seat`/`wide` se paran detrás de la silla del
+ * asiento indicado (Mi vista → mi asiento; Vista general → el del turno);
+ * `top` y `detail` son fijas. Sin asiento (espectador) se usa el 0.
+ */
+export function cameraPose(preset: MesaCameraPreset, seat: number | null, n: number): CameraPose {
+  if (preset === 'top' || preset === 'detail' || n <= 0) {
+    const p = MESA3D.camera.presets[preset]
+    return { pos: [...p.pos], target: [...p.target] }
+  }
+  const f = MESA3D.camera.follow[preset]
+  const a = seatAngle(seat ?? 0, n)
+  const dx = Math.cos(a)
+  const dz = Math.sin(a)
+  // Radio del anillo de sillas en esa dirección (la mesa es oval).
+  const ring = Math.hypot(dx * MESA3D.chairs.rx, dz * MESA3D.chairs.rz)
+  const r = Math.min(MESA3D.camera.follow.maxRadius, ring + f.back)
+  return {
+    pos: [dx * r, f.h, dz * r],
+    target: [-dx * f.lead, f.ty, -dz * f.lead],
+  }
 }
