@@ -24,18 +24,26 @@ public interface GameRepository extends JpaRepository<GameEntity, UUID> {
 
   /**
    * Terminadas donde jugó alguien cuyo nombre, en minúsculas y sin tildes, encaja con
-   * el patrón (like). Las tildes se quitan con replace(): funciona igual en H2 y PostgreSQL.
+   * el patrón (like). SQL nativo a propósito: la versión JPQL con 7 replace() anidados
+   * hacía explotar el parser de Hibernate (ANTLR) y el arranque moría por falta de
+   * memoria en Render (512 MB). TRANSLATE existe igual en H2 y en PostgreSQL.
    */
-  @Query("""
-      select g from GameEntity g
+  @Query(value = """
+      select g.* from games g
       where g.status = 'FINISHED'
         and exists (
-          select 1 from PlayerEntity p
-          where p.gameId = g.id
-            and replace(replace(replace(replace(replace(replace(replace(lower(p.name),
-                'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'ü', 'u'), 'ñ', 'n')
-                like :pattern)
-      order by g.finishedAt desc""")
+          select 1 from players p
+          where p.game_id = g.id
+            and translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :pattern)
+      order by g.finished_at desc""",
+      countQuery = """
+      select count(*) from games g
+      where g.status = 'FINISHED'
+        and exists (
+          select 1 from players p
+          where p.game_id = g.id
+            and translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :pattern)""",
+      nativeQuery = true)
   Page<GameEntity> findFinishedWithPlayer(@Param("pattern") String pattern, Pageable pageable);
 
   /** ¿Existe ya una sala con este código? (Spring Data escribe el SQL por su nombre). */
