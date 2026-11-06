@@ -196,12 +196,12 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
           return;
         }
         if (!r.playerId) throw new Error('sin playerId');
-        remember(r.game.id, { playerId: r.playerId, name: clean });
+        remember(r.game.id, { playerId: r.playerId, name: clean, token: r.playerToken ?? undefined });
         navigate(`/setup?game=${r.game.id}`);
       } else {
         const r = await api.createOnline(clean, capacity);
         if (!r.playerId) throw new Error('sin playerId');
-        remember(r.game.id, { playerId: r.playerId, name: clean });
+        remember(r.game.id, { playerId: r.playerId, name: clean, token: r.playerToken ?? undefined });
         navigate(`/setup?game=${r.game.id}`);
       }
     } catch (err) {

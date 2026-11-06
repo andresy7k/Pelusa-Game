@@ -7,6 +7,7 @@ import com.pelusa.application.dto.GameView.PlayerView;
 import com.pelusa.application.dto.GameView.ResultView;
 import com.pelusa.application.dto.GameView.ScoreView;
 import com.pelusa.application.dto.GameView.StashView;
+import com.pelusa.application.dto.IssuedGame;
 import com.pelusa.application.dto.JoinResult;
 import com.pelusa.application.dto.PlayerSummary;
 import com.pelusa.domain.engine.DomainException;
@@ -42,6 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,6 +72,8 @@ public class GameService {
   private final ActionKeyRepository keys;
   private final ShufflePort shuffle;
   private final ObjectMapper json;
+  /** Exigir el token de asiento en cada acción (ver SeatTokens). Solo se apaga en el perfil test. */
+  private final boolean requireSeatToken;
 
   public GameService(
       GameRepository games,
@@ -78,7 +82,8 @@ public class GameService {
       TurnRepository turns,
       ActionKeyRepository keys,
       ShufflePort shuffle,
-      ObjectMapper json) {
+      ObjectMapper json,
+      @Value("${pelusa.security.require-seat-token:true}") boolean requireSeatToken) {
     this.games = games;
     this.players = players;
     this.cards = cards;
@@ -86,6 +91,7 @@ public class GameService {
     this.keys = keys;
     this.shuffle = shuffle;
     this.json = json;
+    this.requireSeatToken = requireSeatToken;
   }
 
   // ---------- creación ----------
@@ -95,7 +101,7 @@ public class GameService {
    * empieza enseguida, así se ahorra un viaje navegador → servidor → BD.
    */
   @Transactional
-  public GameView create(List<String> names, Integer firstPlayerIndex, boolean startNow) {
+  public IssuedGame create(List<String> names, Integer firstPlayerIndex, boolean startNow) {
     validateNames(names);
     int first = firstPlayerIndex == null ? 0 : firstPlayerIndex;
     if (first < 0 || first >= names.size()) {
@@ -107,12 +113,15 @@ public class GameService {
     for (int i = 0; i < names.size(); i++) {
       ps.add(new PlayerEntity(UUID.randomUUID(), gameId, names.get(i).trim(), i));
     }
+    // El dispositivo que crea una partida LOCAL juega por todos: un solo token.
+    String token = SeatTokens.issue();
+    game.setControlTokenHash(SeatTokens.hash(token));
     games.save(game);
     players.saveAll(ps);
     game.setCurrentPlayerId(ps.get(first).getId());
 
     seedDeck(gameId);
-    return startNow ? start(gameId, null) : view(gameId, null);
+    return new IssuedGame(startNow ? begin(game) : view(gameId, null), token);
   }
 
   @Transactional
@@ -130,12 +139,14 @@ public class GameService {
     games.save(game);
 
     PlayerEntity host = new PlayerEntity(UUID.randomUUID(), gameId, name.trim(), 0);
+    String token = SeatTokens.issue();
+    host.setTokenHash(SeatTokens.hash(token));
     players.save(host);
     game.setCurrentPlayerId(host.getId());
     game.setHostPlayerId(host.getId());
     games.save(game);
     seedDeck(gameId);
-    return new JoinResult(view(gameId, null), host.getId(), false);
+    return new JoinResult(view(gameId, null), host.getId(), false, token);
   }
 
   private String availableCode() {
@@ -154,7 +165,7 @@ public class GameService {
     GameEntity game = games.findByCode(code.trim().toUpperCase(Locale.ROOT))
         .orElseThrow(() -> new DomainException("CODE_NOT_FOUND", "Ese código no existe"));
     if (!"CREATED".equals(game.getStatus())) {
-      return new JoinResult(view(game.getId(), null), null, true);
+      return new JoinResult(view(game.getId(), null), null, true, null);
     }
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(game.getId());
     if (ps.size() >= game.getCapacity()) {
@@ -165,6 +176,8 @@ public class GameService {
       throw new DomainException("NAME_TAKEN", "Ese nombre ya está en la mesa");
     }
     PlayerEntity player = new PlayerEntity(UUID.randomUUID(), game.getId(), clean, ps.size());
+    String token = SeatTokens.issue();
+    player.setTokenHash(SeatTokens.hash(token));
     try {
       // saveAndFlush: el INSERT ocurre AQUÍ. Con save() la violación UNIQUE
       // aparecía después (en la próxima query o al commitear), fuera del catch → 500.
@@ -174,11 +187,11 @@ public class GameService {
       // La sesión quedó inutilizable para releer; el reintento verá NAME_TAKEN/GAME_FULL.
       throw new DomainException("CONCURRENT_TURN", "La mesa cambió, reintenta");
     }
-    return new JoinResult(view(game.getId(), null), player.getId(), false);
+    return new JoinResult(view(game.getId(), null), player.getId(), false, token);
   }
 
   @Transactional
-  public GameView start(UUID gameId, UUID playerId) {
+  public GameView start(UUID gameId, UUID playerId, String token) {
     GameEntity game = gameOr404(gameId);
     if ("FINISHED".equals(game.getStatus())) {
       throw new DomainException("GAME_FINISHED", "La partida ya terminó");
@@ -191,14 +204,38 @@ public class GameService {
     if (!Objects.equals(playerId, game.getHostPlayerId())) {
       throw new DomainException("NOT_HOST", "Solo el anfitrión puede empezar");
     }
-    boolean online = "ONLINE".equals(game.getMode());
-    if (online && players.findByGameIdOrderBySeatAsc(gameId).size() < 2) {
+    List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(gameId);
+    requireSeat(game, ps, playerId, token);
+    if ("ONLINE".equals(game.getMode()) && ps.size() < 2) {
       throw new DomainException("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores");
     }
+    return begin(game);
+  }
+
+  /** CREATED → IN_PROGRESS y primer turno abierto (lo comparten start y create con start). */
+  private GameView begin(GameEntity game) {
     game.setStatus("IN_PROGRESS");
     game.setStartedAt(OffsetDateTime.now());
-    openTurn(gameId, game.getCurrentPlayerId(), game, OffsetDateTime.now());
-    return view(gameId, null);
+    openTurn(game.getId(), game.getCurrentPlayerId(), game, OffsetDateTime.now());
+    return view(game.getId(), null);
+  }
+
+  /**
+   * Seguridad: el playerId es público, así que no prueba nada. Hay que traer el
+   * token secreto que recibió el dispositivo al crear (LOCAL) o al sentarse (ONLINE).
+   * Partidas anteriores a V8 no tienen hash y se siguen aceptando.
+   */
+  private void requireSeat(GameEntity game, List<PlayerEntity> ps, UUID playerId, String token) {
+    if (!requireSeatToken) {
+      return;
+    }
+    String expected = "ONLINE".equals(game.getMode())
+        ? ps.stream().filter(p -> p.getId().equals(playerId)).findFirst()
+            .map(PlayerEntity::getTokenHash).orElse(null)
+        : game.getControlTokenHash();
+    if (expected != null && !SeatTokens.matches(token, expected)) {
+      throw new DomainException("SEAT_FORBIDDEN", "Este dispositivo no puede jugar por ese jugador");
+    }
   }
 
   /** La lectura también hace cumplir el reloj (expiración perezosa, sin job). */
@@ -224,8 +261,8 @@ public class GameService {
   // ---------- acciones (con idempotencia) ----------
 
   @Transactional
-  public GameView stash(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn, rows) -> {
+  public GameView stash(UUID gameId, UUID playerId, String key, String token) {
+    return guarded(gameId, playerId, key, token, (t, turn, rows) -> {
       int count = t.stashCurrent();
       frontRows(rows, playerId).forEach(c -> c.setLocation("STASHED"));
       turn.setStashed(true);
@@ -236,8 +273,8 @@ public class GameService {
   }
 
   @Transactional
-  public GameView draw(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn, rows) -> {
+  public GameView draw(UUID gameId, UUID playerId, String key, String token) {
+    return guarded(gameId, playerId, key, token, (t, turn, rows) -> {
       CardEntity top = topDust(rows)
           .orElseThrow(() -> new DomainException("DECK_EMPTY", "El mazo está vacío"));
       DrawResult r = t.drawCurrent();
@@ -264,8 +301,8 @@ public class GameService {
   }
 
   @Transactional
-  public GameView stand(UUID gameId, UUID playerId, String key) {
-    return guarded(gameId, playerId, key, (t, turn, rows) -> {
+  public GameView stand(UUID gameId, UUID playerId, String key, String token) {
+    return guarded(gameId, playerId, key, token, (t, turn, rows) -> {
       t.standCurrent();
       closeAndRotate(gameId, turn, playerId, t, "STAND");
       return event("STAND", Map.of("playerId", playerId.toString()));
@@ -273,8 +310,8 @@ public class GameService {
   }
 
   @Transactional
-  public GameView steal(UUID gameId, UUID playerId, String key, int value) {
-    return guarded(gameId, playerId, key, (t, turn, rows) -> {
+  public GameView steal(UUID gameId, UUID playerId, String key, String token, int value) {
+    return guarded(gameId, playerId, key, token, (t, turn, rows) -> {
       StealResult r = t.stealCurrent(value);
       rows.stream()
           .filter(c -> "FRONT".equals(c.getLocation())
@@ -337,7 +374,7 @@ public class GameService {
     Map<String, Object> run(Table table, TurnEntity turn, List<CardEntity> rows);
   }
 
-  private GameView guarded(UUID gameId, UUID playerId, String key, Action action) {
+  private GameView guarded(UUID gameId, UUID playerId, String key, String token, Action action) {
     if (key != null && (key.isBlank() || key.length() > MAX_KEY_LENGTH)) {
       throw new IllegalArgumentException("Idempotency-Key inválida (1-64 caracteres)");
     }
@@ -364,6 +401,7 @@ public class GameService {
     if (ps.stream().noneMatch(p -> p.getId().equals(playerId))) {
       throw new DomainException("INVALID_PLAYER", "Ese jugador no está en la partida");
     }
+    requireSeat(game, ps, playerId, token);
     if (!game.getCurrentPlayerId().equals(playerId)) {
       if (playerId.equals(expiredPlayer)) {
         throw new DomainException("TURN_EXPIRED", "Se acabó el tiempo de tu turno");
@@ -532,8 +570,13 @@ public class GameService {
     cards.saveAll(rows);
   }
 
+  /** Caracteres de control (saltos de línea, NUL, escapes de terminal) no son un nombre. */
+  private static boolean hasControlChars(String text) {
+    return text.codePoints().anyMatch(Character::isISOControl);
+  }
+
   private static void validateSingleName(String name) {
-    if (name == null || name.isBlank() || name.trim().length() > 60) {
+    if (name == null || name.isBlank() || name.trim().length() > 60 || hasControlChars(name)) {
       throw new IllegalArgumentException("Nombre inválido (1-60 caracteres)");
     }
   }
@@ -543,7 +586,7 @@ public class GameService {
       throw new IllegalArgumentException("La partida necesita de 2 a 6 nombres");
     }
     for (String n : names) {
-      if (n == null || n.isBlank() || n.trim().length() > 60) {
+      if (n == null || n.isBlank() || n.trim().length() > 60 || hasControlChars(n)) {
         throw new IllegalArgumentException("Nombre inválido (1-60 caracteres)");
       }
     }

@@ -120,6 +120,21 @@ Errores en formato RFC 7807 (`application/problem+json`) con `errorCode`: 400 va
 - Online: cada turno tiene 15 s y **cada carta sacada reinicia el reloj**; si vence, el servidor pasa el turno.
   La UI muestra la cuenta atrás en verde (15–10 s), amarillo (9–5 s) y rojo (< 5 s).
 
+## Seguridad
+
+| Medida | Dónde |
+|---|---|
+| **Token de asiento**: el `playerId` es público, así que cada acción exige el token secreto que recibió el dispositivo al crear (`X-Game-Token`) o al sentarse en una sala (`playerToken`). Se envía en `X-Player-Token`; sin él → 403 `SEAT_FORBIDDEN`. La BD guarda solo su hash SHA-256 y se compara en tiempo constante. | `application/SeatTokens`, `GameService.requireSeat`, migración `V8` |
+| **Límite de pedidos por IP** (por minuto): 20 crear/unirse, 240 acciones, 600 lecturas → 429 con `Retry-After`. Frena la fuerza bruta de códigos de sala. | `infrastructure/security/RateLimitFilter` |
+| **Cabeceras de seguridad** en la API (`nosniff`, `X-Frame-Options: DENY`, CSP `default-src 'none'`, `no-store`, HSTS bajo HTTPS) y en el sitio (CSP estricta sin scripts externos, HSTS, `nosniff`, `DENY`, `Permissions-Policy`). | `SecurityHeadersFilter`, `render.yaml`, `vite.config.ts` |
+| **Tamaño máximo**: cuerpo > 16 KB → 413; cabeceras > 8 KB rechazadas por Tomcat. | `SecurityHeadersFilter`, `application.yml` |
+| **Validación de entrada** con Bean Validation y en el servicio; nombres sin caracteres de control. | DTOs, `GameService` |
+| **Errores sin filtrar detalles** (sin stack trace ni mensajes internos); solo `/actuator/health` expuesto. | `GlobalExceptionHandler`, `application.yml` |
+| **CORS** solo para los orígenes configurados (`CORS_ALLOWED_ORIGINS`). | `WebCorsConfig` |
+| **Contenedor sin root**, **CI con permisos de solo lectura**, sin secretos en el repo. | `Dockerfile`, `.github/workflows` |
+
+Riesgo aceptado: `npm audit` reporta 2 avisos *moderate* de React Router 6 que solo se corrigen en la v7 (redirección con rutas controladas por el usuario y SSR); la app solo navega a rutas internas fijas y no usa SSR.
+
 ## Documentación
 
 - `docs/entrega/CURL.md` — prueba manual de todos los endpoints.
