@@ -24,8 +24,11 @@
   border-radius: 50%;
   overflow: hidden;
   background:
+    var(--paper-grain),
     radial-gradient(70% 55% at 28% 18%, rgb(255 255 255 / 34%), transparent 70%),
     linear-gradient(160deg, var(--c-bg), var(--c-bg2));
+  background-size: 120px 120px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
   box-shadow: 0 0 0 2.5px #fff, 0 4px 12px rgb(10 6 24 / 35%);
 }
 
