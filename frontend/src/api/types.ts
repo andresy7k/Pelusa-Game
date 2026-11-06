@@ -5,6 +5,8 @@ export interface PlayerView {
   id: string;
   name: string;
   seat: number;
+  /** Monstruo elegido (1..10): su cara en la mesa 2D y su personaje en la 3D. */
+  avatar: number;
 }
 
 export interface StashView {

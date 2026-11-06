@@ -119,6 +119,10 @@ Errores en formato RFC 7807 (`application/problem+json`) con `errorCode`: 400 va
 - Fin: mazo vacío → los frentes se guardan solos → puntos = suma de guardadas → desempate por cantidad de 1s, luego 2s… hasta 10s; si todo coincide, empate.
 - Online: cada turno tiene 15 s y **cada carta sacada reinicia el reloj**; si vence, el servidor pasa el turno.
   La UI muestra la cuenta atrás en verde (15–10 s), amarillo (9–5 s) y rojo (< 5 s).
+- Quién empieza: **sorteo** al repartir (`StarterPort`, `SecureRandom`); en pruebas, siempre el asiento 0.
+- Avatares: cada jugador elige uno de los 10 monstruos (`avatars` al crear, `avatar` al abrir/unirse a una sala,
+  1–10). Sin elegir: uno distinto por asiento (local) o el primero libre (online). Se ve en la chapa de la mesa 2D,
+  en el indicador de turno (2D y 3D) y es el personaje sentado en la mesa 3D.
 
 ## Seguridad
 

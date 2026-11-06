@@ -5,6 +5,7 @@ import { recall } from '../api/identity';
 import { friendlyMessage, type GameState } from '../api/types';
 import { useGame } from '../hooks/useGame';
 import { CardBack, CardView } from '../components/CardView';
+import { Avatar, avatarOf } from '../components/Avatar';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
 import type { MesaFlight } from '../features/mesa3d/TableCanvasR3F';
 import { MESA_CAMERA_PRESETS, type MesaCameraPreset } from '../features/mesa3d/config';
@@ -102,6 +103,7 @@ export function Board() {
   const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
   const stealValue = state.lastDrawnValue;
   const rivals = state.players.filter((p) => p.id !== meId);
+  const turnPlayer = state.players.find((p) => p.id === state.currentPlayerId) ?? null;
   // Asiento de quien tiene el turno (constante por render): con él disparamos
   // el vuelo 3D, porque `meId` cambia apenas se muta el estado.
   const drawerSeat = state.players.find((p) => p.id === meId)?.seat ?? 0;
@@ -232,8 +234,17 @@ export function Board() {
         {/* Texto del turno: plano, arriba a la izquierda, sobre el fondo
             (sin recuadro). El estado de turno también vive en cada chapa. */}
         <p className="felt-turn" role="status">
-          <span className="felt-turn-k">{finished ? 'Mesa cerrada' : 'Turno de'}</span>
-          <strong>{finished ? 'Partida terminada' : nameOf(state.players, state.currentPlayerId)}</strong>
+          {turnPlayer && !finished && (
+            <span className="felt-turn-avatar" key={turnPlayer.id}>
+              <Avatar value={avatarOf(turnPlayer)} size="lg" />
+            </span>
+          )}
+          <span className="felt-turn-text">
+            <span className="felt-turn-k">
+              {finished ? 'Mesa cerrada' : online && turnPlayer?.id === meId ? 'Tu turno' : 'Turno de'}
+            </span>
+            <strong>{finished ? 'Partida terminada' : nameOf(state.players, state.currentPlayerId)}</strong>
+          </span>
         </p>
 
         {!finished && <TurnTimer deadline={state.turnDeadlineAt} />}
@@ -291,7 +302,9 @@ export function Board() {
                 .map((p) => ({
                   seat: p.seat,
                   name: p.name,
-                  isTurn: p.id === meId && !finished,
+                  avatar: avatarOf(p),
+                  // Quien tiene el turno (no "yo": online veo los turnos ajenos).
+                  isTurn: p.id === state.currentPlayerId && !finished,
                   values: state.fronts[p.id] ?? [],
                 })),
             }}
@@ -337,6 +350,7 @@ export function Board() {
                     data-player={p.id}
                   >
                     <header className="player-head">
+                      <Avatar value={avatarOf(p)} size="sm" />
                       <h2>
                         {p.name}
                         {active && <span className="turn-dot" role="img" aria-label="en turno" />}

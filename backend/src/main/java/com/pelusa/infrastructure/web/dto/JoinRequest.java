@@ -1,5 +1,7 @@
 package com.pelusa.infrastructure.web.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -9,4 +11,5 @@ import jakarta.validation.constraints.Size;
  */
 public record JoinRequest(
     @NotBlank @Size(min = 4, max = 12) String code,
-    @NotBlank @Size(min = 1, max = 60) String name) {}
+    @NotBlank @Size(min = 1, max = 60) String name,
+    @Min(1) @Max(10) Integer avatar) {}

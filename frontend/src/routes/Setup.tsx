@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recall, remember } from '../api/identity';
 import { ApiException, friendlyMessage, type GameState } from '../api/types';
+import { Avatar, AvatarPicker, avatarOf } from '../components/Avatar';
 
 // Setup con dos caminos:
 // - "Un dispositivo" (hotseat): los nombres se cargan acá y la UI hace de todos.
@@ -67,6 +68,10 @@ function Chooser({ initialMode, initialCode }: { initialMode: Mode; initialCode:
 function LocalSetup() {
   const [count, setCount] = useState(2);
   const [names, setNames] = useState<string[]>(['', '']);
+  // Monstruo de cada jugador: arranca distinto por asiento (1, 2, 3…).
+  const [avatars, setAvatars] = useState<number[]>([1, 2]);
+  // Fila con el selector abierto (uno a la vez: la lista no se vuelve eterna).
+  const [picking, setPicking] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -75,6 +80,26 @@ function LocalSetup() {
     const n = Math.min(6, Math.max(2, next));
     setCount(n);
     setNames((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? ''));
+    // Los que entran reciben el primer monstruo que nadie tiene.
+    setAvatars((prev) => {
+      const next = prev.slice(0, n);
+      while (next.length < n) {
+        next.push([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].find((v) => !next.includes(v)) ?? 1);
+      }
+      return next;
+    });
+    setPicking((p) => (p !== null && p >= n ? null : p));
+  }
+
+  // Elegir uno que ya tiene otro: se intercambian (nunca dos iguales en la mesa).
+  function pickAvatar(i: number, v: number) {
+    setAvatars((prev) => {
+      const next = [...prev];
+      const j = next.indexOf(v);
+      if (j >= 0 && j !== i) next[j] = next[i];
+      next[i] = v;
+      return next;
+    });
   }
 
   function setName(i: number, value: string) {
@@ -98,7 +123,7 @@ function LocalSetup() {
       // Un solo request: el backend la crea ya iniciada. El estado viaja con la
       // navegación para que el tablero se pinte sin volver a pedirlo.
       // Quién empieza lo sortea el backend (firstPlayerIndex = null).
-      const game = await api.create(list, null, true);
+      const game = await api.create(list, null, true, avatars);
       navigate(`/game/${game.id}`, { state: { game } });
     } catch (err) {
       setError(err instanceof ApiException ? friendlyMessage(err.apiError.errorCode) : 'Error');
@@ -123,20 +148,58 @@ function LocalSetup() {
         </button>
       </div>
 
-      <p className="kicker">Paso 2 de 2 · nombres</p>
+      <p className="kicker">Paso 2 de 2 · nombres y monstruos</p>
       <form onSubmit={submit} className="panel">
-        {names.map((n, i) => (
-          <label key={i}>
-            Jugador {i + 1}
-            <input
-              value={n}
-              onChange={(e) => setName(i, e.target.value)}
-              placeholder={`Nombre del jugador ${i + 1}`}
-              maxLength={60}
-              autoFocus={i === 0}
-            />
-          </label>
-        ))}
+        {names.map((n, i) => {
+          const taken: Record<number, string> = {};
+          avatars.forEach((v, j) => {
+            if (j !== i) taken[v] = names[j].trim() || `Jugador ${j + 1}`;
+          });
+          const open = picking === i;
+          return (
+            <div key={i} className="player-row">
+              <div className="player-row-main">
+                <button
+                  type="button"
+                  className="avatar-trigger"
+                  aria-expanded={open}
+                  aria-controls={`picker-${i}`}
+                  aria-label={`Monstruo del jugador ${i + 1}: Pelusa ${avatars[i]}. Cambiar`}
+                  onClick={() => setPicking(open ? null : i)}
+                >
+                  <Avatar value={avatars[i]} size="md" />
+                  <span className="avatar-trigger-edit" aria-hidden="true">
+                    ✎
+                  </span>
+                </button>
+                <label>
+                  Jugador {i + 1}
+                  <input
+                    value={n}
+                    onChange={(e) => setName(i, e.target.value)}
+                    placeholder={`Nombre del jugador ${i + 1}`}
+                    maxLength={60}
+                    autoFocus={i === 0}
+                  />
+                </label>
+              </div>
+              {open && (
+                <div id={`picker-${i}`} className="player-row-picker">
+                  <AvatarPicker
+                    legend={`Monstruo del jugador ${i + 1}`}
+                    value={avatars[i]}
+                    takenBy={taken}
+                    onChange={(v) => {
+                      pickAvatar(i, v);
+                      setPicking(null);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <p className="hint">Tocá el monstruo para cambiarlo: será tu personaje en la mesa.</p>
         <p className="hint">Quién empieza se decide por sorteo al repartir.</p>
         <div className="actions">
           <button type="submit" className="primary" disabled={busy}>
@@ -160,6 +223,8 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [capacity, setCapacity] = useState(4);
+  // null = "el primero libre" (lo decide el servidor al sentarte).
+  const [avatar, setAvatar] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,7 +243,7 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
     setError(null);
     try {
       if (tab === 'join') {
-        const r = await api.join(code.trim().toUpperCase(), clean);
+        const r = await api.join(code.trim().toUpperCase(), clean, avatar);
         if (r.spectator) {
           // La partida ya empezó: se mira, no se juega.
           navigate(`/game/${r.game.id}`, { state: { game: r.game } });
@@ -188,7 +253,7 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
         remember(r.game.id, { playerId: r.playerId, name: clean, token: r.playerToken ?? undefined });
         navigate(`/setup?game=${r.game.id}`);
       } else {
-        const r = await api.createOnline(clean, capacity);
+        const r = await api.createOnline(clean, capacity, avatar);
         if (!r.playerId) throw new Error('sin playerId');
         remember(r.game.id, { playerId: r.playerId, name: clean, token: r.playerToken ?? undefined });
         navigate(`/setup?game=${r.game.id}`);
@@ -233,6 +298,12 @@ function OnlineSetup({ initialCode }: { initialCode: string }) {
           autoFocus
         />
       </label>
+
+      <div className="online-avatar">
+        <p className="kicker">Tu monstruo</p>
+        <AvatarPicker legend="Tu monstruo" value={avatar} onChange={setAvatar} />
+        <p className="hint">{avatar ? `Elegiste la Pelusa ${avatar}.` : 'Si no elegís, te toca el primero libre.'}</p>
+      </div>
 
       {tab === 'join' ? (
         <label>
@@ -408,7 +479,8 @@ function Lobby({ gameId }: { gameId: string }) {
         <ul className="lobby-list">
           {state?.players.map((p) => (
             <li key={p.id}>
-              <span>
+              <span className="lobby-who">
+                <Avatar value={avatarOf(p)} size="sm" />
                 {p.name}
                 {p.id === me.playerId ? ' (vos)' : ''}
               </span>
