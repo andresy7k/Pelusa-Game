@@ -9,7 +9,11 @@ RUN mvn -B -q package -DskipTests
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
-COPY --from=build /app/target/pelusa-game-0.1.0-SNAPSHOT.jar app.jar
+# Sin root: si alguien lograra ejecutar código en la app, no tendría permisos
+# de administrador dentro del contenedor.
+RUN groupadd --system pelusa && useradd --system --gid pelusa --no-create-home pelusa
+COPY --from=build --chown=pelusa:pelusa /app/target/pelusa-game-0.1.0-SNAPSHOT.jar app.jar
+USER pelusa
 EXPOSE 8080
 # Render Free da 512 MB. Por defecto la JVM toma solo el 25 % como heap (~128 MB):
 # MaxRAMPercentage=75 deja ~384 MB y SerialGC es el colector más liviano para 1 CPU.

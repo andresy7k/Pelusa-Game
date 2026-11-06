@@ -1,3 +1,4 @@
+import { rememberGameToken, seatToken } from './identity';
 import { ApiException, type ApiError, type GameState, type JoinResult } from './types';
 
 // Cliente tipado del contrato. Decisiones:
@@ -9,9 +10,20 @@ import { ApiException, type ApiError, type GameState, type JoinResult } from './
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
-async function request<T>(path: string, init?: RequestInit, key?: string): Promise<T> {
+/**
+ * Pedido tipado. `gameId` (opcional) agrega el token de asiento que este
+ * dispositivo guardó para esa partida: sin él, el backend responde 403.
+ */
+async function send<T>(
+  path: string,
+  init?: RequestInit,
+  key?: string,
+  gameId?: string,
+): Promise<{ data: T; res: Response }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (key) headers['Idempotency-Key'] = key;
+  const token = gameId ? seatToken(gameId) : null;
+  if (token) headers['X-Player-Token'] = token;
   const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers, ...init?.headers } });
   if (!res.ok) {
     let body: { errorCode?: string; detail?: string; requestId?: string } = {};
@@ -28,16 +40,24 @@ async function request<T>(path: string, init?: RequestInit, key?: string): Promi
     };
     throw new ApiException(err);
   }
-  return (await res.json()) as T;
+  return { data: (await res.json()) as T, res };
+}
+
+async function request<T>(path: string, init?: RequestInit, key?: string, gameId?: string): Promise<T> {
+  return (await send<T>(path, init, key, gameId)).data;
 }
 
 export const api = {
   /** Crear partida; con `start` vuelve ya iniciada (un request en vez de dos). */
-  create(names: string[], firstPlayerIndex: number | null, start = false): Promise<GameState> {
-    return request<GameState>('/api/games', {
+  async create(names: string[], firstPlayerIndex: number | null, start = false): Promise<GameState> {
+    const { data, res } = await send<GameState>('/api/games', {
       method: 'POST',
       body: JSON.stringify({ names, firstPlayerIndex, start }),
     });
+    // El token llega en cabecera (el cuerpo es el estado público de la partida).
+    const token = res.headers.get('X-Game-Token');
+    if (token) rememberGameToken(data.id, token);
+    return data;
   },
   /** Abrir sala online: devuelve el código y mi playerId (host). */
   createOnline(name: string, capacity: number): Promise<JoinResult> {
@@ -58,7 +78,7 @@ export const api = {
     return request<GameState>(`/api/games/${id}/start`, {
       method: 'POST',
       body: JSON.stringify(playerId ? { playerId } : {}),
-    });
+    }, undefined, id);
   },
   /** Keep-alive de Render Free: no toca la BD. */
   async ping(): Promise<void> {
@@ -71,25 +91,25 @@ export const api = {
     return request<GameState>(`/api/games/${id}/stash`, {
       method: 'POST',
       body: JSON.stringify({ playerId }),
-    }, key);
+    }, key, id);
   },
   draw(id: string, playerId: string, key = newKey()): Promise<GameState> {
     return request<GameState>(`/api/games/${id}/draw`, {
       method: 'POST',
       body: JSON.stringify({ playerId }),
-    }, key);
+    }, key, id);
   },
   stand(id: string, playerId: string, key = newKey()): Promise<GameState> {
     return request<GameState>(`/api/games/${id}/stand`, {
       method: 'POST',
       body: JSON.stringify({ playerId }),
-    }, key);
+    }, key, id);
   },
   steal(id: string, playerId: string, value: number, key = newKey()): Promise<GameState> {
     return request<GameState>(`/api/games/${id}/steal`, {
       method: 'POST',
       body: JSON.stringify({ playerId, value }),
-    }, key);
+    }, key, id);
   },
   result(id: string): Promise<GameState> {
     return request<GameState>(`/api/games/${id}/result`);

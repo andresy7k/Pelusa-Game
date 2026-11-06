@@ -28,7 +28,10 @@ public class WebCorsConfig implements WebMvcConfigurer {
     registry.addMapping("/api/**")
         .allowedOrigins(origins)
         .allowedMethods("GET", "POST", "OPTIONS")
-        .allowedHeaders("Content-Type", "Idempotency-Key")
+        .allowedHeaders("Content-Type", "Idempotency-Key", "X-Player-Token")
+        // Sin exponerlas, el navegador oculta estas cabeceras al JS de otro origen
+        // (en Render el front y la API viven en dominios distintos).
+        .exposedHeaders("X-Game-Token", "X-Request-Id")
         .maxAge(3600);
   }
 }

@@ -42,6 +42,10 @@ public class GameEntity extends AssignedIdEntity {
   @Column(name = "capacity")
   private int capacity = 6;
 
+  /** SHA-256 del token del dispositivo que creó una partida LOCAL (V8). */
+  @Column(name = "control_token_hash", length = 64)
+  private String controlTokenHash;
+
   @Version
   private long version;
 
@@ -61,6 +65,8 @@ public class GameEntity extends AssignedIdEntity {
   public String getMode() { return mode; }
   public int getCapacity() { return capacity; }
   public OffsetDateTime getCreatedAt() { return createdAt; }
+  public String getControlTokenHash() { return controlTokenHash; }
+  public void setControlTokenHash(String hash) { this.controlTokenHash = hash; }
   public OffsetDateTime getStartedAt() { return startedAt; }
   public OffsetDateTime getFinishedAt() { return finishedAt; }
   public void setStatus(String status) { this.status = status; }

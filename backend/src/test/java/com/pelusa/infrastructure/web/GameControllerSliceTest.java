@@ -40,7 +40,7 @@ class GameControllerSliceTest {
 
   @Test
   void optimisticLockConflictIs409ConcurrentTurn() throws Exception {
-    when(service.draw(eq(game), eq(ana), any()))
+    when(service.draw(eq(game), eq(ana), any(), any()))
         .thenThrow(new ObjectOptimisticLockingFailureException("GameEntity", game));
 
     mvc.perform(post("/api/games/" + game + "/draw").contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +52,7 @@ class GameControllerSliceTest {
 
   @Test
   void unexpectedErrorIs500WithoutLeakingDetails() throws Exception {
-    when(service.stand(eq(game), eq(ana), any())).thenThrow(new RuntimeException("password=hunter2"));
+    when(service.stand(eq(game), eq(ana), any(), any())).thenThrow(new RuntimeException("password=hunter2"));
 
     mvc.perform(post("/api/games/" + game + "/stand").contentType(MediaType.APPLICATION_JSON)
             .content("{\"playerId\":\"" + ana + "\"}"))
@@ -80,11 +80,13 @@ class GameControllerSliceTest {
   void controllerForwardsBodyHeaderAndPathUntouched() throws Exception {
     mvc.perform(post("/api/games/" + game + "/steal").contentType(MediaType.APPLICATION_JSON)
             .header("Idempotency-Key", "k-42")
+            .header("X-Player-Token", "tok-secreto")
             .content("{\"playerId\":\"" + ana + "\",\"value\":4}"))
         .andExpect(status().isOk());
-    verify(service).steal(game, ana, "k-42", 4);
+    // El token de asiento llega intacto al servicio (ahí se valida).
+    verify(service).steal(game, ana, "k-42", "tok-secreto", 4);
 
     mvc.perform(post("/api/games/" + game + "/start")).andExpect(status().isOk());
-    verify(service).start(game, null);
+    verify(service).start(game, null, null);
   }
 }

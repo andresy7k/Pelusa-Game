@@ -53,6 +53,8 @@ export interface JoinResult {
   game: GameState;
   playerId: string | null;
   spectator: boolean;
+  /** Secreto de este asiento: solo lo recibe quien se sentó (null si es espectador). */
+  playerToken: string | null;
 }
 
 /** Error canónico RFC7807 con errorCode de dominio. */
@@ -80,6 +82,12 @@ export function friendlyMessage(code: string): string {
       return 'La partida ya terminó.';
     case 'GAME_NOT_FOUND':
       return 'Esa partida no existe.';
+    case 'SEAT_FORBIDDEN':
+      return 'Este dispositivo no tiene permiso para jugar por ese jugador.';
+    case 'RATE_LIMITED':
+      return 'Demasiados pedidos seguidos: esperá unos segundos.';
+    case 'PAYLOAD_TOO_LARGE':
+      return 'El pedido es demasiado grande.';
     case 'GAME_NOT_STARTED':
       return 'La partida todavía no empezó.';
     case 'MUST_DRAW_FIRST':

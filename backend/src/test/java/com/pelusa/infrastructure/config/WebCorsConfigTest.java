@@ -25,6 +25,8 @@ class WebCorsConfigTest {
     CorsConfiguration api = registry.configs().get("/api/**");
     assertThat(api.getAllowedOrigins()).containsExactly("https://front.example", "http://localhost:5173");
     assertThat(api.getAllowedMethods()).containsExactly("GET", "POST", "OPTIONS");
-    assertThat(api.getAllowedHeaders()).contains("Content-Type", "Idempotency-Key");
+    assertThat(api.getAllowedHeaders()).contains("Content-Type", "Idempotency-Key", "X-Player-Token");
+    // Sin esto, el JS del front (otro dominio en Render) no podría leer el token de la partida.
+    assertThat(api.getExposedHeaders()).contains("X-Game-Token", "X-Request-Id");
   }
 }

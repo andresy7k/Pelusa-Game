@@ -23,6 +23,10 @@ public class PlayerEntity extends AssignedIdEntity {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt;
 
+  /** SHA-256 del token de asiento en salas ONLINE (V8); null en hotseat. */
+  @Column(name = "token_hash", length = 64)
+  private String tokenHash;
+
   protected PlayerEntity() {}
 
   public PlayerEntity(UUID id, UUID gameId, String name, int seat) {
@@ -34,5 +38,7 @@ public class PlayerEntity extends AssignedIdEntity {
   }
 
   public String getName() { return name; }
+  public String getTokenHash() { return tokenHash; }
+  public void setTokenHash(String hash) { this.tokenHash = hash; }
   public int getSeat() { return seat; }
 }
