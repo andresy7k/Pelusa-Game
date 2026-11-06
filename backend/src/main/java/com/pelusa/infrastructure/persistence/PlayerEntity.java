@@ -9,9 +9,7 @@ import java.util.UUID;
     uniqueConstraints = {
       @UniqueConstraint(name = "uq_game_position", columnNames = {"game_id", "seat"}),
       @UniqueConstraint(name = "uq_game_name", columnNames = {"game_id", "name"})})
-public class PlayerEntity {
-  @Id
-  private UUID id;
+public class PlayerEntity extends AssignedIdEntity {
 
   @Column(name = "game_id", nullable = false)
   private UUID gameId;
@@ -35,7 +33,6 @@ public class PlayerEntity {
     this.createdAt = OffsetDateTime.now();
   }
 
-  public UUID getId() { return id; }
   public String getName() { return name; }
   public int getSeat() { return seat; }
 }

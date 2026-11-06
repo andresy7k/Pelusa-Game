@@ -9,9 +9,7 @@ import java.util.UUID;
   @Index(name = "ix_cards_game_location", columnList = "game_id,location"),
   @Index(name = "ix_cards_game_owner_location", columnList = "game_id,owner_player_id,location"),
   @Index(name = "ix_cards_deck_order", columnList = "game_id,pile_order")})
-public class CardEntity {
-  @Id
-  private UUID id;
+public class CardEntity extends AssignedIdEntity {
 
   @Column(name = "game_id", nullable = false)
   private UUID gameId;

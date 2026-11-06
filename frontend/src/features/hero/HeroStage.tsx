@@ -27,9 +27,20 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
 }
 
+// El preloader es la bienvenida: se ve la primera vez de la sesión. Si se vuelve
+// al inicio (desde el historial, al terminar una partida…) no se repiten ~4 s.
+const INTRO_SEEN = 'pelusa.introSeen'
+function introSeen(): boolean {
+  try {
+    return sessionStorage.getItem(INTRO_SEEN) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function HeroStage() {
-  const [entered, setEntered] = useState(false)
-  const [revealed, setRevealed] = useState(false)
+  const [entered, setEntered] = useState(introSeen)
+  const [revealed, setRevealed] = useState(introSeen)
   // Carta activa del carrusel: alimenta el canvas 3D (T6 suma el tinte).
   const [activeCard, setActiveCard] = useState<HeroValue>(1)
   // Carta con el cursor encima (distinta de la activa): su monstruo hace el
@@ -64,7 +75,14 @@ export function HeroStage() {
   const has3d = canvasReady && !webglLost
 
   const onReveal = useCallback(() => setRevealed(true), [])
-  const onDone = useCallback(() => setEntered(true), [])
+  const onDone = useCallback(() => {
+    setEntered(true)
+    try {
+      sessionStorage.setItem(INTRO_SEEN, '1')
+    } catch {
+      // Modo privado / storage bloqueado: simplemente se vuelve a ver.
+    }
+  }, [])
   const onActiveCard = useCallback((v: HeroValue) => setActiveCard(v), [])
   const onHoverCard = useCallback((v: HeroValue | null) => setHoveredCard(v), [])
   const onCanvasReady = useCallback(() => setCanvasReady(true), [])
