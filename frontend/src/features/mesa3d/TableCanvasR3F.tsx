@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { MESA3D, cameraPose, type MesaCameraPreset } from './config'
+import { MESA3D, cameraPose, portraitFactor, type MesaCameraPreset } from './config'
 import { buildFeltTexture } from './feltTexture'
 import { Table3D } from './Table3D'
 import { Lamp3D } from './Lamp3D'
@@ -192,11 +192,40 @@ function Scene({
       <Room3D />
       <Table3D felt={felt} />
       {game && <Cards3D game={game} flight={flight} canAct={canAct} onDraw={onDraw} onSteal={onSteal} />}
-      {game && <Seats3D seats={game.seats} />}
+      {game && <LitSeats seats={game.seats} />}
       <Lamp3D />
       <CameraRig cam={cam} seat={followSeat} seatCount={seatCount} />
       <ReadyPing armed={felt !== null} />
     </>
+  )
+}
+
+/**
+ * Sentados con su propio brillo: tras montar (y cada vez que cambian), los
+ * materiales de los monstruos emiten una fracción de ese color (MESA3D.players.glow).
+ * Los materiales son por instancia (useMemo en FurMesh/Character): tocarlos
+ * acá no afecta a los monstruos de la portada.
+ */
+function LitSeats({ seats }: { seats: MesaGameView['seats'] }) {
+  const group = useRef<THREE.Group>(null)
+  useLayoutEffect(() => {
+    group.current?.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        // Solo los monstruos (MeshPhysical); las sillas comparten MeshStandard.
+        const std = m as THREE.MeshPhysicalMaterial
+        if (std.isMeshPhysicalMaterial && std.userData.glow !== true) {
+          std.emissive.copy(std.color).multiplyScalar(MESA3D.players.glow)
+          std.userData.glow = true
+        }
+      }
+    })
+  })
+  return (
+    <group ref={group}>
+      <Seats3D seats={seats} />
+    </group>
   )
 }
 
@@ -208,6 +237,8 @@ function Scene({
 function CameraRig({ cam, seat, seatCount }: { cam: MesaCameraPreset; seat: number | null; seatCount: number }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls) as unknown as ControlsLike | null
+  // Vertical: más lejos para que la mesa entre a lo ancho.
+  const zoomOut = useThree((s) => portraitFactor(s.size.width / Math.max(1, s.size.height)))
   const anim = useRef<{
     from: { r: number; a: number; y: number }
     to: { r: number; a: number; y: number }
@@ -219,8 +250,8 @@ function CameraRig({ cam, seat, seatCount }: { cam: MesaCameraPreset; seat: numb
 
   useLayoutEffect(() => {
     const p = cameraPose(cam, seat, seatCount)
-    const toPos = new THREE.Vector3(...p.pos)
     const toTgt = new THREE.Vector3(...p.target)
+    const toPos = new THREE.Vector3(...p.pos).sub(toTgt).multiplyScalar(zoomOut).add(toTgt)
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (!booted.current || !controls || reduced) {
       // Colocación directa: primer frame (y hasta que exista el control).
@@ -246,7 +277,7 @@ function CameraRig({ cam, seat, seatCount }: { cam: MesaCameraPreset; seat: numb
       toTgt,
       start: performance.now(),
     }
-  }, [cam, seat, seatCount, camera, controls])
+  }, [cam, seat, seatCount, camera, controls, zoomOut])
 
   // Travelling entre vistas (easeInOutCubic) en cilíndricas.
   useFrame(() => {

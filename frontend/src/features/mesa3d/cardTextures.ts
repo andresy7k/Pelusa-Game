@@ -276,13 +276,22 @@ const backCache = { tex: null as THREE.Texture | null }
 const matCache = new Map<string, THREE.MeshStandardMaterial>()
 
 /** UV de ShapeGeometry = coords de mundo: repeat/offset llevan a [0..1]. */
+/** Oscurece un hex `#rrggbb` mezclándolo con negro (`t` 0..1). */
+function darken(hex: string, t: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const ch = (shift: number) => Math.round(((n >> shift) & 255) * (1 - t))
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`
+}
+
 function finishTexture(cv: HTMLCanvasElement): THREE.Texture {
   const tex = new THREE.CanvasTexture(cv)
   tex.colorSpace = THREE.SRGBColorSpace
   const { w, h } = MESA3D.cards.size
   tex.repeat.set(1 / w, 1 / h)
   tex.offset.set(0.5, 0.5)
-  tex.anisotropy = 8
+  // Máximo filtrado: three lo recorta a lo que soporte la GPU. Las cartas se
+  // ven casi de canto y con 8 el número se emborronaba.
+  tex.anisotropy = 16
   tex.needsUpdate = true
   return tex
 }
@@ -303,17 +312,23 @@ function paintFront(value: number, g: CanvasRenderingContext2D, W: number, H: nu
   watercolorBase(g, W, H, pal.bg, pal.bg2)
   stitchFrame(g, W, H, 26, 12)
 
-  // Número sticker: contorno blanco grueso + relleno del acento.
+  // Número sticker: en 3D se ve chico, de lejos y bajo el foco, así que va
+  // más grande, con el acento oscurecido y un filo de tinta por fuera del
+  // contorno blanco (se lee aunque la carta clara quede lavada por la luz).
   g.save()
   g.textAlign = 'center'
   g.textBaseline = 'top'
-  g.font = `${Math.round(H * 0.42)}px "Bowlby One", "Baloo 2", sans-serif`
+  g.font = `${Math.round(H * 0.46)}px "Bowlby One", "Baloo 2", sans-serif`
   g.lineJoin = 'round'
+  const y = H * 0.012
+  g.lineWidth = W * 0.075 + 14
+  g.strokeStyle = 'rgba(24, 28, 44, 0.85)'
+  g.strokeText(String(value), W / 2, y)
   g.lineWidth = W * 0.075
   g.strokeStyle = '#fff'
-  g.strokeText(String(value), W / 2, H * 0.022)
-  g.fillStyle = pal.accent
-  g.fillText(String(value), W / 2, H * 0.022)
+  g.strokeText(String(value), W / 2, y)
+  g.fillStyle = darken(pal.accent, 0.22)
+  g.fillText(String(value), W / 2, y)
   g.restore()
 
   // Monstruo pegado al borde inferior (88% del ancho, recorte leve).
@@ -377,7 +392,13 @@ export function cardFrontMaterial(value: number): THREE.MeshStandardMaterial {
   const key = `f${value}`
   let m = matCache.get(key)
   if (!m) {
-    m = new THREE.MeshStandardMaterial({ map: cardFrontTexture(value), roughness: 0.62, metalness: 0 })
+    // Más mate y un punto más oscuro: bajo el foco las cartas claras se lavaban.
+    m = new THREE.MeshStandardMaterial({
+      map: cardFrontTexture(value),
+      color: '#e6e6e6',
+      roughness: 0.88,
+      metalness: 0,
+    })
     matCache.set(key, m)
   }
   return m

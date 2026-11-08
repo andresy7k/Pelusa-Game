@@ -1,7 +1,7 @@
-// frontend/src/features/mesa3d/config.ts
-// Fuente única de verdad de la mesa 3D (paso 2: mesa + lámpara + cámara
-// fija). Dimensiones, paleta muestreada del render 2D real, luces, cámara y
-// texturas: todo lo que se pueda afinar vive acá (cero números visuales
+﻿// frontend/src/features/mesa3d/config.ts
+// Fuente Ãºnica de verdad de la mesa 3D (paso 2: mesa + lÃ¡mpara + cÃ¡mara
+// fija). Dimensiones, paleta muestreada del render 2D real, luces, cÃ¡mara y
+// texturas: todo lo que se pueda afinar vive acÃ¡ (cero nÃºmeros visuales
 // sueltos en los componentes).
 
 export type MesaCameraPreset = 'seat' | 'wide' | 'top' | 'detail'
@@ -9,17 +9,17 @@ export type MesaCameraPreset = 'seat' | 'wide' | 'top' | 'detail'
 export const MESA_CAMERA_PRESETS: MesaCameraPreset[] = ['seat', 'wide', 'top', 'detail']
 
 export const MESA3D = {
-  /** Mesa oval 2:1 (4.4 × 2.2 unidades). La superficie de juego está en y = 0. */
+  /** Mesa oval 2:1 (4.4 Ã— 2.2 unidades). La superficie de juego estÃ¡ en y = 0. */
   table: {
     rx: 2.19,
     ry: 1.15,
     rim: { width: 0.26, height: 0.13 }, // cenefa de madera (~12% del radio menor)
-    fillet: { width: 0.022, height: 0.045 }, // filete ámbar entre fieltro y cenefa
+    fillet: { width: 0.022, height: 0.045 }, // filete Ã¡mbar entre fieltro y cenefa
     pedestal: { rTop: 0.95, rBottom: 1.25, height: 0.85 },
   },
   /** Hex muestreados pixel a pixel del render 2D actual (no de memoria). */
   colors: {
-    void: '#07051A', // fondo del vacío (la sala llega en el paso 3)
+    void: '#07051A', // fondo del vacÃ­o (la sala llega en el paso 3)
     feltEdge: '#150F2B',
     feltMid: '#2E214F',
     feltLit: '#37285C',
@@ -45,15 +45,15 @@ export const MESA3D = {
     /** La textura se cachea por cantidad de jugadores (cambian los "nidos"). */
     size: [4096, 2048] as [number, number],
     strands: 60000, // hebras de pelaje
-    whorlEye: 0.34, // radio (unidades) del ojo del remolino: ahí irá el mazo
+    whorlEye: 0.34, // radio (unidades) del ojo del remolino: ahÃ­ irÃ¡ el mazo
     hemRadius: 0.44, // radio de la costura alrededor del ojo
   },
   seats: {
-    /** El local es el asiento 0, SIEMPRE abajo (frente a la cámara); el resto
+    /** El local es el asiento 0, SIEMPRE abajo (frente a la cÃ¡mara); el resto
      *  reparte en sentido horario visto desde arriba. */
     startAngle: Math.PI / 2,
     rx: 1.5, // semieje x del anillo de asientos
-    rz: 0.65, // semieje z (más chico: la mesa es 2:1)
+    rz: 0.65, // semieje z (mÃ¡s chico: la mesa es 2:1)
     nido: 0.42, // radio del nido aplastado/cosido de cada asiento
   },
   /** Etiqueta de tela cosida del "juguete" (lado lejano, corrida para no
@@ -66,15 +66,15 @@ export const MESA3D = {
     size: { w: 0.15, h: 0.21, t: 0.0085, cornerR: 0.018 },
     baseY: 0.0095, // altura de reposo (fieltro en 0.004 + medio grosor)
     deck: {
-      total: 110, // mazo completo (13× valores 1-5 + 9× valores 6-10, DeckFactory)
-      maxPile: 26, // cartas visibles del montón (la pileza baja con el conteo)
-      step: 0.0105, // separación entre cartas del mazo
+      total: 110, // mazo completo (13Ã— valores 1-5 + 9Ã— valores 6-10, DeckFactory)
+      maxPile: 26, // cartas visibles del montÃ³n (la pileza baja con el conteo)
+      step: 0.0105, // separaciÃ³n entre cartas del mazo
       jitterXZ: 0.013,
       rotJitter: 0.09,
       /** Chip flotante con las cartas restantes (paridad con .deck-count 2D). */
       countChip: { x: -0.3, y: 0.13, z: 0.16 },
     },
-    /** Vuelo mazo→jugador en 3D (espejo del FlightLayer 2D: 0.55s inOut). */
+    /** Vuelo mazoâ†’jugador en 3D (espejo del FlightLayer 2D: 0.55s inOut). */
     flight: { dur: 0.55, lift: 0.36 },
     fronts: {
       perRow: 4, // filas de a 4 con leve solape (nunca pila)
@@ -83,7 +83,7 @@ export const MESA3D = {
       fan: 1.2, // abanico: rad por unidad de desplazamiento
       jitterZ: 0.007,
     },
-    turnRing: { inner: 0.47, outer: 0.545, y: 0.005 }, // aro ámbar del turno
+    turnRing: { inner: 0.47, outer: 0.545, y: 0.005 }, // aro Ã¡mbar del turno
     hoverLift: 0.03,
   },
   /** Sillas de cuero (paso 6): anillo FUERA de la cenefa (la mesa llega a
@@ -99,7 +99,7 @@ export const MESA3D = {
     colors: { leather: '#4A2E7E', wine: '#6E2145', column: '#5C1F35', base: '#170E28' },
   },
   /** Jugadores (paso 6): un monstruo R3F por asiento (roster determinista,
-   *  el anfitrión vive aparte) + la Pelusa 10 rosa como crupier diminuto
+   *  el anfitriÃ³n vive aparte) + la Pelusa 10 rosa como crupier diminuto
    *  junto al mazo. LOD lite: 7 personajes a 60fps. */
   players: {
     roster: [1, 2, 3, 4, 5, 6],
@@ -108,9 +108,13 @@ export const MESA3D = {
     /** Chapa de nombre (sprite con canvas) flotando sobre cada sentado;
      *  lift 0.18 libre para pelos/cuernos de los monstruos. */
     namePlate: { h: 0.14, lift: 0.18 },
+    /** Los sentados quedan fuera del cono de la lÃ¡mpara y se veÃ­an apagados:
+     *  emiten un poco de su propio color (no depende de la luz ni aclara el
+     *  fieltro, como pasaba con una luz extra en el centro). */
+    glow: 0.4,
   },
   /** Sala cerrada (paso 3): tapiz, alfombra, friso, columnas, cuadros y
-   *  apliques. Ángulos en radianes (0 = +x; el fondo de la escena es -z). */
+   *  apliques. Ãngulos en radianes (0 = +x; el fondo de la escena es -z). */
   room: {
     radius: 6.2,
     floorY: -0.99,
@@ -119,7 +123,7 @@ export const MESA3D = {
     stone: '#241C38',
     damask: { repeatX: 16, repeatY: 3 },
     frieze: { y: 4.25, tube: 0.09 },
-    /** Apliques en las cuatro esquinas (45/135/225/315°). Altura baja para
+    /** Apliques en las cuatro esquinas (45/135/225/315Â°). Altura baja para
      *  que entren en cuadro con los presets (miran mucho hacia la mesa). */
     sconces: {
       radius: 6.08,
@@ -129,13 +133,13 @@ export const MESA3D = {
       distance: 7.5,
       bulb: 0.085,
     },
-    /** Columnas flanqueando el fondo (232° y 308°). */
+    /** Columnas flanqueando el fondo (232Â° y 308Â°). */
     columns: {
       radius: 5.75,
       half: 0.24,
       angles: [4.05, 5.38],
     },
-    /** Cuadros del fondo (255°, 270°, 285°). */
+    /** Cuadros del fondo (255Â°, 270Â°, 285Â°). */
     pictures: {
       radius: 6.02,
       y: 1.5,
@@ -143,7 +147,7 @@ export const MESA3D = {
       frame: [1.34, 1.04, 0.07] as const,
       canvas: [1.12, 0.86] as const,
     },
-    /** Brillo propio: la sala está a oscuras y sin esto no se lee en cámara. */
+    /** Brillo propio: la sala estÃ¡ a oscuras y sin esto no se lee en cÃ¡mara. */
     glow: {
       wall: { color: '#8A78D0', intensity: 0.45 },
       carpet: { color: '#5A4A90', intensity: 0.3 },
@@ -154,31 +158,32 @@ export const MESA3D = {
     fov: 42,
     near: 0.1,
     far: 80,
-    /** Vistas fijas. `seat` y `wide` acá son las del asiento 0; para otro
+    /** Vistas fijas. `seat` y `wide` acÃ¡ son las del asiento 0; para otro
      *  asiento las calcula `cameraPose` alrededor del anillo de sillas. */
     presets: {
-      seat: { pos: [0, 3.3, 3.23] as const, target: [0, 0, -0.25] as const },
-      wide: { pos: [0, 4.7, 4.68] as const, target: [0, 0.15, -0.35] as const },
-      top: { pos: [0, 6.2, 3.0] as const, target: [0, 0, 0] as const },
+      seat: { pos: [0, 3.9, 3.88] as const, target: [0, 0, -0.25] as const },
+      wide: { pos: [0, 5.4, 5.28] as const, target: [0, 0.15, -0.35] as const },
+      /** Desde arriba: mÃ¡s cerca que antes (la mesa llena la pantalla). */
+      top: { pos: [0, 5.0, 2.3] as const, target: [0, 0, 0] as const },
       detail: { pos: [1.0, 1.8, 1.2] as const, target: [-0.15, 0, -0.6] as const },
     },
-    /** Cámara libre (paso 4): límites de órbita/zoom/pan y duración del
+    /** CÃ¡mara libre (paso 4): lÃ­mites de Ã³rbita/zoom/pan y duraciÃ³n del
      *  travelling entre vistas. */
-    /** Vistas que siguen a un asiento: la cámara se para DETRÁS de su silla
-     *  (`back` unidades más afuera del anillo), a altura `h`, mirando a un
-     *  punto `lead` más allá del centro. `seat` = Mi vista (más lejos que la
-     *  versión anterior: menos zoom); `wide` = Vista general del que juega. */
+    /** Vistas que siguen a un asiento: la cÃ¡mara se para DETRÃS de su silla
+     *  (`back` unidades mÃ¡s afuera del anillo), a altura `h`, mirando a un
+     *  punto `lead` mÃ¡s allÃ¡ del centro. `seat` = Mi vista (mÃ¡s lejos que la
+     *  versiÃ³n anterior: menos zoom); `wide` = Vista general del que juega. */
     follow: {
-      seat: { back: 1.25, h: 3.3, lead: 0.25, ty: 0 },
-      wide: { back: 2.7, h: 4.7, lead: 0.35, ty: 0.15 },
-      /** Radio máximo en planta: la sala mide 6.2, la cámara no se mete en la pared. */
+      seat: { back: 1.9, h: 3.9, lead: 0.25, ty: 0 },
+      wide: { back: 3.3, h: 5.4, lead: 0.35, ty: 0.15 },
+      /** Radio mÃ¡ximo en planta: la sala mide 6.2, la cÃ¡mara no se mete en la pared. */
       maxRadius: 5.6,
     },
     controls: {
       minDistance: 2.2,
-      maxDistance: 8,
+      maxDistance: 9.5,
       minPolarAngle: 0.05, // casi en picada (cenital)
-      maxPolarAngle: 1.05, // elevación mínima ≈30° sobre la mesa
+      maxPolarAngle: 1.05, // elevaciÃ³n mÃ­nima â‰ˆ30Â° sobre la mesa
       panLimit: 1.2,
       tweenMs: 900,
     },
@@ -199,19 +204,19 @@ export const MESA3D = {
   },
   lights: {
     ambient: 0.3,
-    hemisphere: 0.55,
+    hemisphere: 0.7,
     fill: { pos: [-4, 2.2, 3.5] as const, color: '#6D4AFF', intensity: 0.45 },
     rim: { pos: [3.2, 2.4, -4] as const, color: '#C026D3', intensity: 0.7 },
   },
   exposure: 1.2,
 } as const
 
-/** Ángulo (rad) del asiento `i` de `n` en el anillo de asientos. */
+/** Ãngulo (rad) del asiento `i` de `n` en el anillo de asientos. */
 export function seatAngle(i: number, n: number): number {
   return MESA3D.seats.startAngle - (i * Math.PI * 2) / n
 }
 
-/** Posición (unidades de mundo, x/z) del asiento `i` de `n` jugadores. */
+/** PosiciÃ³n (unidades de mundo, x/z) del asiento `i` de `n` jugadores. */
 export function seatPoint(i: number, n: number): { x: number; z: number } {
   const a = seatAngle(i, n)
   return { x: Math.cos(a) * MESA3D.seats.rx, z: Math.sin(a) * MESA3D.seats.rz }
@@ -223,8 +228,8 @@ export interface CameraPose {
 }
 
 /**
- * Pose de cámara para una vista. `seat`/`wide` se paran detrás de la silla del
- * asiento indicado (Mi vista → mi asiento; Vista general → el del turno);
+ * Pose de cÃ¡mara para una vista. `seat`/`wide` se paran detrÃ¡s de la silla del
+ * asiento indicado (Mi vista â†’ mi asiento; Vista general â†’ el del turno);
  * `top` y `detail` son fijas. Sin asiento (espectador) se usa el 0.
  */
 export function cameraPose(preset: MesaCameraPreset, seat: number | null, n: number): CameraPose {
@@ -236,11 +241,19 @@ export function cameraPose(preset: MesaCameraPreset, seat: number | null, n: num
   const a = seatAngle(seat ?? 0, n)
   const dx = Math.cos(a)
   const dz = Math.sin(a)
-  // Radio del anillo de sillas en esa dirección (la mesa es oval).
+  // Radio del anillo de sillas en esa direcciÃ³n (la mesa es oval).
   const ring = Math.hypot(dx * MESA3D.chairs.rx, dz * MESA3D.chairs.rz)
   const r = Math.min(MESA3D.camera.follow.maxRadius, ring + f.back)
   return {
     pos: [dx * r, f.h, dz * r],
     target: [-dx * f.lead, f.ty, -dz * f.lead],
   }
+}
+
+/**
+ * Pantalla vertical (celular de pie): el campo horizontal es angosto y la mesa
+ * se cortaba a los costados. Se aleja la cÃ¡mara en proporciÃ³n (tope 1.7Ã—).
+ */
+export function portraitFactor(aspect: number): number {
+  return aspect >= 1 ? 1 : Math.min(1.7, Math.pow(1 / aspect, 0.6))
 }
