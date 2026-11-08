@@ -156,9 +156,12 @@ class TableTest {
     // Mazo: [5, 1] → Ana 5, Beto 1 → gana Ana (5>1), auto-stash aplicado
     Table t = twoPlayers(0, 5, 1);
     t.drawCurrent(); // Ana 5
-    t.standCurrent();
-    DrawResult last = t.drawCurrent(); // Beto 1, mazo vacío → fin
-    assertThat(last.gameFinished()).isTrue();
+    assertThat(t.standCurrent()).as("quedan cartas: sigue la partida").isFalse();
+    DrawResult last = t.drawCurrent(); // Beto 1, mazo vacío
+    // La última carta no cierra sola: Beto la ve y todavía puede robar.
+    assertThat(last.gameFinished()).isFalse();
+    assertThat(t.status()).isEqualTo(GameStatus.IN_PROGRESS);
+    assertThat(t.standCurrent()).as("plantarse con el mazo vacío termina").isTrue();
     assertThat(t.status()).isEqualTo(GameStatus.FINISHED);
     assertThat(t.isTie()).isFalse();
     assertThat(t.winnerId()).isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
@@ -173,7 +176,35 @@ class TableTest {
     DrawResult bust = t.drawCurrent();
     assertThat(bust.bust()).isTrue();
     assertThat(bust.gameFinished()).isTrue();
+    assertThat(bust.lost()).as("4, 5 y el 4 repetido van al descarte").isEqualTo(3);
     assertThat(t.status()).isEqualTo(GameStatus.FINISHED);
+  }
+
+  @Test
+  void lastCardCanStillBeStolenBeforeTheGameEnds() {
+    // Mazo [3, 7, 7]: Ana 3, Beto 7, Ana saca el último 7 y le roba el 7 a Beto.
+    Table t = twoPlayers(0, 3, 7, 7);
+    t.drawCurrent(); // Ana 3
+    t.standCurrent();
+    t.drawCurrent(); // Beto 7
+    t.standCurrent();
+    DrawResult last = t.drawCurrent(); // Ana 7: última carta, frente [3, 7], sin bust
+    assertThat(last.gameFinished()).isFalse();
+    assertThat(t.stealCurrent(7).count()).isEqualTo(1);
+    assertThat(t.standCurrent()).isTrue();
+    assertThat(t.scores().get(ANA).sum()).isEqualTo(17);
+    assertThat(t.scores().get(BETO).sum()).isZero();
+  }
+
+  @Test
+  void finishIfDeckEmptyOnlyActsWithEmptyDeckInProgress() {
+    Table t = twoPlayers(0, 5, 1);
+    assertThat(t.finishIfDeckEmpty()).isFalse();
+    t.drawCurrent();
+    t.standCurrent();
+    t.drawCurrent(); // mazo vacío, partida abierta
+    assertThat(t.finishIfDeckEmpty()).isTrue();
+    assertThat(t.finishIfDeckEmpty()).as("ya terminada: no repite").isFalse();
   }
 
   @Test
@@ -187,6 +218,7 @@ class TableTest {
     assertThat(t.lastDrawnValue()).as("el valor robable se limpia al rotar").isNull();
     t.drawCurrent();
     assertThat(t.deckRemaining()).isZero();
+    t.standCurrent();
     // Auto-stash al terminar: los frentes pasan a puntos y quedan vacíos.
     assertThat(t.scores().get(ANA).sum()).isEqualTo(5);
     assertThat(t.scores().get(BETO).sum()).isEqualTo(1);
@@ -209,6 +241,7 @@ class TableTest {
     assertThat(bust.bust()).isTrue();
     assertThat(t.stashed().get(ANA)).containsExactly(new Card(9));
     t.drawCurrent(); // Beto 3 → mazo vacío
+    t.standCurrent();
     assertThat(t.scores().get(ANA).sum()).isEqualTo(9);
     assertThat(t.scores().get(BETO).sum()).isEqualTo(5);
   }
@@ -397,6 +430,7 @@ class TableTest {
     t.drawCurrent();
     t.standCurrent();
     t.drawCurrent();
+    t.standCurrent();
     assertThat(t.status()).isEqualTo(GameStatus.FINISHED);
   }
 
@@ -405,7 +439,8 @@ class TableTest {
     Table t = twoPlayers(0, 5, 1);
     t.drawCurrent();
     t.standCurrent();
-    t.drawCurrent(); // fin
+    t.drawCurrent(); // última carta
+    t.standCurrent(); // fin
     assertThatThrownBy(t::drawCurrent)
         .isInstanceOf(DomainException.class)
         .extracting(e -> ((DomainException) e).getCode())

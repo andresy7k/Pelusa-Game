@@ -85,7 +85,12 @@ public class Table {
     return count;
   }
 
-  /** Sacar carta del mazo. Puede causar bust o terminar la partida. */
+  /**
+   * Sacar carta del mazo. Puede causar bust. Si fue la última carta y no hubo
+   * bust, la partida NO termina todavía: quien la sacó la ve, puede robar su
+   * valor y termina al plantarse (antes se cerraba sola y no dejaba robar).
+   * Un bust con la última carta sí la termina (no queda nada por hacer).
+   */
   public DrawResult drawCurrent() {
     requireInProgress();
     if (deck.isEmpty()) {
@@ -98,33 +103,46 @@ public class Table {
     lastDrawnValue = drawn.value();
 
     if (BustPolicy.isBust(front, drawn)) {
+      int lost = front.size();
       discarded.addAll(front);
       front.clear();
       nextTurn();
       if (deck.isEmpty()) {
         finish(); // el mazo se agotó con el bust: también termina
-        return new DrawResult(drawn, true, true);
+        return new DrawResult(drawn, true, true, lost);
       }
-      return new DrawResult(drawn, true, false);
+      return new DrawResult(drawn, true, false, lost);
     }
-    if (deck.isEmpty()) {
-      finish();
-      return new DrawResult(drawn, false, true);
-    }
-    return new DrawResult(drawn, false, false);
+    return new DrawResult(drawn, false, false, 0);
   }
 
   /**
    * Plantarse voluntariamente y pasar el turno. Exige haber sacado al menos una
    * carta este turno: si se pudiera pasar sin sacar, todos podrían plantarse
    * para siempre y el mazo nunca se agotaría (la partida no terminaría).
+   *
+   * @return true si con este stand terminó la partida (el mazo ya estaba vacío)
    */
-  public void standCurrent() {
+  public boolean standCurrent() {
     requireInProgress();
     if (lastDrawnValue == null) {
       throw new DomainException("MUST_DRAW_FIRST", "Tenés que sacar al menos una carta antes de plantarte");
     }
     nextTurn();
+    return finishIfDeckEmpty();
+  }
+
+  /**
+   * Cierra la partida si el mazo está vacío (I-06). La usa el stand y la
+   * expiración del turno online (si quien sacó la última carta no se planta a
+   * tiempo, el siguiente no podría ni sacar ni plantarse).
+   */
+  public boolean finishIfDeckEmpty() {
+    if (status == GameStatus.IN_PROGRESS && deck.isEmpty()) {
+      finish();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -268,7 +286,8 @@ public class Table {
     return scores;
   }
 
-  public record DrawResult(Card drawn, boolean bust, boolean gameFinished) {}
+  /** {@code lost} = cartas del frente que se fueron al descarte por el bust. */
+  public record DrawResult(Card drawn, boolean bust, boolean gameFinished, int lost) {}
 
   public record StealResult(int value, int count, List<UUID> fromPlayerIds) {}
 }

@@ -306,13 +306,17 @@ public class GameService {
       top.setOwnerPlayerId(playerId);
       turn.setActed(true);
       turn.setLastDrawnValue(r.drawn().value());
-      Map<String, Object> ev = event("DRAW", Map.of("value", r.drawn().value(), "bust", r.bust()));
+      // playerId: los demás (online) ven quién sacó; lost: cuántas perdió si repitió.
+      Map<String, Object> ev = event("DRAW", Map.of(
+          "value", r.drawn().value(), "bust", r.bust(), "playerId", playerId.toString(), "lost", r.lost()));
       turn.setDetail(toJson(ev));
       if (r.bust()) {
         frontRows(rows, playerId).forEach(c -> c.setLocation("DISCARDED"));
       }
       if (r.gameFinished()) {
-        return finishGame(gameId, turn, t, rows, ev, r.bust() ? "BUST" : "AUTO_FINISH");
+        // Solo un bust con la última carta cierra en el draw; sin bust, quien
+        // sacó la última todavía puede robar y la partida cierra al plantarse.
+        return finishGame(gameId, turn, t, rows, ev, "BUST");
       }
       if (r.bust()) {
         closeAndRotate(gameId, turn, playerId, t, "BUST");
@@ -327,9 +331,15 @@ public class GameService {
   @Transactional
   public GameView stand(UUID gameId, UUID playerId, String key, String token) {
     return guarded(gameId, playerId, key, token, (t, turn, rows) -> {
-      t.standCurrent();
+      boolean finished = t.standCurrent();
+      // Queda en el turno: así los demás jugadores también ven que se plantó.
+      Map<String, Object> ev = event("STAND", Map.of("playerId", playerId.toString()));
+      turn.setDetail(toJson(ev));
+      if (finished) {
+        return finishGame(gameId, turn, t, rows, ev, "STAND");
+      }
       closeAndRotate(gameId, turn, playerId, t, "STAND");
-      return event("STAND", Map.of("playerId", playerId.toString()));
+      return ev;
     });
   }
 
@@ -343,9 +353,13 @@ public class GameService {
               && !playerId.equals(c.getOwnerPlayerId()))
           .forEach(c -> c.setOwnerPlayerId(playerId));
       // turns.acted ya es true: robar exige haber sacado este turno (ADR-014).
-      Map<String, Object> ev = event("STEAL",
-          Map.of("value", value, "count", r.count(), "fromPlayerIds", r.fromPlayerIds()));
+      Map<String, Object> ev = event("STEAL", Map.of("value", value, "count", r.count(),
+          "fromPlayerIds", r.fromPlayerIds(), "playerId", playerId.toString()));
       turn.setDetail(toJson(ev));
+      if (turn.getDeadlineAt() != null) {
+        // ONLINE: robar también renueva los 15 s (igual que sacar una carta).
+        turn.setDeadlineAt(OffsetDateTime.now().plusSeconds(TURN_SECONDS));
+      }
       return ev;
     });
   }
@@ -538,6 +552,15 @@ public class GameService {
     open.setOutcome("STAND");
     open.setDetail(toJson(event("TURN_EXPIRED", Map.of("playerId", expired.toString()))));
     List<PlayerEntity> ps = players.findByGameIdOrderBySeatAsc(game.getId());
+    List<CardEntity> rows = cards.findByGameId(game.getId());
+    if (rows.stream().noneMatch(c -> "DECK".equals(c.getLocation()))) {
+      // Venció el turno de quien sacó la última carta: la partida termina acá
+      // (el siguiente no podría sacar del mazo vacío ni plantarse sin sacar).
+      Table table = rebuild(game, ps, rows, open);
+      table.finishIfDeckEmpty();
+      finishGame(game.getId(), open, table, rows, null, "STAND");
+      return expired;
+    }
     int index = 0;
     for (int i = 0; i < ps.size(); i++) {
       if (ps.get(i).getId().equals(expired)) {

@@ -116,8 +116,9 @@ Errores en formato RFC 7807 (`application/problem+json`) con `errorCode`: 400 va
   Para plantarse hay que haber sacado **al menos una carta** (`MUST_DRAW_FIRST`).
 - Robo: solo en tu turno y solo el **valor de la última carta que sacaste**; esas cartas de todos los rivales pasan a tu frente.
 - Pérdida: la carta sacada repite un valor de tu frente **y** el frente tiene ≥ 3 cartas (contando la recién sacada) → todo tu frente al descarte, no puntúa, pasa el turno.
-- Fin: mazo vacío → los frentes se guardan solos → puntos = suma de guardadas → desempate por cantidad de 1s, luego 2s… hasta 10s; si todo coincide, empate.
-- Online: cada turno tiene 15 s y **cada carta sacada reinicia el reloj**; si vence, el servidor pasa el turno.
+- Fin: quien saca la **última carta** la ve y todavía puede robar su valor; la partida termina cuando se planta
+  (o si repite, o si se le vence el turno online) → los frentes se guardan solos → puntos = suma de guardadas → desempate por cantidad de 1s, luego 2s… hasta 10s; si todo coincide, empate.
+- Online: cada turno tiene 15 s y **sacar o robar reinicia el reloj**; si vence, el servidor pasa el turno.
   La UI muestra la cuenta atrás en verde (15–10 s), amarillo (9–5 s) y rojo (< 5 s).
 - Quién empieza: **sorteo** al repartir (`StarterPort`, `SecureRandom`); en pruebas, siempre el asiento 0.
 - Avatares: cada jugador elige uno de los 10 monstruos (`avatars` al crear, `avatar` al abrir/unirse a una sala,

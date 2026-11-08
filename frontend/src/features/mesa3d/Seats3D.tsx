@@ -7,7 +7,8 @@
 // turno/robo/celebración llegan en el paso 7. Cada sentado lleva SU chapa de
 // nombre (sprite con canvas) flotando sobre la cabeza, con punto ámbar si
 // tiene el turno (misma gramática que las chapas del frente 2D).
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MESA3D, seatAngle } from './config'
 import { Character } from '../hero/monsters/Character'
@@ -206,6 +207,103 @@ function NamePlate({
   )
 }
 
+// --- aviso de decisión sobre la cabeza ---------------------------------------
+
+type ActKind = 'draw' | 'stand' | 'steal' | 'stash'
+
+/** Mismos colores que los botones de la barra (pages.css .act-*). */
+const ACT_COLORS: Record<ActKind, string> = {
+  draw: '#36b56a',
+  stand: '#e0523f',
+  steal: '#e8913f',
+  stash: '#8c5fe0',
+}
+
+const actTextures = new Map<ActKind, THREE.CanvasTexture>()
+
+/** Ficha redonda con el símbolo de la decisión (una textura por tipo). */
+function actTexture(kind: ActKind): THREE.CanvasTexture {
+  const hit = actTextures.get(kind)
+  if (hit) return hit
+  const c = document.createElement('canvas')
+  c.width = 256
+  c.height = 256
+  const g = c.getContext('2d')!
+  g.beginPath()
+  g.arc(128, 128, 112, 0, Math.PI * 2)
+  g.fillStyle = ACT_COLORS[kind]
+  g.fill()
+  g.lineWidth = 14
+  g.strokeStyle = '#ffffff'
+  g.stroke()
+  g.fillStyle = '#ffffff'
+  g.strokeStyle = '#ffffff'
+  g.lineCap = 'round'
+  if (kind === 'draw' || kind === 'stand') {
+    g.lineWidth = 30
+    g.beginPath()
+    g.moveTo(74, 128)
+    g.lineTo(182, 128)
+    if (kind === 'draw') {
+      g.moveTo(128, 74)
+      g.lineTo(128, 182)
+    }
+    g.stroke()
+  } else if (kind === 'stash') {
+    g.beginPath()
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? 72 : 30
+      const a = -Math.PI / 2 + (i * Math.PI) / 5
+      g.lineTo(128 + Math.cos(a) * r, 136 + Math.sin(a) * r)
+    }
+    g.closePath()
+    g.fill()
+  } else {
+    // Ninja: cabeza oscura, banda clara y dos ojos.
+    g.fillStyle = '#231a33'
+    g.beginPath()
+    g.ellipse(128, 132, 70, 66, 0, 0, Math.PI * 2)
+    g.fill()
+    g.fillStyle = '#f2e7d4'
+    g.fillRect(62, 112, 132, 34)
+    g.fillStyle = '#231a33'
+    g.beginPath()
+    g.ellipse(106, 129, 9, 11, 0, 0, Math.PI * 2)
+    g.ellipse(150, 129, 9, 11, 0, 0, Math.PI * 2)
+    g.fill()
+  }
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  actTextures.set(kind, tex)
+  return tex
+}
+
+const ACT_LIFE = 1.9 // s
+
+/** Aviso que salta, sube y se desvanece (se reinicia con `key`). */
+function ActionBadge3D({ kind, x, y, z }: { kind: ActKind; x: number; y: number; z: number }) {
+  const sprite = useRef<THREE.Sprite>(null)
+  const born = useRef<number | null>(null)
+  useFrame(({ clock }) => {
+    const s = sprite.current
+    if (!s) return
+    if (born.current === null) born.current = clock.elapsedTime
+    const t = clock.elapsedTime - born.current
+    const pop = t < 0.25 ? (t / 0.25) * 1.15 : t < 0.4 ? 1.15 - ((t - 0.25) / 0.15) * 0.15 : 1
+    const size = 0.26 * pop
+    s.scale.set(size, size, 1)
+    s.position.y = y + Math.min(t, ACT_LIFE) * 0.08
+    const m = s.material as THREE.SpriteMaterial
+    m.opacity = t < 1.3 ? 1 : Math.max(0, 1 - (t - 1.3) / (ACT_LIFE - 1.3))
+    s.visible = t < ACT_LIFE
+  })
+  return (
+    <sprite ref={sprite} position={[x, y, z]} scale={[0.01, 0.01, 1]} renderOrder={10}>
+      <spriteMaterial map={actTexture(kind)} transparent depthTest={false} depthWrite={false} />
+    </sprite>
+  )
+}
+
 /** El anfitrión: Pelusa 10 rosa a escala de juguete, junto al mazo. Si un
  *  jugador ya la eligió, el crupier es otro monstruo que nadie tenga. */
 function HostMascot({ taken }: { taken: number[] }) {
@@ -246,6 +344,15 @@ export function Seats3D({ seats }: { seats: MesaSeatView[] }) {
                 y={CHAIR.seat.top + 2 * feet + MESA3D.players.namePlate.lift}
                 z={z}
               />
+              {s.action && (
+                <ActionBadge3D
+                  key={s.action.key}
+                  kind={s.action.kind}
+                  x={x}
+                  y={CHAIR.seat.top + 2 * feet + MESA3D.players.namePlate.lift + 0.24}
+                  z={z}
+                />
+              )}
             </group>
           )
         })}

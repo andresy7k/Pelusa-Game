@@ -67,7 +67,11 @@ test('Caso 2 — turno perdido: 3 cartas delante y una repetida', async ({ page,
 
   // Saca un 5 repetido con 3 cartas delante → pierde el turno.
   await page.getByRole('button', { name: 'Pedir' }).click();
-  await expect(page.getByRole('alert')).toContainText('Turno perdido');
+  // Todos ven con qué carta perdió: animación a pantalla completa + aviso fijo.
+  await expect(page.locator('.bust-overlay')).toContainText('¡Pelusa repetida!');
+  await expect(page.locator('.bust-overlay')).toContainText('Ana repitió el 5');
+  await expect(page.locator('.bust-banner')).toContainText('Ana repitió el 5 y perdió 4 cartas');
+  await expect(page.locator('.bust-banner .card[data-v="5"]')).toHaveCount(1);
   await expect(seat(page, 'Ana')).toContainText('Sin cartas a la vista');
   await expect(seat(page, 'Ana').locator('.points')).toHaveText('8 pts'); // no suma nada
   await expectTurnOf(page, 'Beto');
@@ -107,9 +111,15 @@ test('Robo: se roban del rival las cartas del valor recién sacado', async ({ pa
   // Solo el 4 de Ana es robable; el 7 no.
   await expect(seat(page, 'Ana').getByRole('button', { name: 'Robar carta 4' })).toHaveCount(1);
   await expect(seat(page, 'Ana').getByRole('button', { name: 'Robar carta 7' })).toHaveCount(0);
-  await seat(page, 'Ana').getByRole('button', { name: 'Robar carta 4' }).click();
+  // Bandeja de robo: a quién y cuántas (un botón grande, fácil también en 3D y celular).
+  const tray = page.locator('.steal-tray');
+  await expect(tray).toContainText('Ana');
+  await expect(tray).toContainText('×1');
+  await tray.getByRole('button', { name: 'Robar 1 carta' }).click();
 
   await expect(page.locator('.event-chip')).toContainText('Robó 1 × 4');
+  // Aviso sobre la cabeza de quien decidió (lo ven todos).
+  await expect(seat(page, 'Beto').locator('.act-badge')).toContainText('Robó');
   await expect(seat(page, 'Beto').locator('.card[data-v="4"]')).toHaveCount(2);
   await expect(seat(page, 'Ana').locator('.card')).toHaveCount(1);
   await expect(seat(page, 'Ana').locator('.card[data-v="7"]')).toHaveCount(1);
@@ -125,7 +135,12 @@ test('Fin de partida: mazo agotado, ganador y registro en el histórico', async 
   await rigDeck(request, gameId, [5, 1], true); // solo quedan 2 cartas
   await page.getByRole('button', { name: 'Pedir' }).click(); // Ana 5
   await page.getByRole('button', { name: 'Plantarse' }).click();
-  await page.getByRole('button', { name: 'Pedir' }).click(); // Beto 1 → mazo vacío
+  await page.getByRole('button', { name: 'Pedir' }).click(); // Beto 1: última carta
+  // La última carta se ve y todavía se puede robar: la partida sigue abierta.
+  await expect(page.locator('#deck-pile')).toContainText('0 cartas');
+  await expect(seat(page, 'Beto').locator('.card[data-v="1"]')).toHaveCount(1);
+  await expect(page.locator('.last-card-chip')).toBeVisible();
+  await page.getByRole('button', { name: 'Plantarse' }).click(); // → fin
 
   // Las cartas expuestas se guardan solas y se calcula el ganador.
   await expect(page.locator('.felt-turn strong')).toHaveText('Partida terminada');

@@ -1,0 +1,197 @@
+/* Animación de pérdida (BustOverlay). Todo dura ~2.8 s y no bloquea la mesa. */
+
+.bust-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s2, 8px);
+  pointer-events: none;
+  text-align: center;
+  animation: bust-out 2.8s ease forwards;
+}
+
+/* Destello rojo que late una vez desde el centro. */
+.bust-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, oklch(0.55 0.22 25 / 55%), oklch(0.1 0.04 290 / 70%) 60%);
+  animation: bust-flash 2.8s ease forwards;
+}
+
+.bust-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 230px;
+}
+
+/* El monstruo tiembla y explota en pelusa. */
+.bust-avatar {
+  position: absolute;
+  top: 0;
+  display: grid;
+  place-items: center;
+}
+
+.bust-avatar .avatar {
+  --av: 84px;
+  animation: bust-shake 0.9s ease-in-out, bust-poof 0.5s 0.9s ease-in forwards;
+}
+
+.bust-puff {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 70%), var(--c-monster) 60%);
+  opacity: 0;
+  animation: bust-puff 1.1s 0.95s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+/* Paleta del monstruo: la misma que su carta. */
+.bust-overlay[data-v='1'] { --c-monster: #6fb4e8; }
+.bust-overlay[data-v='2'] { --c-monster: #5a5fa0; }
+.bust-overlay[data-v='3'] { --c-monster: #d93a30; }
+.bust-overlay[data-v='4'] { --c-monster: #a83b90; }
+.bust-overlay[data-v='5'] { --c-monster: #6fbc57; }
+.bust-overlay[data-v='6'] { --c-monster: #f08a2e; }
+.bust-overlay[data-v='7'] { --c-monster: #e8c84a; }
+.bust-overlay[data-v='8'] { --c-monster: #2e2e6e; }
+.bust-overlay[data-v='9'] { --c-monster: #46b4a6; }
+.bust-overlay[data-v='10'] { --c-monster: #e0559e; }
+
+/* La carta repetida sube girando (como un tótem) con brillo rojo. */
+.bust-card {
+  position: absolute;
+  bottom: 0;
+  perspective: 600px;
+  animation: bust-rise 1.6s 0.25s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.bust-card .card {
+  width: 104px;
+  height: 142px;
+  box-shadow: 0 0 0 3px oklch(0.7 0.2 25), 0 0 36px oklch(0.62 0.24 25 / 75%), 0 18px 40px oklch(0 0 0 / 55%);
+  animation: bust-spin 1.6s 0.25s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+
+.bust-card .card:hover {
+  transform: none;
+}
+
+.bust-card .card-value {
+  font-size: 4rem;
+  -webkit-text-stroke-width: 8px;
+}
+
+.bust-title {
+  position: relative;
+  margin: var(--s3, 12px) 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  font-weight: 900;
+  color: oklch(0.72 0.2 25);
+  text-shadow: 0 3px 0 oklch(0.2 0.06 25), 0 0 24px oklch(0.6 0.22 25 / 60%);
+  animation: bust-pop 0.5s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.bust-sub {
+  position: relative;
+  margin: 0;
+  max-width: min(90vw, 40ch);
+  font-weight: 700;
+  color: var(--parchment);
+  text-shadow: 0 2px 6px oklch(0 0 0 / 70%);
+  animation: bust-pop 0.5s 0.5s ease-out both;
+}
+
+.bust-sub strong {
+  color: oklch(0.8 0.17 75);
+}
+
+@keyframes bust-out {
+  0%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes bust-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  40% { opacity: 0.75; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes bust-shake {
+  0%, 100% { transform: none; }
+  15% { transform: translateX(-6px) rotate(-6deg); }
+  30% { transform: translateX(6px) rotate(6deg); }
+  45% { transform: translateX(-5px) rotate(-4deg); }
+  60% { transform: translateX(5px) rotate(4deg); }
+  75% { transform: translateX(-2px) scale(1.06); }
+}
+
+@keyframes bust-poof {
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+    filter: blur(4px) grayscale(1);
+  }
+}
+
+@keyframes bust-puff {
+  0% {
+    opacity: 1;
+    transform: rotate(calc(var(--i) * 360deg / 14)) translateX(0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--i) * 360deg / 14)) translateX(calc(70px + var(--i) * 3px)) scale(1.3);
+  }
+}
+
+@keyframes bust-rise {
+  0% { transform: translateY(120px) scale(0.4); opacity: 0; }
+  35% { opacity: 1; }
+  70% { transform: translateY(-14px) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes bust-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(720deg); }
+}
+
+@keyframes bust-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+/* Sin movimiento: solo aparece y se va (el mensaje sigue llegando). */
+@media (prefers-reduced-motion: reduce) {
+  .bust-overlay *,
+  .bust-overlay {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+
+  .bust-overlay {
+    animation: bust-out 2.8s steps(1, end) forwards !important;
+  }
+
+  .bust-avatar .avatar {
+    animation: none !important;
+  }
+
+  .bust-puff {
+    display: none;
+  }
+}
