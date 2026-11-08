@@ -483,7 +483,8 @@ class GameApiTest {
     act(gameId, "draw", ana, null, null); // Ana 2
     act(gameId, "stand", ana, null, null);
     act(gameId, "draw", beto, null, null); // Beto 1
-    JsonNode end = act(gameId, "draw", beto, null, null); // Beto 1 → mazo vacío
+    act(gameId, "draw", beto, null, null); // Beto 1 → última carta
+    JsonNode end = act(gameId, "stand", beto, null, null); // se planta con el mazo vacío → fin
     // 2 puntos cada uno; Beto tiene dos 1s y Ana ninguno → gana Beto y va primero.
     assertThat(end.get("result").get("winnerId").asText()).isEqualTo(beto.toString());
     assertThat(end.get("result").get("tie").asBoolean()).isFalse();
@@ -503,7 +504,8 @@ class GameApiTest {
 
     act(gameId, "draw", ana, null, null);
     act(gameId, "stand", ana, null, null);
-    JsonNode end = act(gameId, "draw", beto, null, null);
+    act(gameId, "draw", beto, null, null); // última carta
+    JsonNode end = act(gameId, "stand", beto, null, null);
     assertThat(end.get("result").get("tie").asBoolean()).isTrue();
     assertThat(end.get("result").get("winnerId").isNull()).isTrue();
   }
@@ -519,6 +521,7 @@ class GameApiTest {
     act(gameId, "draw", ana, null, null);
     act(gameId, "stand", ana, null, null);
     act(gameId, "draw", beto, null, null);
+    act(gameId, "stand", beto, null, null);
 
     JsonNode page = json.readTree(mvc.perform(get("/api/games/history?size=50"))
         .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
@@ -549,7 +552,8 @@ class GameApiTest {
     rigDust(id, 5, 1);
     act(id, "draw", playerId(g, 0), null, null);
     act(id, "stand", playerId(g, 0), null, null);
-    act(id, "draw", playerId(g, 1), null, null); // última carta → FINISHED
+    act(id, "draw", playerId(g, 1), null, null); // última carta
+    act(id, "stand", playerId(g, 1), null, null); // → FINISHED
     // 23:30 del 3/feb en Colombia = 04:30 del 4/feb en UTC: tiene que contar como día 3.
     jdbc.update("UPDATE games SET finished_at = ? WHERE id = ?",
         java.time.OffsetDateTime.parse("2001-02-03T23:30:00-05:00"), id);
@@ -601,7 +605,8 @@ class GameApiTest {
         .andExpect(jsonPath("$.errorCode").value("ALREADY_STARTED"));
 
     rigDust(gameId, 5);
-    act(gameId, "draw", playerId(created, 0), null, null); // última carta → FINISHED
+    act(gameId, "draw", playerId(created, 0), null, null); // última carta
+    act(gameId, "stand", playerId(created, 0), null, null); // → FINISHED
     mvc.perform(post("/api/games/" + gameId + "/start")).andExpect(status().isConflict())
         .andExpect(jsonPath("$.errorCode").value("GAME_FINISHED"));
   }
@@ -747,8 +752,15 @@ class GameApiTest {
 
     act(gameId, "draw", ana, UUID.randomUUID().toString(), null);
     act(gameId, "stand", ana, UUID.randomUUID().toString(), null);
-    JsonNode last = act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
+    JsonNode lastCard = act(gameId, "draw", beto, UUID.randomUUID().toString(), null);
+    // La última carta se ve y la partida sigue abierta (todavía se podría robar).
+    assertThat(lastCard.get("status").asText()).isEqualTo("IN_PROGRESS");
+    assertThat(lastCard.get("deckRemaining").asInt()).isZero();
+    assertThat(lastCard.get("lastEvent").get("value").asInt()).isEqualTo(1);
+    assertThat(lastCard.get("lastEvent").get("playerId").asText()).isEqualTo(beto.toString());
+    JsonNode last = act(gameId, "stand", beto, UUID.randomUUID().toString(), null);
     assertThat(last.get("status").asText()).isEqualTo("FINISHED");
+    assertThat(last.get("lastEvent").get("type").asText()).isEqualTo("STAND");
     assertThat(last.get("result").get("winnerId").asText()).isEqualTo(ana.toString());
 
     // Acción post-fin → 409

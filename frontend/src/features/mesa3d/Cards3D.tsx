@@ -25,6 +25,8 @@ export interface MesaSeatView {
   name: string
   /** Monstruo elegido (1..10): es el personaje sentado en esa silla. */
   avatar?: number
+  /** Decisión recién tomada (aviso sobre la cabeza); `key` la reinicia. */
+  action?: { kind: 'draw' | 'stand' | 'steal' | 'stash'; key: string } | null
   values: number[]
   isTurn: boolean
 }

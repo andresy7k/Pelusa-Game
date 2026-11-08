@@ -239,6 +239,71 @@ class OnlineApiTest {
     assertThat(deadline).isBefore(OffsetDateTime.now().plusSeconds(16));
   }
 
+  /** Deja en el mazo solo {@code values}, en ese orden (sin depender del barajado). */
+  private void rigDeck(UUID gameId, int... values) {
+    jdbc.update("DELETE FROM cards WHERE game_id = ? AND location = 'DECK'", gameId);
+    for (int i = 0; i < values.length; i++) {
+      jdbc.update("INSERT INTO cards (id, game_id, card_value, location, owner_player_id, pile_order) "
+          + "VALUES (?, ?, ?, 'DECK', NULL, ?)", UUID.randomUUID(), gameId, values[i], i);
+    }
+  }
+
+  private JsonNode online(UUID gameId, String action, UUID playerId, Integer value) throws Exception {
+    Map<String, Object> body = value == null
+        ? Map.of("playerId", playerId) : Map.of("playerId", playerId, "value", value);
+    return json.readTree(mvc.perform(post("/api/games/" + gameId + "/" + action)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(body)))
+        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+  }
+
+  @Test
+  void stealAlsoRestartsTheFifteenSecondClock() throws Exception {
+    JsonNode created = createOnline("Ana", 2);
+    UUID gameId = id(created.get("game"), "id");
+    UUID ana = id(created, "playerId");
+    UUID beto = id(joinOk(created.get("game").get("code").asText(), "Beto"), "playerId");
+    startAs(gameId, ana.toString());
+    rigDeck(gameId, 5, 5, 5, 9);
+    online(gameId, "draw", ana, null);
+    online(gameId, "stand", ana, null);
+    online(gameId, "draw", beto, null); // Beto tiene un 5 boca arriba
+    online(gameId, "stand", beto, null);
+    online(gameId, "draw", ana, null); // Ana saca otro 5: puede robar
+    // Pasaron 12 s pensando: quedan 3.
+    jdbc.update("UPDATE turns SET deadline_at = ? WHERE game_id = ? AND ended_at IS NULL",
+        OffsetDateTime.now().plusSeconds(3), gameId);
+
+    JsonNode after = online(gameId, "steal", ana, 5);
+
+    OffsetDateTime deadline = OffsetDateTime.parse(after.get("turnDeadlineAt").asText());
+    assertThat(deadline).isAfter(OffsetDateTime.now().plusSeconds(13));
+    assertThat(after.get("lastEvent").get("playerId").asText()).isEqualTo(ana.toString());
+  }
+
+  @Test
+  void expiredTurnAfterTheLastCardFinishesTheGame() throws Exception {
+    JsonNode created = createOnline("Ana", 2);
+    UUID gameId = id(created.get("game"), "id");
+    UUID ana = id(created, "playerId");
+    UUID beto = id(joinOk(created.get("game").get("code").asText(), "Beto"), "playerId");
+    startAs(gameId, ana.toString());
+    rigDeck(gameId, 5, 1);
+    online(gameId, "draw", ana, null);
+    online(gameId, "stand", ana, null);
+    JsonNode lastCard = online(gameId, "draw", beto, null); // última carta: sigue abierta
+    assertThat(lastCard.get("status").asText()).isEqualTo("IN_PROGRESS");
+
+    // Beto no se planta a tiempo: sin cartas en el mazo, el reloj cierra la partida.
+    jdbc.update("UPDATE turns SET deadline_at = ? WHERE game_id = ? AND ended_at IS NULL",
+        OffsetDateTime.now().minusSeconds(1), gameId);
+    JsonNode after = json.readTree(mvc.perform(get("/api/games/" + gameId))
+        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+
+    assertThat(after.get("status").asText()).isEqualTo("FINISHED");
+    assertThat(after.get("result").get("winnerId").asText()).isEqualTo(ana.toString());
+  }
+
   @Test
   void lobbyPollingDoesNotOpenTurnsOrClock() throws Exception {
     JsonNode created = createOnline("Ana", 3);

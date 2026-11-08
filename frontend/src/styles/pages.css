@@ -1442,3 +1442,244 @@
     transition: none;
   }
 }
+
+/* --- Aviso de decisión sobre la cabeza (como "Hit/Stand" del blackjack) ---
+   Aparece sobre la chapa de quien decidió, sube y se va. Todos lo ven: online
+   llega por el sondeo. */
+.act-badge {
+  --c: oklch(0.72 0.17 150);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-family: var(--font-board);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  background: color-mix(in oklab, var(--c) 80%, oklch(0.15 0.04 292));
+  box-shadow: 0 0 0 2px #fff, 0 8px 20px color-mix(in oklab, var(--c) 45%, transparent);
+  pointer-events: none;
+  animation: act-badge 1.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.seat-mine .act-badge {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.act-badge--draw { --c: oklch(0.72 0.17 150); }
+.act-badge--stand { --c: oklch(0.63 0.2 25); }
+.act-badge--steal { --c: oklch(0.75 0.14 55); }
+.act-badge--stash { --c: oklch(0.66 0.17 295); }
+
+.act-badge-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  background: oklch(1 0 0 / 22%);
+}
+
+.act-badge-icon .ninja-svg {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes act-badge {
+  0% { opacity: 0; transform: translateY(10px) scale(0.5); }
+  14% { opacity: 1; transform: translateY(-2px) scale(1.12); }
+  24% { transform: translateY(0) scale(1); }
+  72% { opacity: 1; transform: translateY(-8px); }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+
+/* --- Banner de pérdida con la carta repetida --- */
+.bust-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  text-align: left;
+}
+
+.bust-banner-card {
+  flex: none;
+}
+
+.bust-banner-card .card.small {
+  width: 38px;
+  height: 52px;
+}
+
+.bust-banner-card .card.small .card-value {
+  font-size: 1.3rem;
+  -webkit-text-stroke-width: 3px;
+}
+
+/* --- Bandeja de robo: a quién y cuántas, con un botón grande --- */
+.steal-tray {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 92px);
+  translate: -50% 0;
+  z-index: 31;
+  width: min(92vw, 380px);
+  padding: var(--s3) var(--s4);
+  border-radius: 20px;
+  border: 1px solid oklch(0.75 0.14 55 / 55%);
+  background: oklch(0.16 0.05 292 / 88%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 18px 40px oklch(0 0 0 / 50%), 0 0 24px oklch(0.75 0.14 55 / 22%);
+  animation: tray-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.steal-tray-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.steal-tray-head p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--parchment);
+}
+
+.steal-tray-head strong {
+  color: oklch(0.82 0.13 60);
+}
+
+.steal-tray-list {
+  list-style: none;
+  margin: var(--s3) 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.steal-tray-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 7%);
+  font-size: 0.9rem;
+}
+
+.steal-tray-list strong {
+  color: oklch(0.82 0.13 60);
+}
+
+.steal-tray-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
+
+.steal-tray-actions .primary {
+  min-height: 44px;
+  padding-inline: var(--s5, 20px);
+}
+
+@keyframes tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* --- Última carta del mazo --- */
+.last-card-chip {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 92px);
+  translate: -50% 0;
+  z-index: 30;
+  max-width: min(92vw, 46ch);
+  margin: 0;
+  padding: var(--s2) var(--s4);
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: oklch(0.85 0.14 75);
+  background: oklch(0.16 0.05 292 / 85%);
+  border: 1px solid oklch(0.8 0.15 75 / 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .act-badge {
+    animation: act-badge-still 1.9s steps(1, end) forwards;
+  }
+
+  .steal-tray {
+    animation: none;
+  }
+}
+
+@keyframes act-badge-still {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* El aviso de pérdida ocupa el lugar del chip del evento (que en un bust
+   diría lo mismo): corto, en una línea, sin tapar chapas. */
+.bust-banner {
+  position: absolute;
+  top: calc(var(--topbar-h, 70px) + 12px);
+  bottom: auto;
+  max-width: min(92vw, 44ch);
+  padding: var(--s2) var(--s4) var(--s2) var(--s2);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  z-index: 30;
+}
+
+@media (max-width: 640px) {
+  .bust-banner {
+    top: calc(var(--topbar-h, 70px) + 58px);
+    font-size: 0.8rem;
+  }
+}
+
+/* Ancho propio (con left: 50% solo quedaba la mitad y se partía en 2 líneas). */
+.bust-banner {
+  width: max-content;
+  max-width: calc(100vw - 24px);
+}
+
+/* Celular: las cámaras 3D suben a una fila propia SOBRE las decisiones
+   (antes quedaban debajo de Pedir/Plantarse/Robar/Guardar). */
+@media (max-width: 640px) {
+  .cam-group {
+    left: 50%;
+    translate: -50% 0;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px);
+    gap: 6px;
+  }
+
+  .cam-btn {
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  /* La bandeja de robo y los avisos de abajo suben una fila más en 3D. */
+  .mesa3d-host ~ .steal-tray,
+  .table:has(.mesa3d-host) .steal-tray,
+  .table:has(.mesa3d-host) .last-card-chip {
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 116px);
+  }
+}

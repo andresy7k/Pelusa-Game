@@ -4,6 +4,9 @@ import { api } from '../api/client';
 import { recall } from '../api/identity';
 import { friendlyMessage, type GameState } from '../api/types';
 import { useGame } from '../hooks/useGame';
+import { useFreshEvent, type TableEvent } from '../hooks/useFreshEvent';
+import { ACT_LABEL, ActIcon, actKindOf, type ActKind } from '../components/ActIcon';
+import { BustOverlay } from '../components/BustOverlay';
 import { CardBack, CardView } from '../components/CardView';
 import { Avatar, avatarOf } from '../components/Avatar';
 import { FlightLayer, type Flight, type FlightPoint } from '../components/FlightLayer';
@@ -39,6 +42,9 @@ export function Board() {
   const navigate = useNavigate();
   const seed = (location.state as { game?: GameState } | null)?.game;
   const { state, error, busy, act } = useGame(id, seed);
+  // Jugada nueva (mía o de otro): dispara el aviso sobre la cabeza del
+  // jugador y, si repitió, la animación de pérdida para todos.
+  const fresh = useFreshEvent(state);
   // El historial guarda `state` entre recargas: una vez usado, se borra para
   // que F5 pida la mesa al servidor en vez de repintar la recién creada.
   useEffect(() => {
@@ -107,14 +113,17 @@ export function Board() {
   const meId = online ? (identity?.playerId ?? '') : (state.currentPlayerId ?? '');
   const myTurn = finished ? false : online ? meId !== '' && state.currentPlayerId === meId : meId !== '';
   const spectator = online && meId === '';
-  const ev = state.lastEvent as {
-    type?: string;
-    value?: number;
-    count?: number;
-    bust?: boolean;
-    playerId?: string;
-  } | null;
-  const bust = !finished && ev?.type === 'DRAW' && ev.bust === true;
+  const ev = state.lastEvent as TableEvent | null;
+  // También con la partida terminada: un bust con la última carta la cierra.
+  const bust = ev?.type === 'DRAW' && ev.bust === true;
+  const buster = bust ? (state.players.find((p) => p.id === ev?.playerId) ?? null) : null;
+  // Decisión recién tomada y quién la tomó (para el aviso sobre su cabeza).
+  const freshKind: ActKind | null = fresh ? actKindOf(fresh.ev) : null;
+  const freshActor = fresh?.ev.playerId ?? null;
+  const actionOf = (playerId: string) =>
+    fresh && freshKind && freshActor === playerId ? { kind: freshKind, key: fresh.key } : null;
+  const freshBust = fresh && fresh.ev.type === 'DRAW' && fresh.ev.bust === true ? fresh : null;
+  const freshBuster = freshBust ? (state.players.find((p) => p.id === freshBust.ev.playerId) ?? null) : null;
   const stealValue = state.lastDrawnValue;
   const rivals = state.players.filter((p) => p.id !== meId);
   const turnPlayer = state.players.find((p) => p.id === state.currentPlayerId) ?? null;
@@ -124,6 +133,16 @@ export function Board() {
   const hasStealTarget = stealValue != null && rivals.some((p) => (state.fronts[p.id] ?? []).includes(stealValue));
   // Modo robo efectivo: activo, mi turno y con algo robable este turno.
   const stealing = robbing && myTurn && stealValue != null;
+  // A quién y cuántas se le roban (bandeja de robo: un solo botón grande).
+  const victims =
+    stealValue == null
+      ? []
+      : rivals
+          .map((p) => ({ p, n: (state.fronts[p.id] ?? []).filter((v) => v === stealValue).length }))
+          .filter((x) => x.n > 0);
+  const stealTotal = victims.reduce((sum, x) => sum + x.n, 0);
+  // Sacó la última carta: puede robar todavía; al plantarse termina la partida.
+  const lastCard = myTurn && state.deckRemaining === 0 && stealValue != null;
 
   // Ángulo de cada asiento sobre la mesa: el activo siempre a 180° (abajo,
   // cerca del jugador); los rivales repartidos en el arco opuesto.
@@ -232,10 +251,28 @@ export function Board() {
 
   return (
     <main className="page table">
-      {bust && (
-        <p className="bust-banner" role="alert">
-          Carta repetida con 3+ en el frente: todo al descarte. Turno perdido.
-        </p>
+      {bust && ev?.value != null && (
+        <div className="bust-banner" role="status">
+          <span className="bust-banner-card" aria-hidden="true">
+            <CardView value={ev.value} small />
+          </span>
+          <span>
+            {buster ? (buster.id === meId && online ? 'Repetiste' : `${buster.name} repitió`) : 'Se repitió'} el{' '}
+            <strong>{ev.value}</strong>
+            {ev.lost ? ` y perdió ${ev.lost} carta${ev.lost === 1 ? '' : 's'}` : ' y perdió su frente'}.
+          </span>
+        </div>
+      )}
+
+      {freshBust && freshBust.ev.value != null && (
+        <BustOverlay
+          key={freshBust.key}
+          name={freshBuster?.name ?? 'Alguien'}
+          avatar={freshBuster ? avatarOf(freshBuster) : 1}
+          value={freshBust.ev.value}
+          lost={freshBust.ev.lost ?? 0}
+          mine={online && freshBuster !== null && freshBuster.id === meId}
+        />
       )}
 
       {spectator && (
@@ -269,7 +306,7 @@ export function Board() {
             Sorteo: empieza <strong>{nameOf(state.players, state.currentPlayerId)}</strong>
           </div>
         )}
-        {(ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH' || ev?.type === 'TURN_EXPIRED') && (
+        {!bust && (ev?.type === 'DRAW' || ev?.type === 'STEAL' || ev?.type === 'STASH' || ev?.type === 'TURN_EXPIRED') && (
           <div className="event-chip">
             {ev?.type === 'DRAW' && (
               <>
@@ -319,6 +356,7 @@ export function Board() {
                   seat: p.seat,
                   name: p.name,
                   avatar: avatarOf(p),
+                  action: actionOf(p.id),
                   // Quien tiene el turno (no "yo": online veo los turnos ajenos).
                   isTurn: p.id === state.currentPlayerId && !finished,
                   values: state.fronts[p.id] ?? [],
@@ -365,6 +403,17 @@ export function Board() {
                     className={`seat-panel${active ? ' active' : ''}${isRival ? ' rival' : ''}`}
                     data-player={p.id}
                   >
+                    {(() => {
+                      const a = actionOf(p.id);
+                      return a ? (
+                        <span key={a.key} className={`act-badge act-badge--${a.kind}`} role="status">
+                          <span className="act-badge-icon" aria-hidden="true">
+                            <ActIcon kind={a.kind} />
+                          </span>
+                          <span className="act-badge-label">{ACT_LABEL[a.kind]}</span>
+                        </span>
+                      ) : null;
+                    })()}
                     <header className="player-head">
                       <Avatar value={avatarOf(p)} size="sm" />
                       <h2>
@@ -410,7 +459,7 @@ export function Board() {
               onClick={draw}
               title={
                 state.deckRemaining === 0
-                  ? 'Mazo vacío: plantate para pasar el turno'
+                  ? 'Mazo vacío: plantate para terminar la partida'
                   : 'Sacar una carta del mazo'
               }
             >
@@ -424,7 +473,7 @@ export function Board() {
               className="act act-stand"
               disabled={busy || !myTurn || stealValue == null}
               onClick={() => id && act(() => api.stand(id, meId))}
-              title={stealValue == null ? 'Primero sacá al menos una carta' : 'Plantarse: pasar el turno'}
+              title={stealValue == null ? 'Primero sacá al menos una carta' : state.deckRemaining === 0 ? 'Plantarse: termina la partida' : 'Plantarse: pasar el turno'}
             >
               <span className="act-icon" aria-hidden="true">
                 −
@@ -447,23 +496,7 @@ export function Board() {
               }
             >
               <span className="act-icon" aria-hidden="true">
-                {/* SVG en vez de 🥷: U+1F977 no existe en fuentes emoji viejas
-                    (Windows 10) y aparece como cuadrado vacío. */}
-                <svg viewBox="0 0 32 32" className="ninja-svg">
-                  <path
-                    d="M16 4.5c6 0 10 3.9 10 9v4.1c0 5.2-4.4 8.4-10 8.4s-10-3.2-10-8.4V13.5c0-5.1 4-9 10-9Z"
-                    fill="oklch(0.14 0.05 292)"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M7.5 13.8c2.5-1.4 5.2-2.1 8.5-2.1s6 .7 8.5 2.1v3.4c-2.5 1.3-5.2 2-8.5 2s-6-.7-8.5-2Z"
-                    fill="var(--parchment)"
-                  />
-                  <ellipse cx="12.7" cy="15.5" rx="1.55" ry="1.85" fill="oklch(0.14 0.05 292)" />
-                  <ellipse cx="19.3" cy="15.5" rx="1.55" ry="1.85" fill="oklch(0.14 0.05 292)" />
-                </svg>
+                <ActIcon kind="steal" />
               </span>
               <span className="act-label">{stealing ? 'Cancelar' : 'Robar'}</span>
             </button>
@@ -480,9 +513,41 @@ export function Board() {
               <span className="act-label">Guardar</span>
             </button>
           </div>
-          {stealing && (
-            <p className="hint" role="status">
-              Tocá una carta resaltada: solo se roban los {stealValue}s de la última carta que sacaste.
+          {stealing && stealValue != null && (
+            <section className="steal-tray" aria-label={`Robar los ${stealValue}`}>
+              <div className="steal-tray-head">
+                <CardView value={stealValue} small />
+                <p>
+                  Robás <strong>todos los {stealValue}</strong> que haya boca arriba:
+                </p>
+              </div>
+              <ul className="steal-tray-list">
+                {victims.map(({ p, n }) => (
+                  <li key={p.id}>
+                    <Avatar value={avatarOf(p)} size="sm" />
+                    <span>{p.name}</span>
+                    <strong>×{n}</strong>
+                  </li>
+                ))}
+              </ul>
+              <div className="steal-tray-actions">
+                <button type="button" className="ghost" onClick={() => setRobbing(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy || stealTotal === 0}
+                  onClick={() => void doSteal(stealValue)}
+                >
+                  Robar {stealTotal} carta{stealTotal === 1 ? '' : 's'}
+                </button>
+              </div>
+            </section>
+          )}
+          {lastCard && !stealing && (
+            <p className="last-card-chip" role="status">
+              Última carta del mazo: todavía podés robar. Al plantarte termina la partida.
             </p>
           )}
           {error && (
